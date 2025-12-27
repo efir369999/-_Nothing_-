@@ -1,5 +1,5 @@
 #!/bin/bash
-# Proof of Time - Production Install Script
+# Proof of Time - One-Click Install & Run Script
 # https://github.com/afgrouptime/proofoftime
 #
 # Usage: curl -sSL https://raw.githubusercontent.com/afgrouptime/proofoftime/main/install.sh | bash
@@ -10,79 +10,90 @@ set -e
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m'
 
 log() { echo -e "${GREEN}[PoT]${NC} $1"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
+info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 
-# Check root
+# Handle root vs non-root
 if [[ $EUID -eq 0 ]]; then
-    error "Do not run as root. Script will use sudo when needed."
+    SUDO=""
+else
+    SUDO="sudo"
 fi
 
-log "Installing Proof of Time node..."
+echo ""
+echo -e "${GREEN}╔═══════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║         PROOF OF TIME - NODE INSTALLER            ║${NC}"
+echo -e "${GREEN}║         One-Click Install & Auto-Start            ║${NC}"
+echo -e "${GREEN}╚═══════════════════════════════════════════════════╝${NC}"
+echo ""
+
+log "Starting installation..."
 
 # Detect OS
 if [[ -f /etc/debian_version ]]; then
     PKG_MANAGER="apt"
-    PKG_INSTALL="sudo apt install -y"
-    sudo apt update
+    log "Detected: Debian/Ubuntu"
+    $SUDO apt update -qq
+    $SUDO apt install -y -qq python3 python3-pip python3-venv libsodium-dev git curl >/dev/null 2>&1
 elif [[ -f /etc/redhat-release ]]; then
     PKG_MANAGER="yum"
-    PKG_INSTALL="sudo yum install -y"
+    log "Detected: RHEL/CentOS"
+    $SUDO yum install -y -q python3 python3-pip libsodium-devel git curl >/dev/null 2>&1
 else
     error "Unsupported OS. Use Debian/Ubuntu or RHEL/CentOS."
 fi
+log "System dependencies installed ✓"
 
-# Install dependencies
-log "Installing system dependencies..."
-if [[ "$PKG_MANAGER" == "apt" ]]; then
-    $PKG_INSTALL python3 python3-pip python3-venv libsodium-dev git curl
-else
-    $PKG_INSTALL python3 python3-pip libsodium-devel git curl
-fi
-
-# Create directories
+# Directories
 POT_HOME="/opt/proofoftime"
 POT_DATA="/var/lib/proofoftime"
 POT_LOG="/var/log/proofoftime"
 POT_USER="pot"
 
+# Create user and directories
 log "Creating user and directories..."
-sudo useradd -r -s /bin/false $POT_USER 2>/dev/null || true
-sudo mkdir -p $POT_HOME $POT_DATA $POT_LOG
-sudo chown -R $POT_USER:$POT_USER $POT_DATA $POT_LOG
+$SUDO useradd -r -s /bin/false $POT_USER 2>/dev/null || true
+$SUDO mkdir -p $POT_HOME $POT_DATA $POT_LOG
+$SUDO chown -R $POT_USER:$POT_USER $POT_DATA $POT_LOG
+log "Directories created ✓"
 
 # Clone repository
 log "Downloading Proof of Time..."
 if [[ -d "$POT_HOME/.git" ]]; then
-    cd $POT_HOME && sudo git pull
+    cd $POT_HOME && $SUDO git pull -q
 else
-    sudo rm -rf $POT_HOME
-    sudo git clone https://github.com/afgrouptime/proofoftime.git $POT_HOME
+    $SUDO rm -rf $POT_HOME
+    $SUDO git clone -q https://github.com/afgrouptime/proofoftime.git $POT_HOME
 fi
-sudo chown -R $POT_USER:$POT_USER $POT_HOME
+$SUDO chown -R $POT_USER:$POT_USER $POT_HOME
+log "Source code downloaded ✓"
 
 # Setup Python environment
-log "Setting up Python environment..."
+log "Setting up Python environment (this may take a minute)..."
 cd $POT_HOME
-sudo -u $POT_USER python3 -m venv venv
-sudo -u $POT_USER ./venv/bin/pip install --upgrade pip
-sudo -u $POT_USER ./venv/bin/pip install -r requirements.txt
+$SUDO -u $POT_USER python3 -m venv venv
+$SUDO -u $POT_USER ./venv/bin/pip install --upgrade pip -q 2>/dev/null
+$SUDO -u $POT_USER ./venv/bin/pip install -r requirements.txt -q 2>/dev/null
+log "Python environment ready ✓"
 
 # Verify installation
 log "Verifying installation..."
-sudo -u $POT_USER ./venv/bin/python -c "
+$SUDO -u $POT_USER ./venv/bin/python -c "
 from crypto import WesolowskiVDF
 from consensus import ConsensusEngine
 from privacy import LSAG
-print('All modules loaded successfully')
-" || error "Module verification failed"
+print('OK')
+" >/dev/null 2>&1 || error "Module verification failed"
+log "All modules verified ✓"
 
 # Create config
 log "Creating configuration..."
-sudo tee /etc/proofoftime.json > /dev/null << 'EOF'
+$SUDO tee /etc/proofoftime.json > /dev/null << 'EOF'
 {
     "data_dir": "/var/lib/proofoftime",
     "log_dir": "/var/log/proofoftime",
@@ -94,11 +105,11 @@ sudo tee /etc/proofoftime.json > /dev/null << 'EOF'
     "dns_seeds": []
 }
 EOF
-sudo chown $POT_USER:$POT_USER /etc/proofoftime.json
+$SUDO chown $POT_USER:$POT_USER /etc/proofoftime.json
 
 # Create systemd service
 log "Creating systemd service..."
-sudo tee /etc/systemd/system/proofoftime.service > /dev/null << EOF
+$SUDO tee /etc/systemd/system/proofoftime.service > /dev/null << EOF
 [Unit]
 Description=Proof of Time Node
 Documentation=https://github.com/afgrouptime/proofoftime
@@ -130,46 +141,82 @@ MemoryMax=4G
 WantedBy=multi-user.target
 EOF
 
-# Reload systemd
-sudo systemctl daemon-reload
-
 # Create helper commands
-log "Creating helper commands..."
-sudo tee /usr/local/bin/pot-cli > /dev/null << 'EOF'
+$SUDO tee /usr/local/bin/pot-cli > /dev/null << 'EOF'
 #!/bin/bash
 curl -s -X POST -H "Content-Type: application/json" \
     -d "{\"method\": \"$1\", \"params\": [${@:2}]}" \
     http://127.0.0.1:8332/
 EOF
-sudo chmod +x /usr/local/bin/pot-cli
+$SUDO chmod +x /usr/local/bin/pot-cli
 
-sudo tee /usr/local/bin/pot-log > /dev/null << 'EOF'
+$SUDO tee /usr/local/bin/pot-log > /dev/null << 'EOF'
 #!/bin/bash
 journalctl -u proofoftime -f
 EOF
-sudo chmod +x /usr/local/bin/pot-log
+$SUDO chmod +x /usr/local/bin/pot-log
+
+$SUDO tee /usr/local/bin/pot-status > /dev/null << 'EOF'
+#!/bin/bash
+systemctl status proofoftime
+EOF
+$SUDO chmod +x /usr/local/bin/pot-status
+
+$SUDO tee /usr/local/bin/pot-restart > /dev/null << 'EOF'
+#!/bin/bash
+sudo systemctl restart proofoftime
+EOF
+$SUDO chmod +x /usr/local/bin/pot-restart
+
+log "Helper commands created ✓"
 
 # Firewall
-log "Configuring firewall..."
 if command -v ufw &> /dev/null; then
-    sudo ufw allow 8333/tcp comment "Proof of Time P2P" 2>/dev/null || true
+    $SUDO ufw allow 8333/tcp comment "Proof of Time P2P" 2>/dev/null || true
+    log "Firewall configured (ufw) ✓"
 elif command -v firewall-cmd &> /dev/null; then
-    sudo firewall-cmd --permanent --add-port=8333/tcp 2>/dev/null || true
-    sudo firewall-cmd --reload 2>/dev/null || true
+    $SUDO firewall-cmd --permanent --add-port=8333/tcp 2>/dev/null || true
+    $SUDO firewall-cmd --reload 2>/dev/null || true
+    log "Firewall configured (firewalld) ✓"
+fi
+
+# Enable and start service
+log "Starting Proof of Time node..."
+$SUDO systemctl daemon-reload
+$SUDO systemctl enable proofoftime >/dev/null 2>&1
+$SUDO systemctl start proofoftime
+
+# Wait for startup
+sleep 3
+
+# Check status
+if systemctl is-active --quiet proofoftime; then
+    STATUS="${GREEN}RUNNING${NC}"
+else
+    STATUS="${RED}FAILED${NC}"
 fi
 
 # Print summary
 echo ""
-log "Installation complete!"
+echo -e "${GREEN}╔═══════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║           INSTALLATION COMPLETE!                  ║${NC}"
+echo -e "${GREEN}╚═══════════════════════════════════════════════════╝${NC}"
 echo ""
-echo "Commands:"
-echo "  sudo systemctl start proofoftime   # Start node"
-echo "  sudo systemctl enable proofoftime  # Enable on boot"
-echo "  pot-log                             # View logs"
-echo "  pot-cli getinfo                     # RPC call"
+echo -e "  Status:  $STATUS"
 echo ""
-echo "Config: /etc/proofoftime.json"
-echo "Data:   $POT_DATA"
-echo "Logs:   $POT_LOG"
+echo -e "  ${BLUE}Quick Commands:${NC}"
+echo "    pot-status   - Check node status"
+echo "    pot-log      - View live logs"
+echo "    pot-restart  - Restart node"
+echo "    pot-cli getinfo - RPC call"
 echo ""
-warn "Run 'sudo systemctl start proofoftime' to start the node"
+echo -e "  ${BLUE}Paths:${NC}"
+echo "    Config: /etc/proofoftime.json"
+echo "    Data:   $POT_DATA"
+echo "    Logs:   $POT_LOG"
+echo ""
+echo -e "  ${BLUE}Ports:${NC}"
+echo "    P2P: 8333"
+echo "    RPC: 8332 (localhost only)"
+echo ""
+log "Node is running! Use 'pot-log' to view logs."
