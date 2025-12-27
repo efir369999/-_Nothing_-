@@ -1,14 +1,29 @@
 # Proof of Time - Dependencies
 # Install with: pip install -r requirements.txt
 
-# Cryptography
-PyNaCl>=1.5.0
-pycryptodome>=3.19.0
-cryptography>=41.0.0
+# ============================================================================
+# REQUIRED DEPENDENCIES
+# ============================================================================
 
-# PDF processing (optional, for whitepaper extraction)
+# Core cryptography
+PyNaCl>=1.5.0              # Ed25519, X25519, AEAD primitives (libsodium bindings)
+pycryptodome>=3.19.0       # RSA, SHA, low-level crypto operations
+cryptography>=41.0.0       # AES-GCM, Scrypt, certificate handling
+
+# Password hashing (OWASP recommended)
+argon2-cffi>=23.1.0        # Argon2id - memory-hard password hashing
+
+# Secure P2P networking (REQUIRED for production)
+noiseprotocol>=0.3.1       # Noise Protocol Framework - encrypted P2P
+
+# ============================================================================
+# OPTIONAL DEPENDENCIES
+# ============================================================================
+
+# PDF processing (for whitepaper extraction)
 pypdf>=3.17.0
 
-# Noise Protocol (optional, for encrypted P2P)
-noiseprotocol>=0.3.1
+# Testing
+pytest>=7.4.0
+pytest-timeout>=2.2.0
 

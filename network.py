@@ -34,6 +34,8 @@ from enum import IntEnum
 from collections import defaultdict
 from abc import ABC, abstractmethod
 
+# Noise Protocol is REQUIRED for secure P2P communication
+# NO FALLBACK - P2P without encryption is NOT allowed in production
 try:
     from noise.connection import NoiseConnection, Keypair
     from noise.backends.default import DefaultBackend
@@ -41,7 +43,19 @@ try:
     NOISE_AVAILABLE = True
 except ImportError:
     NOISE_AVAILABLE = False
-    logging.warning("noise library not available. Install with: pip install noiseprotocol")
+    # For development/testing only - allow import but block connections
+    import warnings
+    warnings.warn(
+        "CRITICAL: Noise Protocol library not available! "
+        "P2P connections will be BLOCKED until you install it. "
+        "Install with: pip install noiseprotocol",
+        RuntimeWarning
+    )
+    logging.critical(
+        "FATAL: Noise Protocol not available. "
+        "P2P networking is DISABLED for security. "
+        "Install noiseprotocol: pip install noiseprotocol"
+    )
 
 try:
     from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
@@ -1234,6 +1248,13 @@ class P2PNode:
     """
     
     def __init__(self, config: Optional[NetworkConfig] = None, noise_keys: Optional[NoiseKeys] = None):
+        # SECURITY: Require Noise Protocol for P2P networking
+        if not NOISE_AVAILABLE:
+            raise RuntimeError(
+                "FATAL: Cannot start P2P node without Noise Protocol encryption. "
+                "Install noiseprotocol: pip install noiseprotocol"
+            )
+        
         self.config = config or NetworkConfig()
         self.port = self.config.default_port
         
@@ -1848,6 +1869,560 @@ class P2PNode:
             'seen_txs': len(self.seen_txs),
             'seen_blocks': len(self.seen_blocks),
         }
+
+
+# ============================================================================
+# HEADERS-FIRST INITIAL BLOCK DOWNLOAD (IBD)
+# ============================================================================
+
+class SyncState(IntEnum):
+    """Synchronization state machine."""
+    IDLE = 0
+    DOWNLOADING_HEADERS = 1
+    VALIDATING_HEADERS = 2
+    DOWNLOADING_BLOCKS = 3
+    SYNCED = 4
+
+
+@dataclass
+class BlockRequest:
+    """Tracks a pending block download request."""
+    block_hash: bytes
+    height: int
+    requested_at: float
+    peer_id: str
+    retries: int = 0
+
+
+class HeadersFirstSync:
+    """
+    Headers-first Initial Block Download implementation.
+    
+    Protocol (Bitcoin-style):
+    1. Request headers starting from our best header hash
+    2. Validate header chain (PoW/difficulty in Bitcoin, VDF in PoT)
+    3. Once headers are synced, download blocks in parallel
+    4. Validate full blocks and update UTXO set
+    
+    Advantages:
+    - Fast initial validation (headers only)
+    - Parallel block download
+    - Can verify chain work before downloading blocks
+    - Efficient use of bandwidth
+    
+    Block timeout ensures blocks are produced within target interval.
+    """
+    
+    # Maximum headers per request
+    MAX_HEADERS_PER_REQUEST = 2000
+    
+    # Maximum parallel block downloads
+    MAX_PARALLEL_DOWNLOADS = 16
+    
+    # Block request timeout (should be less than block interval)
+    BLOCK_REQUEST_TIMEOUT = 60.0  # 1 minute
+    
+    # Block production timeout (must produce within this time)
+    BLOCK_PRODUCTION_TIMEOUT = PROTOCOL.BLOCK_INTERVAL - 60  # ~11 minutes for 12 min interval
+    
+    # Stale tip threshold (if no new blocks for this long, re-sync)
+    STALE_TIP_THRESHOLD = PROTOCOL.BLOCK_INTERVAL * 2  # 2x block interval
+    
+    def __init__(
+        self,
+        p2p_node: 'P2PNode',
+        on_new_block: Callable[[Block], bool],
+        get_best_header: Callable[[], Tuple[bytes, int]],
+        has_block: Callable[[bytes], bool]
+    ):
+        """
+        Initialize headers-first sync.
+        
+        Args:
+            p2p_node: P2P node for sending messages
+            on_new_block: Callback when new block received (returns True if valid)
+            get_best_header: Returns (best_header_hash, height)
+            has_block: Returns True if we have this block
+        """
+        self.network = p2p_node
+        self.on_new_block = on_new_block
+        self.get_best_header = get_best_header
+        self.has_block = has_block
+        
+        self.state = SyncState.IDLE
+        
+        # Header chain we're downloading
+        self.pending_headers: List[BlockHeader] = []
+        self.validated_headers: List[BlockHeader] = []
+        self.header_tip_hash: bytes = b''
+        self.header_tip_height: int = 0
+        
+        # Block downloads
+        self.pending_blocks: Dict[bytes, BlockRequest] = {}  # hash -> request
+        self.download_queue: List[bytes] = []  # blocks to download
+        
+        # Timing
+        self.last_block_time: float = time.time()
+        self.sync_start_time: float = 0
+        self.last_progress_log: float = 0
+        
+        # Statistics
+        self.headers_downloaded: int = 0
+        self.blocks_downloaded: int = 0
+        self.blocks_validated: int = 0
+        
+        self._lock = threading.Lock()
+        self._running = False
+        self._thread: Optional[threading.Thread] = None
+    
+    def start(self):
+        """Start sync manager."""
+        if self._running:
+            return
+        
+        self._running = True
+        self._thread = threading.Thread(target=self._sync_loop, daemon=True)
+        self._thread.start()
+        logger.info("Headers-first sync started")
+    
+    def stop(self):
+        """Stop sync manager."""
+        self._running = False
+        if self._thread:
+            self._thread.join(timeout=5)
+    
+    def _sync_loop(self):
+        """Main synchronization loop."""
+        while self._running:
+            try:
+                with self._lock:
+                    self._check_state()
+                    self._process_timeouts()
+                    self._fill_download_slots()
+                
+                time.sleep(0.5)
+                
+            except Exception as e:
+                logger.error(f"Sync loop error: {e}")
+                time.sleep(5)
+    
+    def _check_state(self):
+        """Check and update sync state."""
+        current_time = time.time()
+        
+        if self.state == SyncState.IDLE:
+            # Check if we need to sync
+            if self._needs_sync():
+                self._start_header_sync()
+        
+        elif self.state == SyncState.DOWNLOADING_HEADERS:
+            # Check if headers are complete
+            if not self.pending_headers and not self._waiting_for_headers():
+                self.state = SyncState.VALIDATING_HEADERS
+                self._validate_headers()
+        
+        elif self.state == SyncState.VALIDATING_HEADERS:
+            # Headers validated, start block download
+            if self.download_queue or self.pending_blocks:
+                self.state = SyncState.DOWNLOADING_BLOCKS
+            else:
+                self.state = SyncState.SYNCED
+                logger.info("Sync complete!")
+        
+        elif self.state == SyncState.DOWNLOADING_BLOCKS:
+            # Check if block download is complete
+            if not self.download_queue and not self.pending_blocks:
+                self.state = SyncState.SYNCED
+                logger.info(f"Block download complete: {self.blocks_validated} blocks")
+        
+        elif self.state == SyncState.SYNCED:
+            # Check for stale tip
+            if current_time - self.last_block_time > self.STALE_TIP_THRESHOLD:
+                logger.warning("Chain tip stale, initiating re-sync")
+                self.state = SyncState.IDLE
+        
+        # Log progress periodically
+        if current_time - self.last_progress_log > 10:
+            self._log_progress()
+            self.last_progress_log = current_time
+    
+    def _needs_sync(self) -> bool:
+        """Check if we need to synchronize."""
+        peers = self.network.get_peers()
+        if not peers:
+            return False
+        
+        our_hash, our_height = self.get_best_header()
+        
+        # Check if any peer has higher chain
+        for peer in peers:
+            if peer.get('height', 0) > our_height:
+                return True
+        
+        return False
+    
+    def _start_header_sync(self):
+        """Start downloading headers."""
+        self.state = SyncState.DOWNLOADING_HEADERS
+        self.sync_start_time = time.time()
+        self.pending_headers = []
+        self.validated_headers = []
+        
+        our_hash, our_height = self.get_best_header()
+        self.header_tip_hash = our_hash
+        self.header_tip_height = our_height
+        
+        logger.info(f"Starting header sync from height {our_height}")
+        
+        self._request_headers()
+    
+    def _request_headers(self):
+        """Request headers from peers."""
+        # Build locator (simplified - just our tip)
+        locator = [self.header_tip_hash] if self.header_tip_hash else []
+        
+        # Find best peer
+        peers = self.network.get_peers()
+        best_peer = None
+        best_height = self.header_tip_height
+        
+        for peer in peers:
+            if peer.get('height', 0) > best_height:
+                best_height = peer.get('height', 0)
+                best_peer = peer
+        
+        if best_peer:
+            # Create getheaders message
+            payload = bytearray()
+            payload.append(len(locator))
+            for h in locator:
+                payload.extend(h)
+            payload.extend(b'\x00' * 32)  # Stop hash (all zeros = get all)
+            
+            self.network.broadcast_message(
+                MessageType.GETHEADERS,
+                bytes(payload),
+                peer_filter=lambda p: p.id == best_peer['id']
+            )
+    
+    def _waiting_for_headers(self) -> bool:
+        """Check if we're waiting for header response."""
+        # Could track pending requests here
+        return False
+    
+    def _validate_headers(self):
+        """Validate downloaded header chain."""
+        logger.info(f"Validating {len(self.pending_headers)} headers")
+        
+        # For each header, verify it links correctly
+        for header in self.pending_headers:
+            # Basic validation (full validation done when blocks arrive)
+            if len(header.prev_block_hash) != 32:
+                logger.warning("Invalid header: bad prev_hash")
+                self.state = SyncState.IDLE
+                return
+            
+            self.validated_headers.append(header)
+            
+            # Add to download queue if we don't have the block
+            block_hash = header.hash()
+            if not self.has_block(block_hash):
+                self.download_queue.append(block_hash)
+        
+        self.headers_downloaded = len(self.validated_headers)
+        logger.info(f"Headers validated, {len(self.download_queue)} blocks to download")
+    
+    def _fill_download_slots(self):
+        """Fill available download slots with block requests."""
+        if self.state != SyncState.DOWNLOADING_BLOCKS:
+            return
+        
+        available_slots = self.MAX_PARALLEL_DOWNLOADS - len(self.pending_blocks)
+        if available_slots <= 0:
+            return
+        
+        peers = self.network.get_peers()
+        if not peers:
+            return
+        
+        # Request blocks
+        for _ in range(available_slots):
+            if not self.download_queue:
+                break
+            
+            block_hash = self.download_queue.pop(0)
+            
+            # Find peer to request from (round-robin)
+            peer = random.choice(peers)
+            
+            request = BlockRequest(
+                block_hash=block_hash,
+                height=0,  # Could track this
+                requested_at=time.time(),
+                peer_id=peer['id']
+            )
+            self.pending_blocks[block_hash] = request
+            
+            # Send getdata request
+            payload = bytearray()
+            payload.append(1)  # Count
+            payload.extend(struct.pack('<I', InvType.BLOCK))
+            payload.extend(block_hash)
+            
+            self.network.broadcast_message(
+                MessageType.GETDATA,
+                bytes(payload),
+                peer_filter=lambda p: p.id == peer['id']
+            )
+    
+    def _process_timeouts(self):
+        """Process timed out requests."""
+        current_time = time.time()
+        timed_out = []
+        
+        for block_hash, request in self.pending_blocks.items():
+            if current_time - request.requested_at > self.BLOCK_REQUEST_TIMEOUT:
+                timed_out.append(block_hash)
+        
+        for block_hash in timed_out:
+            request = self.pending_blocks.pop(block_hash)
+            request.retries += 1
+            
+            if request.retries < 3:
+                # Re-queue for download
+                self.download_queue.insert(0, block_hash)
+                logger.debug(f"Block request timeout, retry {request.retries}")
+            else:
+                logger.warning(f"Block {block_hash.hex()[:16]} failed after 3 retries")
+    
+    def on_headers_received(self, peer_id: str, headers: List[BlockHeader]):
+        """Handle received headers."""
+        with self._lock:
+            if self.state != SyncState.DOWNLOADING_HEADERS:
+                return
+            
+            logger.debug(f"Received {len(headers)} headers from {peer_id}")
+            
+            for header in headers:
+                self.pending_headers.append(header)
+            
+            # If we got a full batch, request more
+            if len(headers) >= self.MAX_HEADERS_PER_REQUEST:
+                self.header_tip_hash = headers[-1].hash()
+                self._request_headers()
+    
+    def on_block_received(self, peer_id: str, block: Block):
+        """Handle received block."""
+        with self._lock:
+            block_hash = block.hash
+            
+            # Remove from pending
+            if block_hash in self.pending_blocks:
+                del self.pending_blocks[block_hash]
+            
+            # Update timing
+            self.last_block_time = time.time()
+        
+        # Validate and process block (outside lock)
+        try:
+            if self.on_new_block(block):
+                with self._lock:
+                    self.blocks_downloaded += 1
+                    self.blocks_validated += 1
+            else:
+                logger.warning(f"Block validation failed: {block_hash.hex()[:16]}")
+        except Exception as e:
+            logger.error(f"Block processing error: {e}")
+    
+    def _log_progress(self):
+        """Log sync progress."""
+        if self.state == SyncState.IDLE:
+            return
+        
+        elapsed = time.time() - self.sync_start_time
+        
+        if self.state == SyncState.DOWNLOADING_HEADERS:
+            logger.info(
+                f"Sync progress: downloading headers "
+                f"({len(self.pending_headers)} received, {elapsed:.0f}s elapsed)"
+            )
+        elif self.state in (SyncState.VALIDATING_HEADERS, SyncState.DOWNLOADING_BLOCKS):
+            total_blocks = self.headers_downloaded
+            pct = (self.blocks_validated / max(total_blocks, 1)) * 100
+            pending = len(self.pending_blocks)
+            queued = len(self.download_queue)
+            
+            logger.info(
+                f"Sync progress: {self.blocks_validated}/{total_blocks} blocks "
+                f"({pct:.1f}%), {pending} downloading, {queued} queued, "
+                f"{elapsed:.0f}s elapsed"
+            )
+    
+    def get_sync_progress(self) -> Dict[str, Any]:
+        """Get current sync progress."""
+        with self._lock:
+            return {
+                'state': SyncState(self.state).name,
+                'headers_downloaded': self.headers_downloaded,
+                'blocks_downloaded': self.blocks_downloaded,
+                'blocks_validated': self.blocks_validated,
+                'pending_blocks': len(self.pending_blocks),
+                'queued_blocks': len(self.download_queue),
+                'is_synced': self.state == SyncState.SYNCED,
+                'last_block_age': time.time() - self.last_block_time
+            }
+    
+    def check_block_timeout(self, expected_height: int) -> bool:
+        """
+        Check if we've waited too long for a block.
+        
+        This is used to detect if the current leader failed to produce
+        a block, triggering leader rotation.
+        
+        Returns:
+            True if block production has timed out
+        """
+        time_since_last = time.time() - self.last_block_time
+        return time_since_last > self.BLOCK_PRODUCTION_TIMEOUT
+
+
+class BlockTimeoutMonitor:
+    """
+    Monitors block production times to ensure blocks arrive within 12 minutes.
+    
+    If a block doesn't arrive in time:
+    1. Log timeout event
+    2. Notify consensus for potential leader failure
+    3. Track statistics for network health
+    """
+    
+    # Target block interval (12 minutes)
+    TARGET_INTERVAL = PROTOCOL.BLOCK_INTERVAL
+    
+    # Maximum acceptable block time before timeout
+    MAX_BLOCK_TIME = PROTOCOL.BLOCK_INTERVAL + 60  # 13 minutes
+    
+    # Warning threshold
+    WARNING_THRESHOLD = PROTOCOL.BLOCK_INTERVAL * 0.9  # 10.8 minutes
+    
+    def __init__(
+        self,
+        on_timeout: Optional[Callable[[int, float], None]] = None
+    ):
+        """
+        Initialize block timeout monitor.
+        
+        Args:
+            on_timeout: Callback(expected_height, time_elapsed) when timeout occurs
+        """
+        self.on_timeout = on_timeout
+        
+        self.last_block_time: float = time.time()
+        self.last_block_height: int = 0
+        
+        # Statistics
+        self.block_times: List[float] = []
+        self.timeout_count: int = 0
+        self.slow_block_count: int = 0  # Blocks > 90% of target
+        
+        self._lock = threading.Lock()
+        self._running = False
+        self._thread: Optional[threading.Thread] = None
+    
+    def start(self):
+        """Start monitoring."""
+        if self._running:
+            return
+        
+        self._running = True
+        self._thread = threading.Thread(target=self._monitor_loop, daemon=True)
+        self._thread.start()
+        logger.info("Block timeout monitor started")
+    
+    def stop(self):
+        """Stop monitoring."""
+        self._running = False
+        if self._thread:
+            self._thread.join(timeout=5)
+    
+    def _monitor_loop(self):
+        """Main monitoring loop."""
+        while self._running:
+            try:
+                self._check_timeout()
+                time.sleep(10)  # Check every 10 seconds
+            except Exception as e:
+                logger.error(f"Monitor error: {e}")
+    
+    def _check_timeout(self):
+        """Check if block production has timed out."""
+        with self._lock:
+            elapsed = time.time() - self.last_block_time
+            expected_height = self.last_block_height + 1
+            
+            if elapsed > self.MAX_BLOCK_TIME:
+                self.timeout_count += 1
+                logger.warning(
+                    f"BLOCK TIMEOUT: No block at height {expected_height} "
+                    f"for {elapsed:.0f}s (max {self.MAX_BLOCK_TIME:.0f}s)"
+                )
+                
+                if self.on_timeout:
+                    self.on_timeout(expected_height, elapsed)
+                
+                # Reset timer to avoid repeated callbacks
+                self.last_block_time = time.time()
+            
+            elif elapsed > self.WARNING_THRESHOLD:
+                logger.debug(
+                    f"Block production slow: {elapsed:.0f}s elapsed "
+                    f"(warning at {self.WARNING_THRESHOLD:.0f}s)"
+                )
+    
+    def record_block(self, height: int, timestamp: float):
+        """Record that a block was received."""
+        with self._lock:
+            current_time = time.time()
+            
+            if self.last_block_time > 0:
+                block_time = current_time - self.last_block_time
+                self.block_times.append(block_time)
+                
+                # Keep last 100 block times
+                if len(self.block_times) > 100:
+                    self.block_times = self.block_times[-100:]
+                
+                # Track slow blocks
+                if block_time > self.WARNING_THRESHOLD:
+                    self.slow_block_count += 1
+            
+            self.last_block_time = current_time
+            self.last_block_height = height
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get block timing statistics."""
+        with self._lock:
+            if not self.block_times:
+                return {
+                    'avg_block_time': 0,
+                    'min_block_time': 0,
+                    'max_block_time': 0,
+                    'timeout_count': self.timeout_count,
+                    'slow_block_count': self.slow_block_count,
+                    'time_since_last': time.time() - self.last_block_time
+                }
+            
+            return {
+                'avg_block_time': sum(self.block_times) / len(self.block_times),
+                'min_block_time': min(self.block_times),
+                'max_block_time': max(self.block_times),
+                'median_block_time': sorted(self.block_times)[len(self.block_times)//2],
+                'timeout_count': self.timeout_count,
+                'slow_block_count': self.slow_block_count,
+                'sample_count': len(self.block_times),
+                'time_since_last': time.time() - self.last_block_time,
+                'last_block_height': self.last_block_height
+            }
 
 
 # ============================================================================

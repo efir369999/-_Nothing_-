@@ -24,6 +24,7 @@ from queue import Queue, Empty
 from config import PROTOCOL, NodeConfig, get_block_reward
 from crypto import sha256, Ed25519, WesolowskiVDF, VDFProof, ECVRF, VRFOutput
 from structures import Block, BlockHeader, Transaction, TxType, create_genesis_block
+from privacy import LSAG, Bulletproof, RingCT
 from consensus import (
     ConsensusEngine, NodeState, NodeStatus, ProbabilityWeights,
     SlashingManager, SlashingEvidence
@@ -194,26 +195,109 @@ class Mempool:
                 self.remove_transaction(txid)
     
     def _validate_transaction(self, tx: Transaction) -> bool:
-        """Basic transaction validation."""
+        """
+        Full transaction validation including cryptographic proofs.
+
+        Validates:
+        1. Version and structure
+        2. Ring signatures (LSAG) for each input
+        3. Range proofs (Bulletproof) for each output
+        4. Commitment balance (inputs = outputs + fee)
+        """
         # Check version
         if tx.version > PROTOCOL.PROTOCOL_VERSION:
+            logger.debug(f"Tx rejected: unknown version {tx.version}")
             return False
-        
+
         # Coinbase not allowed in mempool
         if tx.is_coinbase():
+            logger.debug("Tx rejected: coinbase in mempool")
             return False
-        
+
         # Must have inputs and outputs
         if not tx.inputs or not tx.outputs:
+            logger.debug("Tx rejected: missing inputs or outputs")
             return False
-        
+
         # Fee must be positive
         if tx.fee < PROTOCOL.MIN_FEE:
+            logger.debug(f"Tx rejected: fee {tx.fee} below minimum {PROTOCOL.MIN_FEE}")
             return False
-        
-        # Validate ring signatures (simplified)
-        # Full validation would verify all signatures and range proofs
-        
+
+        # Compute transaction hash for signature verification
+        tx_hash = tx.hash()
+
+        # Validate each input's ring signature
+        for i, inp in enumerate(tx.inputs):
+            # Check ring size
+            if len(inp.ring) < PROTOCOL.MIN_RING_SIZE:
+                logger.debug(f"Tx rejected: input {i} ring size {len(inp.ring)} < minimum {PROTOCOL.MIN_RING_SIZE}")
+                return False
+
+            # Verify ring signature
+            if inp.ring_signature is None:
+                logger.debug(f"Tx rejected: input {i} missing ring signature")
+                return False
+
+            if not LSAG.verify(tx_hash, inp.ring, inp.ring_signature):
+                logger.debug(f"Tx rejected: input {i} invalid ring signature")
+                return False
+
+            # Verify key image matches signature
+            if inp.key_image != inp.ring_signature.key_image:
+                logger.debug(f"Tx rejected: input {i} key image mismatch")
+                return False
+
+        # Validate each output's range proof
+        for i, out in enumerate(tx.outputs):
+            # Check commitment exists
+            if len(out.commitment) != 32:
+                logger.debug(f"Tx rejected: output {i} invalid commitment")
+                return False
+
+            # Verify range proof (proves amount is in valid range [0, 2^64))
+            if out.range_proof is not None:
+                if not Bulletproof.verify(out.commitment, out.range_proof):
+                    logger.debug(f"Tx rejected: output {i} invalid range proof")
+                    return False
+
+        # Verify commitment balance: sum(inputs) = sum(outputs) + fee
+        # This is done by checking: sum(pseudo_commits) - sum(output_commits) - fee*H = 0
+        try:
+            from privacy import Ed25519Point, PedersenGenerators
+
+            # Sum input pseudo commitments
+            if not tx.inputs[0].pseudo_commitment or len(tx.inputs[0].pseudo_commitment) != 32:
+                logger.debug("Tx rejected: input 0 missing pseudo commitment")
+                return False
+
+            input_sum = tx.inputs[0].pseudo_commitment
+            for inp in tx.inputs[1:]:
+                if not inp.pseudo_commitment or len(inp.pseudo_commitment) != 32:
+                    logger.debug("Tx rejected: input missing pseudo commitment")
+                    return False
+                input_sum = Ed25519Point.point_add(input_sum, inp.pseudo_commitment)
+
+            # Sum output commitments
+            output_sum = tx.outputs[0].commitment
+            for out in tx.outputs[1:]:
+                output_sum = Ed25519Point.point_add(output_sum, out.commitment)
+
+            # Add fee commitment
+            fee_scalar = tx.fee.to_bytes(32, 'little')
+            fee_commit = Ed25519Point.scalarmult(fee_scalar, PedersenGenerators.get_H())
+            output_sum = Ed25519Point.point_add(output_sum, fee_commit)
+
+            # Verify balance
+            import hmac
+            if not hmac.compare_digest(input_sum, output_sum):
+                logger.debug("Tx rejected: commitment balance failed")
+                return False
+
+        except Exception as e:
+            logger.debug(f"Tx rejected: commitment verification error: {e}")
+            return False
+
         return True
     
     def _insert_sorted(self, txid: bytes, fee_rate: float):
@@ -323,8 +407,12 @@ class BlockProducer:
     
     def _check_leadership(self, tip: ChainTip) -> bool:
         """Check if we're the leader for next block."""
-        # Compute VRF
-        vrf_input = sha256(tip.hash + self.public_key)
+        next_height = tip.height + 1
+        
+        # Compute VRF input using consensus method for consistency
+        vrf_input = self.node.consensus.leader_selector.compute_selection_input(
+            tip.hash, next_height
+        )
         vrf_output = ECVRF.prove(self.secret_key, vrf_input)
         
         # Get our probability
@@ -334,10 +422,10 @@ class BlockProducer:
         if our_prob == 0:
             return False
         
-        # Check if VRF output < probability
-        vrf_float = struct.unpack('<Q', vrf_output.beta[:8])[0] / (2**64)
-        
-        return vrf_float < our_prob
+        # Check if VRF output qualifies us as leader
+        return self.node.consensus.leader_selector.is_leader(
+            vrf_output.beta, our_prob
+        )
     
     def _produce_block(self, tip: ChainTip):
         """Produce new block."""
@@ -346,8 +434,10 @@ class BlockProducer:
         new_height = tip.height + 1
         timestamp = int(time.time())
         
-        # VRF proof
-        vrf_input = sha256(tip.hash + self.public_key)
+        # VRF proof using consensus method for consistency
+        vrf_input = self.node.consensus.leader_selector.compute_selection_input(
+            tip.hash, new_height
+        )
         vrf_output = ECVRF.prove(self.secret_key, vrf_input)
         
         # VDF proof
@@ -624,8 +714,11 @@ class FullNode:
             logger.warning("Block timestamp not after previous")
             return False
         
-        if header.timestamp > time.time() + 7200:
-            logger.warning("Block timestamp too far in future")
+        # Allow timestamps up to 10 minutes in future (same as Bitcoin's 2-hour was for 10-min blocks)
+        # For PoT with 10-minute blocks, 10 minutes future tolerance is reasonable
+        max_future_time = 600  # 10 minutes
+        if header.timestamp > time.time() + max_future_time:
+            logger.warning(f"Block timestamp {header.timestamp} too far in future (max +{max_future_time}s)")
             return False
         
         # Merkle root
@@ -646,9 +739,11 @@ class FullNode:
                 logger.warning("Invalid VDF proof")
                 return False
         
-        # VRF proof
+        # VRF proof - use consensus method for consistent input derivation
         if block.height > 0:
-            vrf_input = sha256(header.prev_block_hash + header.leader_pubkey)
+            vrf_input = self.consensus.leader_selector.compute_selection_input(
+                header.prev_block_hash, block.height
+            )
             vrf_output = VRFOutput(beta=header.vrf_output, proof=header.vrf_proof)
             if not ECVRF.verify(header.leader_pubkey, vrf_input, vrf_output):
                 logger.warning("Invalid VRF proof")
@@ -664,21 +759,58 @@ class FullNode:
         return True
     
     def _validate_block_transactions(self, block: Block) -> bool:
-        """Validate all transactions in block."""
+        """
+        Validate all transactions in block.
+
+        Validates:
+        1. Block has at least coinbase transaction
+        2. First transaction is valid coinbase
+        3. Coinbase reward does not exceed maximum allowed
+        4. All regular transactions have valid signatures and proofs
+        5. No duplicate or already-spent key images
+        """
         if not block.transactions:
             logger.warning("Block has no transactions")
             return False
-        
+
         # First must be coinbase
-        if not block.transactions[0].is_coinbase():
+        coinbase = block.transactions[0]
+        if not coinbase.is_coinbase():
             logger.warning("First transaction not coinbase")
             return False
-        
-        # Validate coinbase reward
+
+        # Validate coinbase structure
+        if coinbase.inputs:
+            logger.warning("Coinbase should have no inputs")
+            return False
+        if not coinbase.outputs:
+            logger.warning("Coinbase has no outputs")
+            return False
+        if coinbase.fee != 0:
+            logger.warning("Coinbase should have zero fee")
+            return False
+
+        # Validate coinbase reward amount
         expected_reward = get_block_reward(block.height)
-        # (Full validation would check output amounts)
-        
-        # Check for duplicate key images
+        total_fees = sum(tx.fee for tx in block.transactions[1:])
+        max_allowed_reward = expected_reward + total_fees
+
+        # Extract coinbase output amount (for coinbase, amount is in encrypted_amount as plaintext)
+        import struct
+        total_coinbase_output = 0
+        for out in coinbase.outputs:
+            if len(out.encrypted_amount) >= 8:
+                amount = struct.unpack('<Q', out.encrypted_amount[:8])[0]
+                total_coinbase_output += amount
+
+        if total_coinbase_output > max_allowed_reward:
+            logger.warning(
+                f"Coinbase reward {total_coinbase_output} exceeds maximum allowed "
+                f"{max_allowed_reward} (base {expected_reward} + fees {total_fees})"
+            )
+            return False
+
+        # Check for duplicate key images within block
         key_images = set()
         for tx in block.transactions[1:]:
             for inp in tx.inputs:
@@ -689,7 +821,67 @@ class FullNode:
                     logger.warning("Spent key image in block")
                     return False
                 key_images.add(inp.key_image)
-        
+
+        # Validate all regular transactions (full cryptographic verification)
+        for i, tx in enumerate(block.transactions[1:], start=1):
+            tx_hash = tx.hash()
+
+            # Check version
+            if tx.version > PROTOCOL.PROTOCOL_VERSION:
+                logger.warning(f"Block tx {i}: unknown version {tx.version}")
+                return False
+
+            # Must have inputs and outputs
+            if not tx.inputs or not tx.outputs:
+                logger.warning(f"Block tx {i}: missing inputs or outputs")
+                return False
+
+            # Validate ring signatures
+            for j, inp in enumerate(tx.inputs):
+                if len(inp.ring) < PROTOCOL.MIN_RING_SIZE:
+                    logger.warning(f"Block tx {i} input {j}: ring too small")
+                    return False
+
+                if inp.ring_signature is None:
+                    logger.warning(f"Block tx {i} input {j}: missing ring signature")
+                    return False
+
+                if not LSAG.verify(tx_hash, inp.ring, inp.ring_signature):
+                    logger.warning(f"Block tx {i} input {j}: invalid ring signature")
+                    return False
+
+            # Validate range proofs
+            for j, out in enumerate(tx.outputs):
+                if out.range_proof is not None:
+                    if not Bulletproof.verify(out.commitment, out.range_proof):
+                        logger.warning(f"Block tx {i} output {j}: invalid range proof")
+                        return False
+
+            # Validate commitment balance
+            try:
+                from privacy import Ed25519Point, PedersenGenerators
+                import hmac
+
+                input_sum = tx.inputs[0].pseudo_commitment
+                for inp in tx.inputs[1:]:
+                    input_sum = Ed25519Point.point_add(input_sum, inp.pseudo_commitment)
+
+                output_sum = tx.outputs[0].commitment
+                for out in tx.outputs[1:]:
+                    output_sum = Ed25519Point.point_add(output_sum, out.commitment)
+
+                fee_scalar = tx.fee.to_bytes(32, 'little')
+                fee_commit = Ed25519Point.scalarmult(fee_scalar, PedersenGenerators.get_H())
+                output_sum = Ed25519Point.point_add(output_sum, fee_commit)
+
+                if not hmac.compare_digest(input_sum, output_sum):
+                    logger.warning(f"Block tx {i}: commitment balance failed")
+                    return False
+
+            except Exception as e:
+                logger.warning(f"Block tx {i}: commitment verification error: {e}")
+                return False
+
         return True
     
     def _block_processor(self):

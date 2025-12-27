@@ -132,9 +132,18 @@ class NetworkConfig:
 
 @dataclass
 class VDFConfig:
-    """VDF computation configuration."""
-    # Base iterations (will be calibrated dynamically if auto_calibrate=True)
-    iterations: int = 3_000_000  # ~1 minute on typical CPU
+    """
+    VDF computation configuration.
+    
+    IMPORTANT: VDF computation requires 2T sequential squarings:
+    - Phase 1: T squarings to compute y = g^(2^T)
+    - Phase 2: T squarings to compute proof π = g^(2^T/l)
+    
+    The 'iterations' parameter is T. Total time = 2T/ips seconds.
+    """
+    # Base iterations T (will be calibrated dynamically if auto_calibrate=True)
+    # Default: ~15M iterations ≈ 5 minutes per phase ≈ 10 minutes total @ 50k ips
+    iterations: int = 15_000_000
 
     # Modulus configuration
     modulus_bits: int = 2048
@@ -145,21 +154,40 @@ class VDFConfig:
 
     # Dynamic calibration
     auto_calibrate: bool = True  # Calibrate on startup
-    calibration_sample: int = 10_000  # Iterations for calibration
+    calibration_sample: int = 50_000  # Iterations for calibration
 
     # Timing targets (seconds) - used when auto_calibrate=True
-    target_compute_time: float = 60.0  # Target 1 minute for block production
-    min_compute_time: float = 30.0  # Minimum acceptable
-    max_compute_time: float = 120.0  # Maximum acceptable
+    # Note: This is TOTAL time including proof computation
+    target_compute_time: float = 540.0  # Target 9 minutes (10 min block - 1 min margin)
+    min_compute_time: float = 300.0  # Minimum 5 minutes
+    max_compute_time: float = 600.0  # Maximum 10 minutes
 
     # Checkpointing
     checkpoint_enabled: bool = True
-    checkpoint_interval: int = 100_000  # Save state every N iterations
+    checkpoint_interval: int = 1_000_000  # Save state every 1M iterations
     checkpoint_dir: str = "vdf_checkpoints"
+    
+    # Pre-computation protection
+    # VDF input must include recent block hash (within this many blocks)
+    max_input_age_blocks: int = 1  # Input must be from previous block
 
     def get_iterations_for_time(self, target_seconds: float, ips: float) -> int:
-        """Calculate iterations needed for target time given iterations/sec."""
-        return max(1000, int(ips * target_seconds))
+        """
+        Calculate iterations T needed for target TOTAL time.
+        
+        Args:
+            target_seconds: Target total computation time (2T squarings)
+            ips: Measured iterations per second
+            
+        Returns:
+            Iterations T such that 2T/ips ≈ target_seconds
+        """
+        # 2T = ips * target_seconds => T = ips * target_seconds / 2
+        return max(1000, int(ips * target_seconds / 2))
+    
+    def validate_time(self, actual_seconds: float) -> bool:
+        """Check if computation time is within acceptable bounds."""
+        return self.min_compute_time <= actual_seconds <= self.max_compute_time
 
 
 @dataclass
@@ -301,9 +329,25 @@ DEFAULT_CONFIG = NodeConfig()
 PROTOCOL = ProtocolConstants()
 
 
+# ============================================================================
+# EMISSION CONSTANTS AND CALCULATIONS
+# ============================================================================
+
+# Maximum supply: 21 million minutes = 21,000,000 * 60 = 1,260,000,000 seconds
+MAX_SUPPLY_SECONDS = 21_000_000 * 60  # 1.26 billion seconds
+
+# Maximum supply in "minutes" (display units)
+MAX_SUPPLY_MINUTES = 21_000_000
+
+
 def get_block_reward(height: int) -> int:
     """
     Calculate block reward at given height with halving.
+    
+    The emission schedule follows Bitcoin's model:
+    - Initial reward: 50 minutes (3000 seconds)
+    - Halving every 210,000 blocks (~4 years)
+    - Total supply: ~21 million minutes
     
     Args:
         height: Block height
@@ -328,7 +372,11 @@ def blocks_until_halving(height: int) -> int:
 
 
 def estimate_total_supply_at_height(height: int) -> int:
-    """Estimate total supply emitted by given height."""
+    """
+    Estimate total supply emitted by given height.
+    
+    Returns supply in seconds (time tokens).
+    """
     if height <= 0:
         return 0
     
@@ -343,3 +391,298 @@ def estimate_total_supply_at_height(height: int) -> int:
         reward >>= 1
     
     return total
+
+
+def calculate_max_supply() -> int:
+    """
+    Calculate the maximum possible supply.
+    
+    Sum of all block rewards over all halving epochs.
+    
+    Returns:
+        Maximum supply in seconds
+    """
+    total = 0
+    reward = PROTOCOL.INITIAL_REWARD
+    
+    for epoch in range(33):  # 33 halvings before reward reaches 0
+        blocks_in_epoch = PROTOCOL.HALVING_INTERVAL
+        total += blocks_in_epoch * reward
+        reward >>= 1
+        if reward == 0:
+            break
+    
+    return total
+
+
+def seconds_to_minutes(seconds: int) -> float:
+    """Convert seconds to minutes (display units)."""
+    return seconds / 60.0
+
+
+def minutes_to_seconds(minutes: float) -> int:
+    """Convert minutes to seconds (internal units)."""
+    return int(minutes * 60)
+
+
+def validate_supply_limit(current_supply: int, new_emission: int) -> bool:
+    """
+    Validate that emission won't exceed maximum supply.
+    
+    Args:
+        current_supply: Current total supply in seconds
+        new_emission: Proposed new emission in seconds
+    
+    Returns:
+        True if emission is within limits
+    """
+    return current_supply + new_emission <= MAX_SUPPLY_SECONDS
+
+
+# ============================================================================
+# TEMPORAL COMPRESSION
+# ============================================================================
+
+class TemporalCompression:
+    """
+    Temporal compression for long-term value stability.
+    
+    As the network ages, earlier time has more "gravity" (value)
+    than recently minted time. This creates deflationary pressure
+    and rewards early participation.
+    
+    Compression formula:
+    effective_age = log2(1 + actual_age_blocks / COMPRESSION_BASE)
+    
+    This means:
+    - Age 0: effective_age = 0
+    - Age COMPRESSION_BASE: effective_age = 1
+    - Age 2*COMPRESSION_BASE: effective_age = 1.58
+    - Age 4*COMPRESSION_BASE: effective_age = 2.32
+    
+    The logarithmic scaling ensures:
+    1. Early time maintains relative value
+    2. Late time doesn't dilute early time too much
+    3. Predictable value dynamics
+    """
+    
+    # Base for compression calculation (in blocks)
+    # ~1 year worth of blocks (52560 blocks at 12 min/block)
+    COMPRESSION_BASE = 52560
+    
+    @staticmethod
+    def effective_age(creation_height: int, current_height: int) -> float:
+        """
+        Calculate effective age of time tokens.
+        
+        Args:
+            creation_height: Block height when tokens were minted
+            current_height: Current block height
+        
+        Returns:
+            Effective age multiplier (>= 0)
+        """
+        if current_height <= creation_height:
+            return 0.0
+        
+        actual_age = current_height - creation_height
+        import math
+        return math.log2(1 + actual_age / TemporalCompression.COMPRESSION_BASE)
+    
+    @staticmethod
+    def age_weight(creation_height: int, current_height: int) -> float:
+        """
+        Calculate weight multiplier based on age.
+        
+        Older tokens have higher weight.
+        
+        Returns:
+            Weight multiplier (1.0 for new tokens, higher for older)
+        """
+        effective = TemporalCompression.effective_age(creation_height, current_height)
+        return 1.0 + effective * 0.1  # 10% bonus per effective year
+    
+    @staticmethod
+    def weighted_amount(
+        amount: int,
+        creation_height: int,
+        current_height: int
+    ) -> int:
+        """
+        Calculate weighted amount considering temporal compression.
+        
+        Args:
+            amount: Raw amount in seconds
+            creation_height: When tokens were created
+            current_height: Current height
+        
+        Returns:
+            Weighted amount (may be higher than raw for old tokens)
+        """
+        weight = TemporalCompression.age_weight(creation_height, current_height)
+        return int(amount * weight)
+
+
+# ============================================================================
+# EMISSION TRACKER
+# ============================================================================
+
+class EmissionTracker:
+    """
+    Tracks and validates emission to ensure 21M limit is never exceeded.
+    
+    Features:
+    - Real-time supply tracking
+    - Emission validation before block acceptance
+    - Statistical projections
+    - Burn tracking (lost coins)
+    """
+    
+    def __init__(self):
+        self.total_emitted: int = 0  # Total ever emitted
+        self.total_burned: int = 0   # Burned (provably lost)
+        self.height: int = 0
+        
+        # Per-epoch statistics
+        self.epoch_emissions: dict = {}  # epoch -> amount emitted
+    
+    @property
+    def circulating_supply(self) -> int:
+        """Get current circulating supply."""
+        return self.total_emitted - self.total_burned
+    
+    @property
+    def remaining_supply(self) -> int:
+        """Get remaining supply that can be emitted."""
+        return max(0, MAX_SUPPLY_SECONDS - self.total_emitted)
+    
+    @property
+    def percent_emitted(self) -> float:
+        """Get percentage of max supply that has been emitted."""
+        return (self.total_emitted / MAX_SUPPLY_SECONDS) * 100
+    
+    def record_emission(self, height: int, reward: int) -> bool:
+        """
+        Record block reward emission.
+        
+        Args:
+            height: Block height
+            reward: Reward amount in seconds
+        
+        Returns:
+            True if emission is valid, False if exceeds limit
+        """
+        if not validate_supply_limit(self.total_emitted, reward):
+            return False
+        
+        self.total_emitted += reward
+        self.height = height
+        
+        # Track per-epoch
+        epoch = get_halving_epoch(height)
+        if epoch not in self.epoch_emissions:
+            self.epoch_emissions[epoch] = 0
+        self.epoch_emissions[epoch] += reward
+        
+        return True
+    
+    def record_burn(self, amount: int):
+        """Record burned (provably unspendable) tokens."""
+        self.total_burned += amount
+    
+    def validate_block_reward(self, height: int, claimed_reward: int) -> tuple:
+        """
+        Validate that a block's claimed reward is correct.
+        
+        Returns:
+            (is_valid, expected_reward, reason)
+        """
+        expected = get_block_reward(height)
+        
+        if claimed_reward > expected:
+            return False, expected, f"Reward too high: {claimed_reward} > {expected}"
+        
+        if claimed_reward < expected and height < PROTOCOL.MAX_BLOCKS:
+            # Miner can claim less, but not more
+            pass
+        
+        if not validate_supply_limit(self.total_emitted, claimed_reward):
+            return False, expected, "Would exceed maximum supply"
+        
+        return True, expected, "Valid"
+    
+    def get_emission_schedule(self, from_height: int, to_height: int) -> list:
+        """
+        Get emission schedule for a range of heights.
+        
+        Returns list of (height, reward, cumulative) tuples.
+        """
+        schedule = []
+        cumulative = estimate_total_supply_at_height(from_height)
+        
+        for h in range(from_height, to_height + 1):
+            reward = get_block_reward(h)
+            cumulative += reward
+            
+            if h % PROTOCOL.HALVING_INTERVAL == 0 or h == from_height:
+                schedule.append({
+                    'height': h,
+                    'reward': reward,
+                    'reward_minutes': seconds_to_minutes(reward),
+                    'cumulative': cumulative,
+                    'cumulative_minutes': seconds_to_minutes(cumulative),
+                    'epoch': get_halving_epoch(h)
+                })
+        
+        return schedule
+    
+    def project_to_max_supply(self) -> dict:
+        """
+        Project when maximum supply will be reached.
+        
+        Returns projection details.
+        """
+        # Calculate remaining blocks until max supply
+        remaining = MAX_SUPPLY_SECONDS - self.total_emitted
+        
+        height = self.height
+        blocks_needed = 0
+        
+        while remaining > 0:
+            reward = get_block_reward(height)
+            if reward == 0:
+                break
+            
+            remaining -= reward
+            height += 1
+            blocks_needed += 1
+        
+        # Estimate time
+        estimated_time = blocks_needed * PROTOCOL.BLOCK_INTERVAL
+        
+        return {
+            'current_height': self.height,
+            'blocks_until_max': blocks_needed,
+            'final_height': height,
+            'estimated_seconds': estimated_time,
+            'estimated_days': estimated_time / 86400,
+            'estimated_years': estimated_time / (86400 * 365)
+        }
+    
+    def get_stats(self) -> dict:
+        """Get emission statistics."""
+        return {
+            'total_emitted': self.total_emitted,
+            'total_emitted_minutes': seconds_to_minutes(self.total_emitted),
+            'total_burned': self.total_burned,
+            'circulating_supply': self.circulating_supply,
+            'circulating_supply_minutes': seconds_to_minutes(self.circulating_supply),
+            'remaining_supply': self.remaining_supply,
+            'remaining_supply_minutes': seconds_to_minutes(self.remaining_supply),
+            'percent_emitted': self.percent_emitted,
+            'current_height': self.height,
+            'current_reward': get_block_reward(self.height),
+            'current_epoch': get_halving_epoch(self.height),
+            'blocks_until_halving': blocks_until_halving(self.height),
+            'max_supply_minutes': MAX_SUPPLY_MINUTES
+        }

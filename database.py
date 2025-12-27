@@ -57,7 +57,7 @@ class DuplicateKeyImageError(DatabaseError):
 # DATABASE SCHEMA
 # ============================================================================
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 SCHEMA = """
 -- Schema version tracking
@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS transactions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_tx_block ON transactions(block_height);
+CREATE INDEX IF NOT EXISTS idx_tx_type ON transactions(tx_type);
 
 -- Spent key images (for double-spend detection)
 CREATE TABLE IF NOT EXISTS spent_key_images (
@@ -107,6 +108,8 @@ CREATE TABLE IF NOT EXISTS spent_key_images (
     spent_height INTEGER NOT NULL,
     spent_timestamp INTEGER NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_spent_height ON spent_key_images(spent_height);
 
 -- Unspent outputs (simplified UTXO)
 CREATE TABLE IF NOT EXISTS outputs (
@@ -124,6 +127,8 @@ CREATE TABLE IF NOT EXISTS outputs (
 
 CREATE INDEX IF NOT EXISTS idx_outputs_stealth ON outputs(stealth_address);
 CREATE INDEX IF NOT EXISTS idx_outputs_unspent ON outputs(spent) WHERE spent = 0;
+CREATE INDEX IF NOT EXISTS idx_outputs_block ON outputs(block_height);
+CREATE INDEX IF NOT EXISTS idx_outputs_txid ON outputs(txid);
 
 -- Node states
 CREATE TABLE IF NOT EXISTS nodes (
@@ -140,6 +145,8 @@ CREATE TABLE IF NOT EXISTS nodes (
 );
 
 CREATE INDEX IF NOT EXISTS idx_nodes_status ON nodes(status);
+CREATE INDEX IF NOT EXISTS idx_nodes_last_seen ON nodes(last_seen);
+CREATE INDEX IF NOT EXISTS idx_nodes_uptime ON nodes(total_uptime);
 
 -- Chain state (singleton)
 CREATE TABLE IF NOT EXISTS chain_state (
@@ -258,8 +265,33 @@ class BlockchainDB:
     def _migrate_schema(self, from_version: int, to_version: int):
         """Migrate database schema between versions."""
         logger.info(f"Migrating database from v{from_version} to v{to_version}")
-        # Add migration logic as needed
-        pass
+
+        conn = self.pool.get_connection()
+        cursor = conn.cursor()
+
+        # Migration from v1 to v2: add performance indexes
+        if from_version < 2 <= to_version:
+            logger.info("Applying migration v1 -> v2: adding performance indexes")
+
+            # New indexes added in v2
+            indexes = [
+                "CREATE INDEX IF NOT EXISTS idx_tx_type ON transactions(tx_type)",
+                "CREATE INDEX IF NOT EXISTS idx_spent_height ON spent_key_images(spent_height)",
+                "CREATE INDEX IF NOT EXISTS idx_outputs_block ON outputs(block_height)",
+                "CREATE INDEX IF NOT EXISTS idx_outputs_txid ON outputs(txid)",
+                "CREATE INDEX IF NOT EXISTS idx_nodes_last_seen ON nodes(last_seen)",
+                "CREATE INDEX IF NOT EXISTS idx_nodes_uptime ON nodes(total_uptime)",
+            ]
+
+            for idx_sql in indexes:
+                try:
+                    cursor.execute(idx_sql)
+                except sqlite3.OperationalError as e:
+                    logger.warning(f"Index creation skipped: {e}")
+
+            cursor.execute("UPDATE schema_version SET version = ?", (2,))
+            conn.commit()
+            logger.info("Migration v1 -> v2 complete")
     
     @contextmanager
     def transaction(self):

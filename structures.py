@@ -147,8 +147,22 @@ class TxInput(Serializable):
     @classmethod
     def deserialize(cls, data: bytes, offset: int = 0) -> Tuple['TxInput', int]:
         """Deserialize input. Returns (TxInput, new_offset)."""
+        # Validate minimum data length
+        if len(data) < offset + 1:
+            raise ValueError("TxInput: data too short for ring size")
+        
         # Ring
         ring_size, offset = read_varint(data, offset)
+        
+        # Validate ring size (prevent memory exhaustion)
+        if ring_size > 1024:
+            raise ValueError(f"TxInput: ring size too large: {ring_size}")
+        
+        # Validate data length for ring
+        required = ring_size * 32 + 32 + 1 + 32  # ring + key_image + min_sig + pseudo
+        if len(data) < offset + required:
+            raise ValueError("TxInput: data too short for ring members")
+        
         ring = []
         for _ in range(ring_size):
             ring.append(data[offset:offset + 32])
@@ -166,6 +180,8 @@ class TxInput(Serializable):
             ring_signature = None
         
         # Pseudo commitment
+        if len(data) < offset + 32:
+            raise ValueError("TxInput: data too short for pseudo commitment")
         pseudo_commitment = data[offset:offset + 32]
         offset += 32
         
@@ -233,6 +249,10 @@ class TxOutput(Serializable):
     @classmethod
     def deserialize(cls, data: bytes, offset: int = 0) -> Tuple['TxOutput', int]:
         """Deserialize output. Returns (TxOutput, new_offset)."""
+        # Validate minimum data length (3 * 32 bytes for addresses + commitment)
+        if len(data) < offset + 96:
+            raise ValueError("TxOutput: data too short for fixed fields")
+        
         # Stealth address
         stealth_address = data[offset:offset + 32]
         offset += 32
@@ -244,6 +264,8 @@ class TxOutput(Serializable):
         offset += 32
         
         # Range proof
+        if len(data) < offset + 1:
+            raise ValueError("TxOutput: data too short for range proof length")
         proof_bytes, offset = read_bytes(data, offset)
         if proof_bytes:
             range_proof = RangeProof.deserialize(proof_bytes)
@@ -251,9 +273,13 @@ class TxOutput(Serializable):
             range_proof = None
         
         # Encrypted amount
+        if len(data) < offset + 1:
+            raise ValueError("TxOutput: data too short for encrypted amount")
         encrypted_amount, offset = read_bytes(data, offset)
         
         # Output index
+        if len(data) < offset + 1:
+            raise ValueError("TxOutput: data too short for output index")
         output_index, offset = read_varint(data, offset)
         
         return cls(
@@ -330,35 +356,71 @@ class Transaction(Serializable):
         
         return bytes(data)
     
+    # Maximum limits to prevent DoS
+    MAX_INPUTS = 10000
+    MAX_OUTPUTS = 10000
+    MAX_EXTRA_SIZE = 1024 * 1024  # 1 MB
+    
     @classmethod
     def deserialize(cls, data: bytes, offset: int = 0) -> Tuple['Transaction', int]:
         """Deserialize transaction. Returns (Transaction, new_offset)."""
+        # Validate minimum data length
+        if len(data) < offset + 3:  # version (2) + type (1)
+            raise ValueError("Transaction: data too short for header")
+        
         # Header
         version = struct.unpack_from('<H', data, offset)[0]
         offset += 2
-        tx_type = TxType(data[offset])
+        
+        # Validate tx_type
+        type_byte = data[offset]
+        if type_byte > 2:
+            raise ValueError(f"Transaction: invalid tx_type: {type_byte}")
+        tx_type = TxType(type_byte)
         offset += 1
         
         # Inputs
+        if len(data) < offset + 1:
+            raise ValueError("Transaction: data too short for input count")
         num_inputs, offset = read_varint(data, offset)
+        
+        # Validate input count (prevent memory exhaustion)
+        if num_inputs > cls.MAX_INPUTS:
+            raise ValueError(f"Transaction: too many inputs: {num_inputs}")
+        
         inputs = []
         for _ in range(num_inputs):
             inp, offset = TxInput.deserialize(data, offset)
             inputs.append(inp)
         
         # Outputs
+        if len(data) < offset + 1:
+            raise ValueError("Transaction: data too short for output count")
         num_outputs, offset = read_varint(data, offset)
+        
+        # Validate output count (prevent memory exhaustion)
+        if num_outputs > cls.MAX_OUTPUTS:
+            raise ValueError(f"Transaction: too many outputs: {num_outputs}")
+        
         outputs = []
         for _ in range(num_outputs):
             out, offset = TxOutput.deserialize(data, offset)
             outputs.append(out)
         
         # Fee
+        if len(data) < offset + 8:
+            raise ValueError("Transaction: data too short for fee")
         fee = struct.unpack_from('<Q', data, offset)[0]
         offset += 8
         
         # Extra
+        if len(data) < offset + 1:
+            raise ValueError("Transaction: data too short for extra")
         extra, offset = read_bytes(data, offset)
+        
+        # Validate extra size
+        if len(extra) > cls.MAX_EXTRA_SIZE:
+            raise ValueError(f"Transaction: extra data too large: {len(extra)}")
         
         return cls(
             version=version,
@@ -471,7 +533,11 @@ class BlockHeader(Serializable):
     # Leader identity
     leader_pubkey: bytes = b'\x00' * 32
     leader_signature: bytes = b'\x00' * 64
-    
+
+    # Fallback flag: True if no node won VRF lottery (lowest VRF selected)
+    # Must be True for fallback selections to be considered valid
+    is_fallback_leader: bool = False
+
     # Cached hash
     _hash: Optional[bytes] = field(default=None, repr=False)
     
@@ -499,12 +565,27 @@ class BlockHeader(Serializable):
         # Leader
         data.extend(self.leader_pubkey)
         data.extend(self.leader_signature)
-        
+
+        # Flags (1 byte for extensibility)
+        flags = 0
+        if self.is_fallback_leader:
+            flags |= 0x01
+        data.extend(struct.pack('<B', flags))
+
         return bytes(data)
+    
+    # Maximum VDF/VRF proof sizes to prevent memory exhaustion
+    MAX_VDF_PROOF_SIZE = 1024 * 1024  # 1 MB
+    MAX_VRF_PROOF_SIZE = 1024  # 1 KB
     
     @classmethod
     def deserialize(cls, data: bytes, offset: int = 0) -> Tuple['BlockHeader', int]:
         """Deserialize header. Returns (BlockHeader, new_offset)."""
+        # Validate minimum header size (fixed fields)
+        # version(4) + prev_hash(32) + merkle(32) + timestamp(8) + height(8) + vdf_input(32) + vdf_iters(4) + leader_pk(32) + leader_sig(64) = 216 bytes min
+        if len(data) < offset + 216:
+            raise ValueError("BlockHeader: data too short for fixed fields")
+        
         # Standard fields
         version = struct.unpack_from('<I', data, offset)[0]
         offset += 4
@@ -525,23 +606,52 @@ class BlockHeader(Serializable):
         vdf_input = data[offset:offset + 32]
         offset += 32
         
+        if len(data) < offset + 1:
+            raise ValueError("BlockHeader: data too short for VDF output")
         vdf_output, offset = read_bytes(data, offset)
-        vdf_proof, offset = read_bytes(data, offset)
+        if len(vdf_output) > cls.MAX_VDF_PROOF_SIZE:
+            raise ValueError(f"BlockHeader: VDF output too large: {len(vdf_output)}")
         
+        if len(data) < offset + 1:
+            raise ValueError("BlockHeader: data too short for VDF proof")
+        vdf_proof, offset = read_bytes(data, offset)
+        if len(vdf_proof) > cls.MAX_VDF_PROOF_SIZE:
+            raise ValueError(f"BlockHeader: VDF proof too large: {len(vdf_proof)}")
+        
+        if len(data) < offset + 4:
+            raise ValueError("BlockHeader: data too short for VDF iterations")
         vdf_iterations = struct.unpack_from('<I', data, offset)[0]
         offset += 4
         
         # VRF proof
+        if len(data) < offset + 1:
+            raise ValueError("BlockHeader: data too short for VRF output")
         vrf_output, offset = read_bytes(data, offset)
+        if len(vrf_output) > cls.MAX_VRF_PROOF_SIZE:
+            raise ValueError(f"BlockHeader: VRF output too large: {len(vrf_output)}")
+        
+        if len(data) < offset + 1:
+            raise ValueError("BlockHeader: data too short for VRF proof")
         vrf_proof, offset = read_bytes(data, offset)
+        if len(vrf_proof) > cls.MAX_VRF_PROOF_SIZE:
+            raise ValueError(f"BlockHeader: VRF proof too large: {len(vrf_proof)}")
         
         # Leader
+        if len(data) < offset + 96:  # pubkey(32) + sig(64)
+            raise ValueError("BlockHeader: data too short for leader fields")
         leader_pubkey = data[offset:offset + 32]
         offset += 32
-        
+
         leader_sig = data[offset:offset + 64]
         offset += 64
-        
+
+        # Flags (1 byte) - with backward compatibility
+        is_fallback_leader = False
+        if len(data) > offset:
+            flags = data[offset]
+            offset += 1
+            is_fallback_leader = bool(flags & 0x01)
+
         return cls(
             version=version,
             prev_block_hash=prev_hash,
@@ -555,7 +665,8 @@ class BlockHeader(Serializable):
             vrf_output=vrf_output,
             vrf_proof=vrf_proof,
             leader_pubkey=leader_pubkey,
-            leader_signature=leader_sig
+            leader_signature=leader_sig,
+            is_fallback_leader=is_fallback_leader
         ), offset
     
     def hash(self) -> bytes:
@@ -625,17 +736,40 @@ class Block(Serializable):
         
         return bytes(data)
     
+    # Maximum limits to prevent DoS
+    MAX_TRANSACTIONS = 50000
+    MAX_BLOCK_SIZE = 32 * 1024 * 1024  # 32 MB
+    
     @classmethod
     def deserialize(cls, data: bytes, offset: int = 0) -> Tuple['Block', int]:
         """Deserialize block. Returns (Block, new_offset)."""
+        # Validate block size
+        if len(data) > cls.MAX_BLOCK_SIZE:
+            raise ValueError(f"Block: data too large: {len(data)} bytes")
+        
+        # Validate minimum data length
+        if len(data) < offset + 1:
+            raise ValueError("Block: data too short for header length")
+        
         # Header
         header_bytes, offset = read_bytes(data, offset)
+        if len(header_bytes) < 100:  # Minimum reasonable header size
+            raise ValueError("Block: header too short")
         header, _ = BlockHeader.deserialize(header_bytes)
         
         # Transactions
+        if len(data) < offset + 1:
+            raise ValueError("Block: data too short for transaction count")
         num_txs, offset = read_varint(data, offset)
+        
+        # Validate transaction count (prevent memory exhaustion)
+        if num_txs > cls.MAX_TRANSACTIONS:
+            raise ValueError(f"Block: too many transactions: {num_txs}")
+        
         transactions = []
         for _ in range(num_txs):
+            if len(data) < offset + 1:
+                raise ValueError("Block: data too short for transaction")
             tx_bytes, offset = read_bytes(data, offset)
             tx, _ = Transaction.deserialize(tx_bytes)
             transactions.append(tx)

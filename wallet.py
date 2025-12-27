@@ -17,6 +17,7 @@ import os
 import json
 import struct
 import hashlib
+import hmac
 import secrets
 import logging
 import threading
@@ -24,6 +25,22 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Set
 from dataclasses import dataclass, field
 from enum import IntEnum
+
+# Cryptography for wallet encryption
+try:
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
+    from cryptography.hazmat.backends import default_backend
+    CRYPTO_AVAILABLE = True
+except ImportError:
+    CRYPTO_AVAILABLE = False
+    
+# Optional Argon2 for better key derivation
+try:
+    from argon2.low_level import hash_secret_raw, Type
+    ARGON2_AVAILABLE = True
+except ImportError:
+    ARGON2_AVAILABLE = False
 
 from crypto import sha256, sha256d, Ed25519, hmac_sha256
 from privacy import (
@@ -43,10 +60,208 @@ logger = logging.getLogger("proof_of_time.wallet")
 # CONSTANTS
 # ============================================================================
 
-WALLET_VERSION = 1
+WALLET_VERSION = 2  # Upgraded for encrypted storage
 KEY_DERIVATION_ROUNDS = 100000
 SALT_SIZE = 32
 NONCE_SIZE = 12
+TAG_SIZE = 16
+
+# Argon2 parameters (OWASP recommended for password hashing)
+ARGON2_TIME_COST = 3
+ARGON2_MEMORY_COST = 65536  # 64 MB
+ARGON2_PARALLELISM = 4
+ARGON2_HASH_LEN = 32
+
+# Scrypt parameters (fallback if Argon2 unavailable)
+SCRYPT_N = 2**18  # ~256MB memory
+SCRYPT_R = 8
+SCRYPT_P = 1
+
+
+# ============================================================================
+# WALLET ENCRYPTION
+# ============================================================================
+
+class WalletCrypto:
+    """
+    Secure wallet encryption using AES-256-GCM with Argon2id key derivation.
+    
+    Security properties:
+    - Argon2id: Memory-hard KDF resistant to GPU/ASIC attacks
+    - AES-256-GCM: Authenticated encryption (confidentiality + integrity)
+    - Random salt per wallet: Prevents rainbow table attacks
+    - Random nonce per encryption: Prevents nonce reuse attacks
+    
+    Fallback to Scrypt if Argon2 unavailable.
+    """
+    
+    @staticmethod
+    def derive_key(password: str, salt: bytes) -> bytes:
+        """
+        Derive encryption key from password using Argon2id (preferred) or Scrypt.
+        
+        Args:
+            password: User password
+            salt: Random 32-byte salt
+            
+        Returns:
+            32-byte encryption key
+        """
+        password_bytes = password.encode('utf-8')
+        
+        if ARGON2_AVAILABLE:
+            # Use Argon2id (recommended by OWASP)
+            key = hash_secret_raw(
+                secret=password_bytes,
+                salt=salt,
+                time_cost=ARGON2_TIME_COST,
+                memory_cost=ARGON2_MEMORY_COST,
+                parallelism=ARGON2_PARALLELISM,
+                hash_len=ARGON2_HASH_LEN,
+                type=Type.ID  # Argon2id - hybrid of i and d
+            )
+            return key
+        elif CRYPTO_AVAILABLE:
+            # Fallback to Scrypt
+            kdf = Scrypt(
+                salt=salt,
+                length=32,
+                n=SCRYPT_N,
+                r=SCRYPT_R,
+                p=SCRYPT_P,
+                backend=default_backend()
+            )
+            return kdf.derive(password_bytes)
+        else:
+            # Last resort: PBKDF2-HMAC-SHA256 (less secure but always available)
+            return hashlib.pbkdf2_hmac(
+                'sha256',
+                password_bytes,
+                salt,
+                KEY_DERIVATION_ROUNDS
+            )
+    
+    @staticmethod
+    def encrypt(plaintext: bytes, password: str) -> bytes:
+        """
+        Encrypt data with AES-256-GCM.
+        
+        Format: version (1) || salt (32) || nonce (12) || ciphertext || tag (16)
+        
+        Args:
+            plaintext: Data to encrypt
+            password: Encryption password
+            
+        Returns:
+            Encrypted data with salt, nonce, and auth tag
+        """
+        # Generate random salt and nonce
+        salt = secrets.token_bytes(SALT_SIZE)
+        nonce = secrets.token_bytes(NONCE_SIZE)
+        
+        # Derive key
+        key = WalletCrypto.derive_key(password, salt)
+        
+        if CRYPTO_AVAILABLE:
+            # Use AES-GCM from cryptography library
+            aesgcm = AESGCM(key)
+            ciphertext = aesgcm.encrypt(nonce, plaintext, associated_data=None)
+        else:
+            # Fallback: ChaCha20-Poly1305 via nacl if available
+            try:
+                import nacl.secret
+                import nacl.utils
+                box = nacl.secret.SecretBox(key)
+                # nacl uses 24-byte nonce, so derive from our 12-byte nonce
+                nacl_nonce = hashlib.sha256(nonce).digest()[:24]
+                ciphertext = box.encrypt(plaintext, nacl_nonce).ciphertext
+            except:
+                # Very last resort: XOR with key stream (NOT RECOMMENDED)
+                # This should never happen in production
+                logger.warning("No secure encryption available - using weak encryption!")
+                key_stream = hashlib.sha256(key + nonce).digest() * (len(plaintext) // 32 + 1)
+                ciphertext = bytes(a ^ b for a, b in zip(plaintext, key_stream[:len(plaintext)]))
+                ciphertext += hashlib.sha256(ciphertext + key).digest()[:TAG_SIZE]
+        
+        # Pack: version || salt || nonce || ciphertext
+        result = struct.pack('<B', WALLET_VERSION) + salt + nonce + ciphertext
+        return result
+    
+    @staticmethod
+    def decrypt(encrypted: bytes, password: str) -> bytes:
+        """
+        Decrypt data encrypted with encrypt().
+        
+        Args:
+            encrypted: Encrypted data from encrypt()
+            password: Decryption password
+            
+        Returns:
+            Decrypted plaintext
+            
+        Raises:
+            ValueError: If decryption fails (wrong password or corrupted data)
+        """
+        if len(encrypted) < 1 + SALT_SIZE + NONCE_SIZE + TAG_SIZE:
+            raise ValueError("Encrypted data too short")
+        
+        # Unpack header
+        version = encrypted[0]
+        offset = 1
+        
+        salt = encrypted[offset:offset + SALT_SIZE]
+        offset += SALT_SIZE
+        
+        nonce = encrypted[offset:offset + NONCE_SIZE]
+        offset += NONCE_SIZE
+        
+        ciphertext = encrypted[offset:]
+        
+        # Derive key
+        key = WalletCrypto.derive_key(password, salt)
+        
+        if CRYPTO_AVAILABLE:
+            try:
+                aesgcm = AESGCM(key)
+                plaintext = aesgcm.decrypt(nonce, ciphertext, associated_data=None)
+                return plaintext
+            except Exception as e:
+                raise ValueError(f"Decryption failed: {e}")
+        else:
+            try:
+                import nacl.secret
+                box = nacl.secret.SecretBox(key)
+                nacl_nonce = hashlib.sha256(nonce).digest()[:24]
+                plaintext = box.decrypt(ciphertext, nacl_nonce)
+                return plaintext
+            except:
+                # Fallback XOR decryption
+                if len(ciphertext) < TAG_SIZE:
+                    raise ValueError("Ciphertext too short")
+                stored_tag = ciphertext[-TAG_SIZE:]
+                actual_ciphertext = ciphertext[:-TAG_SIZE]
+                
+                key_stream = hashlib.sha256(key + nonce).digest() * (len(actual_ciphertext) // 32 + 1)
+                plaintext = bytes(a ^ b for a, b in zip(actual_ciphertext, key_stream[:len(actual_ciphertext)]))
+                
+                expected_tag = hashlib.sha256(actual_ciphertext + key).digest()[:TAG_SIZE]
+                if not hmac.compare_digest(stored_tag, expected_tag):
+                    raise ValueError("Authentication failed")
+                
+                return plaintext
+    
+    @staticmethod
+    def verify_password(encrypted: bytes, password: str) -> bool:
+        """
+        Verify if password can decrypt data without returning plaintext.
+        
+        Useful for password validation before expensive operations.
+        """
+        try:
+            WalletCrypto.decrypt(encrypted, password)
+            return True
+        except:
+            return False
 
 
 # ============================================================================
@@ -696,12 +911,28 @@ class Wallet:
     # =========================================================================
     
     def save(self, path: str, password: str):
-        """Save wallet to encrypted file."""
+        """
+        Save wallet to encrypted file using AES-256-GCM.
+        
+        The wallet data is encrypted with a key derived from the password
+        using Argon2id (or Scrypt as fallback). This provides:
+        - Confidentiality: Data is encrypted
+        - Integrity: Authentication tag prevents tampering
+        - Password protection: Memory-hard KDF resists brute force
+        
+        Args:
+            path: File path to save wallet
+            password: Encryption password (should be strong!)
+        """
         with self._lock:
+            # Prepare wallet data
             data = {
                 'version': WALLET_VERSION,
+                'view_secret': self.view_secret.hex() if self.view_secret else '',
+                'spend_secret': self.spend_secret.hex() if self.spend_secret else '',
                 'view_public': self.view_public.hex(),
                 'spend_public': self.spend_public.hex(),
+                'seed': self.seed.hex() if self.seed else '',
                 'synced_height': self.synced_height,
                 'subaddresses': {
                     f"{m},{n}": (v.hex(), s.hex())
@@ -710,47 +941,96 @@ class Wallet:
                 'outputs': {
                     oid.hex(): o.serialize().hex()
                     for oid, o in self.outputs.items()
-                }
+                },
+                'key_images': [ki.hex() for ki in self.key_images]
             }
             
-            # Encrypt (simplified - use proper encryption in production)
-            json_data = json.dumps(data)
+            # Serialize to JSON
+            json_data = json.dumps(data, indent=2)
+            plaintext = json_data.encode('utf-8')
             
-            # In production: AES-GCM encryption with password-derived key
-            encrypted = json_data.encode('utf-8')
+            # Encrypt with AES-256-GCM
+            encrypted = WalletCrypto.encrypt(plaintext, password)
             
-            Path(path).write_bytes(encrypted)
-            logger.info(f"Wallet saved to {path}")
+            # Write to file atomically (write to temp, then rename)
+            temp_path = path + '.tmp'
+            Path(temp_path).write_bytes(encrypted)
+            Path(temp_path).rename(path)
+            
+            logger.info(f"Wallet saved to {path} (encrypted)")
     
     def load(self, path: str, password: str) -> bool:
-        """Load wallet from encrypted file."""
+        """
+        Load wallet from encrypted file.
+        
+        Decrypts the wallet file using the provided password and
+        restores all wallet state including keys, outputs, and transactions.
+        
+        Args:
+            path: File path to load wallet from
+            password: Decryption password
+            
+        Returns:
+            True if wallet loaded successfully, False otherwise
+        """
         try:
             encrypted = Path(path).read_bytes()
             
-            # Decrypt (simplified)
-            json_data = encrypted.decode('utf-8')
+            # Decrypt with AES-256-GCM
+            try:
+                plaintext = WalletCrypto.decrypt(encrypted, password)
+            except ValueError as e:
+                logger.error(f"Wallet decryption failed: {e}")
+                return False
+            
+            json_data = plaintext.decode('utf-8')
             data = json.loads(json_data)
             
             with self._lock:
+                # Check version
+                version = data.get('version', 1)
+                if version > WALLET_VERSION:
+                    logger.warning(f"Wallet version {version} is newer than supported {WALLET_VERSION}")
+                
+                # Restore secrets
+                if data.get('seed'):
+                    self.seed = bytes.fromhex(data['seed'])
+                if data.get('view_secret'):
+                    self.view_secret = bytes.fromhex(data['view_secret'])
+                if data.get('spend_secret'):
+                    self.spend_secret = bytes.fromhex(data['spend_secret'])
+                
                 self.view_public = bytes.fromhex(data['view_public'])
                 self.spend_public = bytes.fromhex(data['spend_public'])
-                self.synced_height = data['synced_height']
+                self.synced_height = data.get('synced_height', 0)
                 
+                # Restore subaddresses
                 self.subaddresses = {}
-                for key, (v, s) in data['subaddresses'].items():
+                for key, (v, s) in data.get('subaddresses', {}).items():
                     m, n = map(int, key.split(','))
                     self.subaddresses[(m, n)] = (bytes.fromhex(v), bytes.fromhex(s))
                 
+                # Restore outputs
                 self.outputs = {}
-                for oid_hex, o_hex in data['outputs'].items():
+                self.key_images = set()
+                for oid_hex, o_hex in data.get('outputs', {}).items():
                     oid = bytes.fromhex(oid_hex)
                     output = WalletOutput.deserialize(bytes.fromhex(o_hex))
                     self.outputs[oid] = output
                     self.key_images.add(output.key_image)
+                
+                # Restore key images from separate list if present
+                for ki_hex in data.get('key_images', []):
+                    self.key_images.add(bytes.fromhex(ki_hex))
+                
+                self.locked = False
             
-            logger.info(f"Wallet loaded from {path}")
+            logger.info(f"Wallet loaded from {path} ({len(self.outputs)} outputs)")
             return True
             
+        except json.JSONDecodeError as e:
+            logger.error(f"Wallet file corrupted: {e}")
+            return False
         except Exception as e:
             logger.error(f"Failed to load wallet: {e}")
             return False
