@@ -121,7 +121,7 @@ Type=simple
 User=$POT_USER
 Group=$POT_USER
 WorkingDirectory=$POT_HOME
-ExecStart=$POT_HOME/venv/bin/python node.py --run --config /etc/proofoftime.json
+ExecStart=$POT_HOME/venv/bin/python node.py --run --no-dashboard --config /etc/proofoftime.json
 Restart=always
 RestartSec=10
 TimeoutStopSec=60
@@ -195,12 +195,9 @@ $SUDO systemctl start proofoftime
 # Wait for startup
 sleep 3
 
-# Show dashboard (one-click experience)
+# Show dashboard
 echo ""
-log "Installation complete! Showing dashboard..."
+log "Installation complete!"
 echo ""
 
-cd $POT_HOME && ./venv/bin/python dashboard.py
-
-echo ""
-log "Use 'pot-dashboard --live' for live updates"
+cd $POT_HOME && ./venv/bin/python dashboard.py --live

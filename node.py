@@ -1069,6 +1069,67 @@ def _self_test():
     logger.info("All node self-tests passed!")
 
 
+def _render_dashboard(node, db_path: str = '/var/lib/proofoftime/blockchain.db'):
+    """Render live dashboard."""
+    import sys
+    from datetime import datetime
+
+    # Colors
+    G, Y, R, C, B, D, N = '\033[92m', '\033[93m', '\033[91m', '\033[96m', '\033[1m', '\033[2m', '\033[0m'
+
+    def col(text, color):
+        return f"{color}{text}{N}" if sys.stdout.isatty() else str(text)
+
+    # Get metrics
+    m = {'height': 0, 'nodes': 0, 'mempool': 0, 'last_block_age': 0, 'time_to_block': 0, 'status': 'running'}
+
+    try:
+        if hasattr(node, 'db') and node.db:
+            state = node.db.get_chain_state()
+            if state:
+                m['height'] = state.get('tip_height', 0)
+            latest = node.db.get_latest_block()
+            if latest:
+                m['last_block_age'] = int(time.time()) - latest.timestamp
+                m['time_to_block'] = max(0, 600 - m['last_block_age'])
+        if hasattr(node, 'network') and node.network:
+            m['nodes'] = len(getattr(node.network, 'peers', []))
+        if hasattr(node, 'mempool') and node.mempool:
+            m['mempool'] = len(node.mempool)
+    except:
+        pass
+
+    # Format time
+    def fmt_time(s):
+        if s < 0: return "--:--"
+        if s < 3600: return f"{s // 60:02d}:{s % 60:02d}"
+        return f"{s // 3600}:{(s % 3600) // 60:02d}:{s % 60:02d}"
+
+    # Time to block color
+    ttb = m['time_to_block']
+    ttb_col = G if ttb > 300 else (Y if ttb > 60 else R)
+
+    now = datetime.now().strftime('%H:%M:%S')
+
+    # Clear and render
+    os.system('clear' if os.name != 'nt' else 'cls')
+    print()
+    print(col("  PROOF OF TIME", G) + col(" │ ", D) + col("Во времени все равны", D))
+    print(col("  ─────────────────────────────────────────", D))
+    print()
+    print(f"  {col('STATUS', C)}      {col('RUNNING', G)}")
+    print()
+    print(f"  {col('HEIGHT', C)}      {col(m['height'], B)}")
+    print(f"  {col('NODES', C)}       {m['nodes']}")
+    print(f"  {col('MEMPOOL', C)}     {m['mempool']} tx")
+    print()
+    print(f"  {col('NEXT BLOCK', C)}  {col(fmt_time(ttb), ttb_col)}")
+    print(f"  {col('LAST BLOCK', C)}  {fmt_time(m['last_block_age'])} ago")
+    print()
+    print(col("  ─────────────────────────────────────────", D))
+    print(col(f"  {now}  │  Ctrl+C to stop", D))
+
+
 def main():
     """Main entry point for running the node."""
     import argparse
@@ -1079,18 +1140,31 @@ def main():
     parser = argparse.ArgumentParser(description="Proof of Time Node")
     parser.add_argument("--config", "-c", type=str, help="Path to config file")
     parser.add_argument("--run", "-r", action="store_true", help="Run the node (default: self-test only)")
+    parser.add_argument("--no-dashboard", action="store_true", help="Disable live dashboard")
     parser.add_argument("--data-dir", type=str, help="Data directory")
     parser.add_argument("--p2p-port", type=int, help="P2P port (default: 8333)")
     parser.add_argument("--rpc-port", type=int, help="RPC port (default: 8332)")
     parser.add_argument("--log-level", type=str, default="INFO", help="Log level")
     args = parser.parse_args()
 
-    # Configure logging
+    # Configure logging (to file if dashboard enabled)
     log_level = getattr(logging, args.log_level.upper(), logging.INFO)
-    logging.basicConfig(
-        level=log_level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
+
+    if args.run and not args.no_dashboard:
+        # Log to file only when dashboard is active
+        log_file = '/var/log/proofoftime/node.log'
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+        logging.basicConfig(
+            level=log_level,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            filename=log_file,
+            filemode='a'
+        )
+    else:
+        logging.basicConfig(
+            level=log_level,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
 
     if not args.run:
         # Self-test mode
@@ -1099,36 +1173,31 @@ def main():
 
     # Load config
     config = NodeConfig()
+    data_dir = '/var/lib/proofoftime'
 
     if args.config and os.path.exists(args.config):
         with open(args.config, 'r') as f:
             cfg_data = json.load(f)
             if 'data_dir' in cfg_data:
+                data_dir = cfg_data['data_dir']
                 from config import StorageConfig
                 config.storage = StorageConfig(
-                    db_path=os.path.join(cfg_data['data_dir'], 'blockchain.db')
+                    db_path=os.path.join(data_dir, 'blockchain.db')
                 )
             if 'p2p_port' in cfg_data:
                 config.network.default_port = cfg_data['p2p_port']
             if 'rpc_port' in cfg_data:
                 config.rpc_port = cfg_data.get('rpc_port', 8332)
-            if 'log_level' in cfg_data:
-                logging.getLogger().setLevel(getattr(logging, cfg_data['log_level'].upper(), logging.INFO))
 
     # Command line overrides
     if args.data_dir:
+        data_dir = args.data_dir
         from config import StorageConfig
-        config.storage = StorageConfig(db_path=os.path.join(args.data_dir, 'blockchain.db'))
+        config.storage = StorageConfig(db_path=os.path.join(data_dir, 'blockchain.db'))
     if args.p2p_port:
         config.network.default_port = args.p2p_port
     if args.rpc_port:
         config.rpc_port = args.rpc_port
-
-    # Create and start node
-    logger.info("=" * 60)
-    logger.info("  PROOF OF TIME NODE")
-    logger.info("  Во времени все равны / In time, everyone is equal")
-    logger.info("=" * 60)
 
     node = FullNode(config)
 
@@ -1136,7 +1205,6 @@ def main():
     shutdown_event = threading.Event()
 
     def signal_handler(signum, frame):
-        logger.info(f"Received signal {signum}, shutting down...")
         shutdown_event.set()
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -1144,20 +1212,19 @@ def main():
 
     try:
         node.start()
-        logger.info("Node is running. Press Ctrl+C to stop.")
 
-        # Main loop - wait for shutdown signal
+        # Main loop with dashboard
         while not shutdown_event.is_set():
+            if not args.no_dashboard:
+                _render_dashboard(node, os.path.join(data_dir, 'blockchain.db'))
             shutdown_event.wait(timeout=1.0)
 
     except KeyboardInterrupt:
-        logger.info("Keyboard interrupt received")
-    except Exception as e:
-        logger.error(f"Node error: {e}")
-        raise
+        pass
     finally:
+        if not args.no_dashboard:
+            print("\n  Shutting down...")
         node.stop()
-        logger.info("Node shutdown complete")
 
 
 if __name__ == "__main__":
