@@ -122,7 +122,7 @@ def render(m):
         ttb_color = R
 
     print()
-    print(c("  PROOF OF TIME", G) + c(" │ ", D) + c("Во времени все равны", D))
+    print(c("  PROOF OF TIME", G) + c(" │ ", D) + c("Time is the ultimate proof", D))
     print(c("  ─────────────────────────────────────────", D))
     print()
     print(f"  {c('STATUS', C)}      {status}")

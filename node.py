@@ -1115,7 +1115,7 @@ def _render_dashboard(node, db_path: str = '/var/lib/proofoftime/blockchain.db')
     # Clear and render
     os.system('clear' if os.name != 'nt' else 'cls')
     print()
-    print(col("  PROOF OF TIME", G) + col(" │ ", D) + col("Во времени все равны", D))
+    print(col("  PROOF OF TIME", G) + col(" │ ", D) + col("Time is the ultimate proof", D))
     print(col("  ─────────────────────────────────────────", D))
     print()
     print(f"  {col('STATUS', C)}      {col('RUNNING', G)}")
