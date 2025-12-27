@@ -452,8 +452,10 @@ class BlockProducer:
             vdf_output = self.poh_hash  # Use PoH hash instead
             vdf_proof_bytes = b''
 
-        # VRF for leader selection (simplified for solo node)
-        vrf_input = sha256(tip.hash + struct.pack('<Q', new_height))
+        # VRF for leader selection - use same input derivation as validator
+        vrf_input = self.node.consensus.leader_selector.compute_selection_input(
+            tip.hash, new_height
+        )
         vrf_output = ECVRF.prove(self.secret_key, vrf_input)
 
         # Create coinbase
@@ -769,8 +771,9 @@ class FullNode:
             logger.warning("Invalid merkle root")
             return False
         
-        # VDF proof (skip for genesis)
-        if block.height > 0:
+        # VDF proof (only for checkpoint blocks, not regular PoH blocks)
+        if block.height > 0 and header.vdf_iterations > 0:
+            # This is a PoT checkpoint block - verify VDF
             vdf = WesolowskiVDF(PROTOCOL.VDF_MODULUS_BITS)
             vdf_proof = VDFProof(
                 output=header.vdf_output,
@@ -1136,28 +1139,35 @@ def _render_dashboard(node, db_path: str = '/var/lib/proofoftime/blockchain.db')
 
     # Get metrics
     m = {
-        'poh_slot': 0, 'pot_checkpoint': 0, 'nodes': 0, 'mempool': 0,
-        'last_block_age': 0, 'pot_next': 600, 'blocks_produced': 0
+        'poh_slot': 0, 'pot_checkpoint': 0, 'nodes': 1, 'mempool': 0,
+        'last_block_age': 0, 'pot_next': 600, 'blocks_produced': 0, 'status': 'STARTING'
     }
 
     try:
-        if hasattr(node, 'db') and node.db:
-            state = node.db.get_chain_state()
-            if state:
-                m['poh_slot'] = state.get('tip_height', 0)
-                m['pot_checkpoint'] = m['poh_slot'] // 600
-            latest = node.db.get_latest_block()
-            if latest and latest.timestamp > 0:
-                m['last_block_age'] = int(time.time()) - latest.timestamp
-                m['pot_next'] = 600 - (m['poh_slot'] % 600)
+        # Get chain state from node's chain_tip (more reliable than db query)
+        if hasattr(node, 'chain_tip') and node.chain_tip:
+            m['poh_slot'] = node.chain_tip.height
+            m['pot_checkpoint'] = m['poh_slot'] // 600
+            m['pot_next'] = 600 - (m['poh_slot'] % 600)
+            m['last_block_age'] = int(time.time()) - node.chain_tip.timestamp
+            m['status'] = 'SYNCED'
+
+        # Get peer count (add 1 for self)
         if hasattr(node, 'network') and node.network:
-            m['nodes'] = node.network.get_peer_count()
+            m['nodes'] = 1 + node.network.get_peer_count()
+
         if hasattr(node, 'mempool') and node.mempool:
             m['mempool'] = node.mempool.get_count()
+
         if hasattr(node, 'producer') and node.producer:
             m['blocks_produced'] = node.producer.blocks_produced
-    except:
-        pass
+            if m['blocks_produced'] > 0:
+                m['status'] = 'PRODUCING'
+                # Get last block time from producer
+                if node.producer.last_block_time > 0:
+                    m['last_block_age'] = int(time.time() - node.producer.last_block_time)
+    except Exception as e:
+        logger.debug(f"Dashboard metrics error: {e}")
 
     # Format time
     def fmt_time(s):
@@ -1171,13 +1181,22 @@ def _render_dashboard(node, db_path: str = '/var/lib/proofoftime/blockchain.db')
 
     now = datetime.now().strftime('%H:%M:%S')
 
+    # Status color
+    status = m['status']
+    if status == 'PRODUCING':
+        status_col = G
+    elif status == 'SYNCED':
+        status_col = Y
+    else:
+        status_col = R
+
     # Clear and render
     os.system('clear' if os.name != 'nt' else 'cls')
     print()
     print(col("  PROOF OF TIME", G) + col(" │ ", D) + col("Dual-Layer Consensus", D))
     print(col("  ═══════════════════════════════════════════════", D))
     print()
-    print(f"  {col('STATUS', C)}        {col('PRODUCING', G)}")
+    print(f"  {col('STATUS', C)}        {col(status, status_col)}")
     print(f"  {col('NODES', C)}         {m['nodes']}")
     print(f"  {col('MEMPOOL', C)}       {m['mempool']} tx")
     print()

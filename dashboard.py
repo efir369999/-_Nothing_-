@@ -42,7 +42,7 @@ def get_metrics():
         'pot_finalized': 0,
 
         # Network
-        'nodes': 0,
+        'nodes': 1,  # At least self
         'mempool': 0,
         'status': 'offline',
     }
@@ -60,11 +60,11 @@ def get_metrics():
             if 'result' in data:
                 r = data['result']
                 m['poh_slot'] = r.get('poh_slot', r.get('height', 0))
-                m['pot_checkpoint'] = r.get('pot_checkpoint', 0)
-                m['nodes'] = r.get('peers', 0)
+                m['pot_checkpoint'] = r.get('pot_checkpoint', m['poh_slot'] // 600)
+                m['nodes'] = 1 + r.get('peers', 0)  # Add 1 for self
                 m['mempool'] = r.get('mempool_size', 0)
                 m['poh_tps'] = r.get('tps', 0.0)
-                m['status'] = 'online'
+                m['status'] = 'producing'
     except:
         pass
 
@@ -80,7 +80,7 @@ def get_metrics():
             state = db.get_chain_state()
             if state:
                 m['poh_slot'] = state.get('tip_height', 0)
-                m['pot_checkpoint'] = state.get('tip_height', 0) // 600
+                m['pot_checkpoint'] = m['poh_slot'] // 600
 
             latest = db.get_latest_block()
             if latest:
@@ -89,7 +89,7 @@ def get_metrics():
                 slots_in_epoch = m['poh_slot'] % 600
                 m['pot_next'] = 600 - slots_in_epoch
                 m['pot_last'] = slots_in_epoch
-                m['pot_finalized'] = (m['pot_checkpoint'] - 1) * 600 if m['pot_checkpoint'] > 0 else 0
+                m['pot_finalized'] = m['pot_checkpoint'] * 600
 
             db.close()
             if m['status'] == 'offline':
@@ -102,8 +102,12 @@ def get_metrics():
         import subprocess
         result = subprocess.run(['pgrep', '-f', 'node.py.*--run'],
                               capture_output=True, timeout=1)
-        if result.returncode == 0 and m['status'] == 'offline':
-            m['status'] = 'running'
+        if result.returncode == 0:
+            if m['status'] == 'offline':
+                m['status'] = 'running'
+            # If running and recent blocks, it's producing
+            if m['poh_last'] < 5:
+                m['status'] = 'producing'
     except:
         pass
 
@@ -122,8 +126,8 @@ def render(m):
     now = datetime.now().strftime('%H:%M:%S')
 
     # Status color
-    if m['status'] == 'online':
-        status = c('ONLINE', G)
+    if m['status'] == 'producing':
+        status = c('PRODUCING', G)
     elif m['status'] in ('running', 'synced'):
         status = c(m['status'].upper(), Y)
     else:
