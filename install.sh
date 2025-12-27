@@ -168,6 +168,12 @@ sudo systemctl restart proofoftime
 EOF
 $SUDO chmod +x /usr/local/bin/pot-restart
 
+$SUDO tee /usr/local/bin/pot-dashboard > /dev/null << 'EOF'
+#!/bin/bash
+cd /opt/proofoftime && ./venv/bin/python dashboard.py "$@"
+EOF
+$SUDO chmod +x /usr/local/bin/pot-dashboard
+
 log "Helper commands created ✓"
 
 # Firewall
@@ -189,34 +195,12 @@ $SUDO systemctl start proofoftime
 # Wait for startup
 sleep 3
 
-# Check status
-if systemctl is-active --quiet proofoftime; then
-    STATUS="${GREEN}RUNNING${NC}"
-else
-    STATUS="${RED}FAILED${NC}"
-fi
+# Show dashboard (one-click experience)
+echo ""
+log "Installation complete! Showing dashboard..."
+echo ""
 
-# Print summary
+cd $POT_HOME && ./venv/bin/python dashboard.py
+
 echo ""
-echo -e "${GREEN}╔═══════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║           INSTALLATION COMPLETE!                  ║${NC}"
-echo -e "${GREEN}╚═══════════════════════════════════════════════════╝${NC}"
-echo ""
-echo -e "  Status:  $STATUS"
-echo ""
-echo -e "  ${BLUE}Quick Commands:${NC}"
-echo "    pot-status   - Check node status"
-echo "    pot-log      - View live logs"
-echo "    pot-restart  - Restart node"
-echo "    pot-cli getinfo - RPC call"
-echo ""
-echo -e "  ${BLUE}Paths:${NC}"
-echo "    Config: /etc/proofoftime.json"
-echo "    Data:   $POT_DATA"
-echo "    Logs:   $POT_LOG"
-echo ""
-echo -e "  ${BLUE}Ports:${NC}"
-echo "    P2P: 8333"
-echo "    RPC: 8332 (localhost only)"
-echo ""
-log "Node is running! Use 'pot-log' to view logs."
+log "Use 'pot-dashboard --live' for live updates"
