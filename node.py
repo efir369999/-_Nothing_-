@@ -641,7 +641,7 @@ class FullNode:
         """Initialize blockchain state."""
         # Try to load existing chain
         latest = self.db.get_latest_block()
-        
+
         if latest:
             self.chain_tip = ChainTip(
                 hash=latest.hash,
@@ -653,7 +653,7 @@ class FullNode:
             self.consensus.total_blocks = latest.height + 1
             logger.info(f"Loaded chain at height {latest.height}")
         else:
-            # Create genesis
+            # Create genesis with correct timestamp
             genesis = create_genesis_block()
             self.db.store_block(genesis)
             self.chain_tip = ChainTip(
@@ -662,10 +662,14 @@ class FullNode:
                 timestamp=genesis.timestamp
             )
             self.consensus.initialize(genesis)
-            logger.info("Created genesis block")
-        
+            logger.info(f"Created genesis block (ts={genesis.timestamp})")
+
         # Update network height
         self.network.start_height = self.chain_tip.height
+
+        # PoH mode: immediately ready (no sync wait needed)
+        self.sync_state = SyncState.SYNCED
+        logger.info("Ready to produce blocks")
     
     # =========================================================================
     # BLOCK PROCESSING
