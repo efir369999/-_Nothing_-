@@ -1,0 +1,14 @@
+# Proof of Time - Dependencies
+# Install with: pip install -r requirements.txt
+
+# Cryptography
+PyNaCl>=1.5.0
+pycryptodome>=3.19.0
+cryptography>=41.0.0
+
+# PDF processing (optional, for whitepaper extraction)
+pypdf>=3.17.0
+
+# Noise Protocol (optional, for encrypted P2P)
+noiseprotocol>=0.3.1
+
