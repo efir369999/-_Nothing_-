@@ -9,7 +9,7 @@
 Version 2.0 introduces two major innovations:
 
 1. **Pantheon**: A 12-module naming system where each name serves as the shortest AGI prompt
-2. **Multimodal AI Audit**: Security verification by multiple independent AI models
+2. **Shiva**: Multimodal AI audit framework — the destroyer of vulnerabilities
 
 ---
 
@@ -84,9 +84,9 @@ Multi-dimensional reputation scoring with 5 dimensions:
 f_rep = 0.3 × base_blocks + 0.7 × adonis_score
 ```
 
-### 4. Multimodal AI Audit Framework
+### 4. Shiva Audit Framework
 
-Security audits by multiple independent AI models:
+Named after the Hindu god of destruction, Shiva destroys vulnerabilities through independent analysis by multiple AI models:
 
 | Provider | Model | Role |
 |----------|-------|------|
@@ -95,7 +95,7 @@ Security audits by multiple independent AI models:
 | Google | Gemini 2.0 | Tertiary auditor |
 | xAI | Grok-3 | Tertiary auditor |
 
-**Audit Scores (v2.0):**
+**Shiva Scores (v2.0):**
 - Cryptography: 8.75/10
 - Consensus: 9.0/10
 - Code Quality: 9.0/10
@@ -171,7 +171,7 @@ None. v2.0 is fully backward compatible with v1.x.
 ### New Files
 - `pantheon.py` — Pantheon module aliases and Olympus engine
 - `adonis.py` — Multi-dimensional reputation system
-- `docs/MULTIMODAL_AUDIT.md` — Audit framework documentation
+- `docs/SHIVA.md` — Shiva audit framework documentation
 - `docs/RELEASE_v2.0.md` — This document
 - `PANTHEON.md` — Pantheon reference
 - `Adonis_ReputationModel.md` — Technical whitepaper
@@ -196,7 +196,7 @@ None. v2.0 is fully backward compatible with v1.x.
 | Total Python files | 18 |
 | Total lines of code | ~15,000 |
 | Test coverage | 123+ tests |
-| Audit score | 8.65/10 |
+| Shiva score | 8.65/10 |
 | Pantheon modules | 12 |
 | Reputation dimensions | 5 |
 
