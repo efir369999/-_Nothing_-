@@ -89,6 +89,7 @@ class ProtocolConstants:
     
     # Privacy
     RING_SIZE: int = 16  # Ring signature anonymity set
+    MIN_RING_SIZE: int = 2  # Minimum ring size for valid transactions
     
     # Cryptographic parameters
     VDF_MODULUS_BITS: int = 2048

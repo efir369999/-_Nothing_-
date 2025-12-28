@@ -725,14 +725,22 @@ class BlockchainDB:
     
     def _update_chain_state(self, cursor: sqlite3.Cursor, block: Block):
         """Update chain state after new block."""
+        from config import MAX_SUPPLY_SECONDS
+
         # Calculate new total supply
         reward = 0
         coinbase = block.get_coinbase()
         if coinbase:
             # Get reward from coinbase output
             for output in coinbase.outputs:
-                if output.encrypted_amount:
-                    reward += struct.unpack('<Q', output.encrypted_amount[:8])[0]
+                if output.encrypted_amount and len(output.encrypted_amount) >= 8:
+                    try:
+                        amount = struct.unpack('<Q', output.encrypted_amount[:8])[0]
+                        # Validate amount is within reasonable bounds
+                        if amount <= MAX_SUPPLY_SECONDS:
+                            reward += amount
+                    except struct.error:
+                        pass  # Invalid data, skip
         
         cursor.execute("""
             INSERT INTO chain_state (id, tip_height, tip_hash, total_supply, 

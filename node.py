@@ -396,42 +396,54 @@ class BlockProducer:
 
         Produces 1 block per second with PoH chain.
         Every 600 blocks, triggers PoT checkpoint with VDF.
-        """
-        next_block_time = time.time()
 
+        Block timestamps are synchronized to UTC:
+        - Block N has timestamp = GENESIS_TIMESTAMP + N
+        - Production waits for the next UTC second boundary
+        - If behind schedule (catching up), produces blocks rapidly
+        """
         while self.running:
             try:
-                now = time.time()
-
-                # Wait for next slot
-                if now < next_block_time:
-                    time.sleep(max(0, next_block_time - now))
-                    continue
-
                 # Get current tip
                 tip = self.node.get_chain_tip()
                 if not tip:
                     time.sleep(0.1)
                     continue
 
-                # Produce PoH block
-                self._produce_poh_block(tip)
+                # Calculate expected timestamp for next block
+                next_height = tip.height + 1
+                expected_timestamp = PROTOCOL.GENESIS_TIMESTAMP + next_height
 
-                # Schedule next block (1 second later)
-                next_block_time += PROTOCOL.POH_SLOT_TIME
+                # Current UTC time
+                now = time.time()
+                current_utc = int(now)
 
-                # Prevent drift
-                if next_block_time < time.time():
-                    next_block_time = time.time() + PROTOCOL.POH_SLOT_TIME
+                # Check if we're behind (catching up) or in sync
+                if current_utc >= expected_timestamp:
+                    # We're behind or exactly on time - produce immediately
+                    self._produce_poh_block(tip, expected_timestamp)
+                else:
+                    # Wait until the expected timestamp (UTC second boundary)
+                    wait_time = expected_timestamp - now
+                    if wait_time > 0:
+                        time.sleep(wait_time)
+                    self._produce_poh_block(tip, expected_timestamp)
 
             except Exception as e:
                 logger.error(f"Block production error: {e}")
                 time.sleep(1)
 
-    def _produce_poh_block(self, tip: ChainTip):
-        """Produce a PoH block (1 second)."""
+    def _produce_poh_block(self, tip: ChainTip, timestamp: Optional[int] = None):
+        """
+        Produce a PoH block (1 second).
+
+        Args:
+            tip: Current chain tip
+            timestamp: Block timestamp (UTC). If None, uses GENESIS_TIMESTAMP + height
+        """
         new_height = tip.height + 1
-        timestamp = int(time.time())
+        if timestamp is None:
+            timestamp = PROTOCOL.GENESIS_TIMESTAMP + new_height
 
         # Advance PoH chain (64 ticks × 12500 hashes = 800,000 hashes)
         for _ in range(PROTOCOL.POH_TICKS_PER_SLOT):
@@ -758,12 +770,23 @@ class FullNode:
         if prev_block and header.timestamp <= prev_block.timestamp:
             logger.warning("Block timestamp not after previous")
             return False
-        
+
         # Allow timestamps up to 10 minutes in future (same as Bitcoin's 2-hour was for 10-min blocks)
         # For PoT with 10-minute blocks, 10 minutes future tolerance is reasonable
         max_future_time = 600  # 10 minutes
         if header.timestamp > time.time() + max_future_time:
             logger.warning(f"Block timestamp {header.timestamp} too far in future (max +{max_future_time}s)")
+            return False
+
+        # Verify timestamp corresponds to block height (UTC synchronization)
+        # Block N should have timestamp = GENESIS_TIMESTAMP + N (±tolerance for network delays)
+        expected_timestamp = PROTOCOL.GENESIS_TIMESTAMP + block.height
+        timestamp_tolerance = 60  # 60 seconds tolerance for network delays
+        if abs(header.timestamp - expected_timestamp) > timestamp_tolerance:
+            logger.warning(
+                f"Block timestamp {header.timestamp} doesn't match height {block.height} "
+                f"(expected ~{expected_timestamp}, tolerance ±{timestamp_tolerance}s)"
+            )
             return False
         
         # Merkle root
@@ -1126,92 +1149,167 @@ def _self_test():
 
 
 def _render_dashboard(node, db_path: str = '/var/lib/proofoftime/blockchain.db'):
-    """Render live PoH dashboard."""
+    """Render comprehensive PoT dashboard with emission, halving, wallet info."""
     import os
     import sys
-    from datetime import datetime
+    from datetime import datetime, timezone
+    from config import (
+        PROTOCOL, get_block_reward, get_halving_epoch, blocks_until_halving,
+        estimate_total_supply_at_height, seconds_to_minutes, MAX_SUPPLY_SECONDS
+    )
 
     # Colors
-    G, Y, R, C, M, B, D, N = '\033[92m', '\033[93m', '\033[91m', '\033[96m', '\033[95m', '\033[1m', '\033[2m', '\033[0m'
+    G, Y, R, C, M, B, D, W, N = '\033[92m', '\033[93m', '\033[91m', '\033[96m', '\033[95m', '\033[1m', '\033[2m', '\033[97m', '\033[0m'
 
     def col(text, color):
         return f"{color}{text}{N}" if sys.stdout.isatty() else str(text)
 
-    # Get metrics
+    # Initialize metrics
     m = {
         'poh_slot': 0, 'pot_checkpoint': 0, 'nodes': 1, 'mempool': 0,
-        'last_block_age': 0, 'pot_next': 600, 'blocks_produced': 0, 'status': 'STARTING'
+        'last_block_age': 0, 'pot_next': 600, 'blocks_produced': 0, 'status': 'STARTING',
+        'reward': 0, 'epoch': 1, 'blocks_to_halving': 0, 'total_emitted': 0,
+        'remaining': 0, 'percent_emitted': 0, 'wallet_balance': 0,
+        'expected_slot': 0, 'slot_drift': 0, 'utc_now': '', 'genesis_ts': 0
     }
 
     try:
-        # Get chain state from node's chain_tip (more reliable than db query)
+        # Chain state
         if hasattr(node, 'chain_tip') and node.chain_tip:
-            m['poh_slot'] = node.chain_tip.height
-            m['pot_checkpoint'] = m['poh_slot'] // 600
-            m['pot_next'] = 600 - (m['poh_slot'] % 600)
+            height = node.chain_tip.height
+            m['poh_slot'] = height
+            m['pot_checkpoint'] = height // 600
+            m['pot_next'] = 600 - (height % 600)
             m['last_block_age'] = int(time.time()) - node.chain_tip.timestamp
             m['status'] = 'SYNCED'
 
-        # Get peer count (add 1 for self)
+            # Emission info
+            m['reward'] = get_block_reward(height)
+            m['epoch'] = get_halving_epoch(height)
+            m['blocks_to_halving'] = blocks_until_halving(height)
+            m['total_emitted'] = estimate_total_supply_at_height(height)
+            m['remaining'] = MAX_SUPPLY_SECONDS - m['total_emitted']
+            m['percent_emitted'] = (m['total_emitted'] / MAX_SUPPLY_SECONDS) * 100
+
+            # Time synchronization
+            m['genesis_ts'] = PROTOCOL.GENESIS_TIMESTAMP
+            m['expected_slot'] = int(time.time()) - PROTOCOL.GENESIS_TIMESTAMP
+            m['slot_drift'] = height - m['expected_slot']
+
+        # Network
         if hasattr(node, 'network') and node.network:
             m['nodes'] = 1 + node.network.get_peer_count()
 
+        # Mempool
         if hasattr(node, 'mempool') and node.mempool:
             m['mempool'] = node.mempool.get_count()
 
+        # Producer
         if hasattr(node, 'producer') and node.producer:
             m['blocks_produced'] = node.producer.blocks_produced
             if m['blocks_produced'] > 0:
                 m['status'] = 'PRODUCING'
-                # Get last block time from producer
                 if node.producer.last_block_time > 0:
                     m['last_block_age'] = int(time.time() - node.producer.last_block_time)
+
+        # Wallet balance
+        if hasattr(node, 'wallet') and node.wallet:
+            try:
+                m['wallet_balance'] = node.wallet.get_balance()
+            except:
+                pass
+
     except Exception as e:
         logger.debug(f"Dashboard metrics error: {e}")
 
-    # Format time
+    # Formatters
     def fmt_time(s):
         if s < 0: return "--:--"
         if s < 3600: return f"{s // 60:02d}:{s % 60:02d}"
         return f"{s // 3600}:{(s % 3600) // 60:02d}:{s % 60:02d}"
 
-    # PoT next checkpoint color
+    def fmt_amount(secs):
+        """Format seconds as time tokens (minutes)."""
+        mins = secs / 60
+        if mins >= 1_000_000:
+            return f"{mins / 1_000_000:.2f}M min"
+        elif mins >= 1_000:
+            return f"{mins / 1_000:.2f}K min"
+        else:
+            return f"{mins:.2f} min"
+
+    def fmt_blocks(n):
+        if n >= 1_000_000:
+            return f"{n / 1_000_000:.2f}M"
+        elif n >= 1_000:
+            return f"{n / 1_000:.1f}K"
+        return str(n)
+
+    # Colors based on state
     pot_next = m['pot_next']
     pot_col = G if pot_next > 300 else (Y if pot_next > 60 else R)
 
-    now = datetime.now().strftime('%H:%M:%S')
-
-    # Status color
     status = m['status']
-    if status == 'PRODUCING':
-        status_col = G
-    elif status == 'SYNCED':
-        status_col = Y
-    else:
-        status_col = R
+    status_col = G if status == 'PRODUCING' else (Y if status == 'SYNCED' else R)
+
+    drift = m['slot_drift']
+    drift_col = G if abs(drift) <= 5 else (Y if abs(drift) <= 60 else R)
+    drift_str = f"+{drift}" if drift > 0 else str(drift)
+
+    now_utc = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+    now_local = datetime.now().strftime('%H:%M:%S')
 
     # Clear and render
     os.system('clear' if os.name != 'nt' else 'cls')
     print()
-    print(col("  PROOF OF TIME", G))
-    print(col("  ═══════════════════════════════════════════════", D))
+    print(col("  ╔═══════════════════════════════════════════════════════════╗", G))
+    print(col("  ║", G) + col("              PROOF OF TIME NODE                        ", W) + col("║", G))
+    print(col("  ╚═══════════════════════════════════════════════════════════╝", G))
     print()
-    print(f"  {col('STATUS', C)}        {col(status, status_col)}")
-    print(f"  {col('NODES', C)}         {m['nodes']}")
-    print(f"  {col('MEMPOOL', C)}       {m['mempool']} tx")
+
+    # Status section
+    print(col("  ─── STATUS ───────────────────────────────────────────────", D))
+    print(f"  {col('NODE', C)}           {col(status, status_col):<20} {col('PEERS', C)}  {m['nodes']}")
+    print(f"  {col('MEMPOOL', C)}        {m['mempool']} tx")
     print()
-    print(col("  ─── PoH Layer (1 sec blocks) ─────────────────", D))
-    print(f"  {col('SLOT', M)}          {col(m['poh_slot'], B)}")
-    print(f"  {col('PRODUCED', M)}      {m['blocks_produced']}")
-    print(f"  {col('LAST', M)}          {m['last_block_age']}s ago")
+
+    # Time section
+    print(col("  ─── TIME SYNC ────────────────────────────────────────────", D))
+    print(f"  {col('UTC NOW', C)}        {col(now_utc, W)}")
+    print(f"  {col('EXPECTED SLOT', C)}  {m['expected_slot']:<15} {col('ACTUAL', C)}  {m['poh_slot']}")
+    print(f"  {col('DRIFT', C)}          {col(drift_str + ' slots', drift_col)}")
     print()
-    print(col("  ─── PoT Layer (10 min finality) ──────────────", D))
-    print(f"  {col('CHECKPOINT', C)}    {col(m['pot_checkpoint'], B)}")
-    print(f"  {col('FINALIZED', C)}     slot {m['pot_checkpoint'] * 600}")
-    print(f"  {col('NEXT', C)}          {col(fmt_time(pot_next), pot_col)}")
+
+    # PoH Layer
+    print(col("  ─── PoH LAYER (1 block/sec) ──────────────────────────────", D))
+    print(f"  {col('SLOT', M)}           {col(m['poh_slot'], B):<15} {col('PRODUCED', M)}  {m['blocks_produced']}")
+    print(f"  {col('LAST BLOCK', M)}     {m['last_block_age']}s ago")
     print()
-    print(col("  ─────────────────────────────────────────", D))
-    print(col(f"  {now}  │  Ctrl+C to stop", D))
+
+    # PoT Layer
+    print(col("  ─── PoT LAYER (10 min finality) ──────────────────────────", D))
+    print(f"  {col('CHECKPOINT', C)}     {col(m['pot_checkpoint'], B):<15} {col('FINALIZED', C)}  slot {m['pot_checkpoint'] * 600}")
+    print(f"  {col('NEXT IN', C)}        {col(fmt_time(pot_next), pot_col)}")
+    print()
+
+    # Emission section
+    print(col("  ─── EMISSION ─────────────────────────────────────────────", D))
+    print(f"  {col('BLOCK REWARD', Y)}   {col(fmt_amount(m['reward']), W):<15} {col('EPOCH', Y)}  {m['epoch']}/33")
+    print(f"  {col('TO HALVING', Y)}     {fmt_blocks(m['blocks_to_halving'])} blocks")
+    print(f"  {col('EMITTED', Y)}        {fmt_amount(m['total_emitted']):<15} ({m['percent_emitted']:.4f}%)")
+    print(f"  {col('REMAINING', Y)}      {fmt_amount(m['remaining'])}")
+    print(f"  {col('MAX SUPPLY', Y)}     21,000,000 min")
+    print()
+
+    # Wallet section
+    if m['wallet_balance'] > 0 or (hasattr(node, 'wallet') and node.wallet):
+        print(col("  ─── WALLET ───────────────────────────────────────────────", D))
+        print(f"  {col('BALANCE', G)}        {col(fmt_amount(m['wallet_balance']), W)}")
+        print()
+
+    # Footer
+    print(col("  ─────────────────────────────────────────────────────────", D))
+    print(col(f"  {now_local}  │  Ctrl+C to stop  │  Genesis: {PROTOCOL.GENESIS_TIMESTAMP}", D))
 
 
 def main():
