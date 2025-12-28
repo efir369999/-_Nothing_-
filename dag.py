@@ -24,8 +24,10 @@ from dataclasses import dataclass, field
 from enum import IntEnum
 from collections import defaultdict
 
+import os
 from crypto import sha256, sha256d, Ed25519, WesolowskiVDF, VDFProof, ECVRF
 from config import PROTOCOL
+from tiered_privacy import TierValidator, EXPERIMENTAL_PRIVACY_ENABLED
 
 logger = logging.getLogger("proof_of_time.dag")
 
@@ -44,6 +46,9 @@ DIVERSITY_PENALTY = 0.5  # Weight penalty for insufficient diversity
 
 # Timing
 TIMESTAMP_TOLERANCE = 30  # ±30 seconds from VDF expectation
+
+# Safety gate: disable block production by default unless explicitly allowed.
+UNSAFE_ALLOWED = os.getenv("POT_ALLOW_UNSAFE") == "1"
 
 
 # ============================================================================
@@ -830,6 +835,8 @@ class DAGConsensusEngine:
         
         Node must have weight ≥ θ_min (10% of maximum).
         """
+        if not UNSAFE_ALLOWED:
+            return False
         weight = self.node_weights.get(node_pubkey, 0.0)
         return weight >= MIN_WEIGHT_THRESHOLD
     
@@ -890,6 +897,28 @@ class DAGConsensusEngine:
                 block.header.producer_signature
             ):
                 return False, "Invalid producer signature"
+
+            # Validate transactions (basic safety) and block size
+            max_block_bytes = 2 * 1024 * 1024  # 2 MB safety cap
+            tx_bytes_total = 0
+            key_images_seen = set()
+            for tx in block.transactions:
+                valid, reason = TierValidator.validate_transaction(tx)
+                if not valid:
+                    return False, f"Invalid transaction: {reason}"
+                tx_bytes = len(tx.serialize())
+                tx_bytes_total += tx_bytes
+                # Collect key images for duplicate detection
+                if hasattr(tx, "inputs"):
+                    for inp in tx.inputs:
+                        ki = getattr(inp, "key_image", None)
+                        if ki:
+                            if ki in key_images_seen:
+                                return False, "Duplicate key image in block"
+                            key_images_seen.add(ki)
+
+            if tx_bytes_total > max_block_bytes:
+                return False, "Block too large"
             
             # Validate timestamp
             expected_time = self._estimate_block_time(block)

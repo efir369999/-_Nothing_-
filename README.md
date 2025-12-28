@@ -123,6 +123,8 @@ When everyone agreed that 1Ɉ = 1 second of Earth time, value ceased to require 
 
 ## Running Time
 
+⚠️ **Безопасность прежде всего**: в текущем состоянии протокол содержит незавершённые части (финализация PoH→PoT, экономическая валидация DAG, проверенные криптопримитивы T2/T3, fallback VDF). По умолчанию узел **не запускается**, пока не будет явно задан `POT_ALLOW_UNSAFE=1`. Делайте это только в изолированной среде для разработки. Конфиденциальные уровни приватности T2/T3 отключены по умолчанию (включение через `POT_ENABLE_EXPERIMENTAL_PRIVACY=1` — небезопасно).
+
 The network requires honest nodes. If you run a node for 180 days, you gain maximum influence. Your capital doesn't matter. Your computational power doesn't matter. Your presence matters.
 
 Time cannot be forked. You can create an alternative history. You cannot create alternative time.

@@ -11,6 +11,7 @@ This is the main entry point for running a Proof of Time node.
 Time is the ultimate proof.
 """
 
+import os
 import struct
 import time
 import logging
@@ -96,6 +97,15 @@ class ProofOfTimeNode:
         # State
         self.state = EngineState.STOPPED
         self._lock = threading.RLock()
+
+        # Safety gate: refuse to run without explicit opt-in while critical
+        # production gaps (finality, economic validation, audited crypto) remain.
+        if os.getenv("POT_ALLOW_UNSAFE") != "1":
+            raise RuntimeError(
+                "Proof of Time node is blocked: critical features (finality, "
+                "economic validation, audited privacy/VDF fallback) are incomplete. "
+                "Set POT_ALLOW_UNSAFE=1 to run at your own risk."
+            )
         
         # Initialize components
         self._init_components()

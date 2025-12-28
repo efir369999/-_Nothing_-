@@ -43,6 +43,15 @@ Analyze usability for end users:
 - Assess documentation quality
 - Score: X/10 with justification
 
+### Additional Focus Areas (please address explicitly)
+- **Crypto placeholders / unaudited primitives:** Detect any stub or “production-grade” claims without test vectors (Bulletproofs, LSAG, VDF fallbacks). Flag unsafe fallbacks (e.g., XOR/ECB, non-AEAD).
+- **Finality / checkpointing:** Verify PoH→PoT finality, leader timeouts, reorg rules, and checkpoint inclusion/validation.
+- **Economic validation & anti-spam:** Fee/size limits, double-spend checks, DAG parasitic/balancing/spam resistance, θ_min enforcement, mempool/DoS protections.
+- **Network security:** Ensure Noise/AEAD is mandatory, no insecure fallbacks; key rotation, rate limiting, ban lists, eclipse/Sybil protections.
+- **VDF robustness:** Presence of alternative modulus (class group) or rotation plan; T calibration/benchmarks on target hardware.
+- **Testing/CI:** Existence of real integration/fuzz tests (beyond `_self_test`), serialization round-trips, perf/bench coverage.
+- **UX/ops:** Dependency checks (gmpy2, noiseprotocol, PyNaCl), install/runbook, config examples, diagnostics.
+
 ## Key Files to Review
 
 Priority 1 (Critical):
