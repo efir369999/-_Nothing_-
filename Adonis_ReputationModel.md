@@ -346,6 +346,9 @@ Records are append-only and verifiable.
 | VOUCH_LOG_BASE | 4 | Logarithmic vouch scaling |
 | PAGERANK_DAMPING | 0.85 | PageRank damping factor |
 | PAGERANK_ITERATIONS | 20 | PageRank convergence iterations |
+| MAX_VOUCHES_PER_DAY | 10 | Rate limit for vouches per node |
+| PROFILE_EXPIRATION | 365 days | Inactivity threshold for GC |
+| MAX_TIMESTAMP_DRIFT | 600 seconds | Allowed timestamp deviation |
 
 ---
 

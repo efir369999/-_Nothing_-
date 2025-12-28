@@ -98,3 +98,4 @@ config.json
 
 .claude/
 *.txt
+adonis_state.bin

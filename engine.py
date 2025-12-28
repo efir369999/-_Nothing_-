@@ -577,7 +577,66 @@ class ProofOfTimeNode:
         if pubkey is None:
             pubkey = self.public_key
         return self.adonis.get_reputation_score(pubkey)
-    
+
+    def report_slashing_event(
+        self,
+        offender_pubkey: bytes,
+        condition: int,
+        height: int,
+        evidence_hash: Optional[bytes] = None
+    ):
+        """
+        Report a slashing event to Adonis reputation system.
+
+        Maps SlashingCondition to ReputationEvent:
+        - EQUIVOCATION -> ReputationEvent.EQUIVOCATION
+        - INVALID_VDF -> ReputationEvent.VDF_INVALID
+        - INVALID_VRF -> ReputationEvent.VRF_INVALID
+        """
+        from consensus import SlashingCondition
+
+        event_map = {
+            SlashingCondition.EQUIVOCATION: ReputationEvent.EQUIVOCATION,
+            SlashingCondition.INVALID_VDF: ReputationEvent.VDF_INVALID,
+            SlashingCondition.INVALID_VRF: ReputationEvent.VRF_INVALID,
+        }
+
+        event_type = event_map.get(SlashingCondition(condition))
+        if event_type:
+            self.adonis.record_event(
+                offender_pubkey,
+                event_type,
+                height=height,
+                evidence=evidence_hash
+            )
+            logger.warning(
+                f"Slashing event recorded for {offender_pubkey.hex()[:16]}...: "
+                f"{event_type.name}"
+            )
+
+    def record_block_validation(self, validator_pubkey: bytes, height: int, valid: bool):
+        """Record block validation event for Adonis."""
+        if valid:
+            self.adonis.record_event(
+                validator_pubkey,
+                ReputationEvent.BLOCK_VALIDATED,
+                height=height
+            )
+        else:
+            self.adonis.record_event(
+                validator_pubkey,
+                ReputationEvent.BLOCK_INVALID,
+                height=height
+            )
+
+    def record_uptime_checkpoint(self):
+        """Record uptime checkpoint for this node."""
+        self.adonis.record_event(
+            self.public_key,
+            ReputationEvent.UPTIME_CHECKPOINT,
+            height=self._current_height if hasattr(self, '_current_height') else 0
+        )
+
     # =========================================================================
     # NETWORK INTERFACE
     # =========================================================================

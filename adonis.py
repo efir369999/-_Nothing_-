@@ -31,6 +31,20 @@ logger = logging.getLogger("proof_of_time.adonis")
 
 
 # ============================================================================
+# CONSTANTS
+# ============================================================================
+
+# Maximum vouches per node per day (rate limiting)
+MAX_VOUCHES_PER_DAY = 10
+
+# Profile expiration (1 year without events = garbage collected)
+PROFILE_EXPIRATION_SECONDS = 365 * 86400
+
+# Maximum allowed timestamp drift (10 minutes into future)
+MAX_TIMESTAMP_DRIFT = 600
+
+
+# ============================================================================
 # REPUTATION DIMENSIONS
 # ============================================================================
 
@@ -451,10 +465,17 @@ class AdonisEngine:
         ReputationEvent.SPAM_DETECTED: 7 * 86400,   # 7 days
     }
 
-    def __init__(self, storage=None):
+    def __init__(self, storage=None, data_dir: str = "."):
         self.profiles: Dict[bytes, AdonisProfile] = {}
         self.storage = storage
+        self.data_dir = data_dir
         self._lock = threading.RLock()
+
+        # Rate limiting: voucher_pubkey -> list of vouch timestamps
+        self._vouch_history: Dict[bytes, List[int]] = defaultdict(list)
+
+        # Current block height for timestamp validation
+        self._current_height: int = 0
 
         # Configuration
         self.dimension_weights = {
@@ -465,7 +486,14 @@ class AdonisEngine:
             ReputationDimension.COMMUNITY: 0.10,
         }
 
+        # Load persisted state
+        self._load_from_file()
+
         logger.info("Adonis Reputation Engine initialized")
+
+    def set_current_height(self, height: int):
+        """Update current block height for timestamp validation."""
+        self._current_height = height
 
     def get_or_create_profile(self, pubkey: bytes) -> AdonisProfile:
         """Get existing profile or create new one."""
@@ -481,17 +509,53 @@ class AdonisEngine:
         event_type: ReputationEvent,
         height: int = 0,
         source: Optional[bytes] = None,
-        evidence: Optional[bytes] = None
+        evidence: Optional[bytes] = None,
+        timestamp: Optional[int] = None
     ) -> float:
         """
         Record a reputation event and update scores.
 
+        Args:
+            pubkey: Node public key
+            event_type: Type of reputation event
+            height: Block height when event occurred (for validation)
+            source: Source node for peer events
+            evidence: Hash of evidence
+            timestamp: Event timestamp (validated against current time)
+
         Returns:
-            New aggregate score after event
+            New aggregate score after event, or -1 if validation failed
         """
         with self._lock:
             profile = self.get_or_create_profile(pubkey)
             current_time = int(time.time())
+
+            # Timestamp validation (ADN-M3 fix)
+            if timestamp is not None:
+                # Reject future timestamps (with small drift allowance)
+                if timestamp > current_time + MAX_TIMESTAMP_DRIFT:
+                    logger.warning(
+                        f"Rejected event with future timestamp: {timestamp} > {current_time}"
+                    )
+                    return -1.0
+
+                # Reject very old timestamps (older than 24h)
+                if timestamp < current_time - 86400:
+                    logger.warning(
+                        f"Rejected event with stale timestamp: {timestamp}"
+                    )
+                    return -1.0
+
+                current_time = timestamp
+
+            # Height validation
+            if height > 0 and self._current_height > 0:
+                # Height should not be far in future
+                if height > self._current_height + 10:
+                    logger.warning(
+                        f"Rejected event with future height: {height} > {self._current_height}"
+                    )
+                    return -1.0
 
             # Get impact and dimension
             impact = self.EVENT_IMPACTS.get(event_type, 0.0)
@@ -552,10 +616,34 @@ class AdonisEngine:
         """
         Add a trust vouch from voucher to vouchee.
 
+        Rate limited to MAX_VOUCHES_PER_DAY per voucher.
+
         Returns:
-            True if vouch was added, False if already exists
+            True if vouch was added, False if rate limited or already exists
         """
         with self._lock:
+            current_time = int(time.time())
+
+            # Self-vouch protection
+            if voucher == vouchee:
+                logger.warning(f"Self-vouch rejected for {voucher.hex()[:16]}...")
+                return False
+
+            # Rate limiting (ADN-L1 fix)
+            day_ago = current_time - 86400
+            recent_vouches = [
+                t for t in self._vouch_history[voucher]
+                if t > day_ago
+            ]
+            self._vouch_history[voucher] = recent_vouches
+
+            if len(recent_vouches) >= MAX_VOUCHES_PER_DAY:
+                logger.warning(
+                    f"Vouch rate limit exceeded for {voucher.hex()[:16]}... "
+                    f"({len(recent_vouches)}/{MAX_VOUCHES_PER_DAY} per day)"
+                )
+                return False
+
             voucher_profile = self.get_or_create_profile(voucher)
             vouchee_profile = self.get_or_create_profile(vouchee)
 
@@ -564,6 +652,7 @@ class AdonisEngine:
 
             voucher_profile.trusts.add(vouchee)
             vouchee_profile.trusted_by.add(voucher)
+            self._vouch_history[voucher].append(current_time)
 
             # Record event for vouchee
             self.record_event(
@@ -575,6 +664,9 @@ class AdonisEngine:
             logger.info(
                 f"Trust vouch: {voucher.hex()[:16]}... -> {vouchee.hex()[:16]}..."
             )
+
+            # Auto-save after vouch
+            self._save_to_file()
 
             return True
 
@@ -733,6 +825,132 @@ class AdonisEngine:
                 self.profiles[pubkey] = AdonisProfile.deserialize(data)
 
             logger.info(f"Loaded {len(self.profiles)} Adonis profiles")
+
+    # =========================================================================
+    # PERSISTENCE (ADN-M1 fix)
+    # =========================================================================
+
+    def _get_state_file(self) -> str:
+        """Get path to state file."""
+        import os
+        return os.path.join(self.data_dir, "adonis_state.bin")
+
+    def _save_to_file(self):
+        """Save profiles to file for persistence."""
+        import os
+        try:
+            state_file = self._get_state_file()
+
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(state_file) or ".", exist_ok=True)
+
+            with open(state_file, 'wb') as f:
+                # Write version
+                f.write(struct.pack('<H', 1))  # Version 1
+
+                # Write profile count
+                f.write(struct.pack('<I', len(self.profiles)))
+
+                # Write each profile
+                for pubkey, profile in self.profiles.items():
+                    data = profile.serialize()
+                    f.write(struct.pack('<I', len(data)))
+                    f.write(data)
+
+            logger.debug(f"Saved {len(self.profiles)} Adonis profiles to {state_file}")
+
+        except Exception as e:
+            logger.error(f"Failed to save Adonis state: {e}")
+
+    def _load_from_file(self):
+        """Load profiles from file."""
+        import os
+        state_file = self._get_state_file()
+
+        if not os.path.exists(state_file):
+            logger.debug("No Adonis state file found, starting fresh")
+            return
+
+        try:
+            with open(state_file, 'rb') as f:
+                # Read version
+                version = struct.unpack('<H', f.read(2))[0]
+                if version != 1:
+                    logger.warning(f"Unknown Adonis state version: {version}")
+                    return
+
+                # Read profile count
+                count = struct.unpack('<I', f.read(4))[0]
+
+                # Read profiles
+                for _ in range(count):
+                    data_len = struct.unpack('<I', f.read(4))[0]
+                    data = f.read(data_len)
+                    profile = AdonisProfile.deserialize(data)
+                    self.profiles[profile.pubkey] = profile
+
+            logger.info(f"Loaded {len(self.profiles)} Adonis profiles from {state_file}")
+
+        except Exception as e:
+            logger.error(f"Failed to load Adonis state: {e}")
+
+    # =========================================================================
+    # GARBAGE COLLECTION
+    # =========================================================================
+
+    def garbage_collect(self, force: bool = False) -> int:
+        """
+        Remove expired profiles (no activity for PROFILE_EXPIRATION_SECONDS).
+
+        Args:
+            force: If True, run even if recently run
+
+        Returns:
+            Number of profiles removed
+        """
+        with self._lock:
+            current_time = int(time.time())
+            expired = []
+
+            for pubkey, profile in self.profiles.items():
+                # Check if profile is expired
+                if profile.last_updated > 0:
+                    age = current_time - profile.last_updated
+                else:
+                    age = current_time - profile.created_at
+
+                if age > PROFILE_EXPIRATION_SECONDS:
+                    # Don't GC penalized profiles (keep for accountability)
+                    if not profile.is_penalized:
+                        expired.append(pubkey)
+
+            # Remove expired profiles
+            for pubkey in expired:
+                # Clean up trust references
+                profile = self.profiles[pubkey]
+                for trusted in profile.trusts:
+                    if trusted in self.profiles:
+                        self.profiles[trusted].trusted_by.discard(pubkey)
+
+                for truster in profile.trusted_by:
+                    if truster in self.profiles:
+                        self.profiles[truster].trusts.discard(pubkey)
+
+                del self.profiles[pubkey]
+
+            if expired:
+                logger.info(f"Garbage collected {len(expired)} expired Adonis profiles")
+                self._save_to_file()
+
+            return len(expired)
+
+    def periodic_maintenance(self):
+        """Run periodic maintenance tasks."""
+        # Garbage collect
+        self.garbage_collect()
+
+        # Save state
+        self._save_to_file()
 
 
 # ============================================================================

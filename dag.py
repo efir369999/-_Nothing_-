@@ -50,6 +50,11 @@ TIMESTAMP_TOLERANCE = 30  # ±30 seconds from VDF expectation
 # Safety gate: disable block production by default unless explicitly allowed.
 UNSAFE_ALLOWED = os.getenv("POT_ALLOW_UNSAFE") == "1"
 
+# Economic / anti-spam limits
+MAX_TX_PER_BLOCK = 2000
+# Minimal fee rate in seconds per KiB (fallback if mempool config not available)
+MIN_FEE_RATE_PER_KIB = 1
+
 
 # ============================================================================
 # DAG BLOCK HEADER
@@ -900,6 +905,8 @@ class DAGConsensusEngine:
 
             # Validate transactions (basic safety) and block size
             max_block_bytes = 2 * 1024 * 1024  # 2 MB safety cap
+            if len(block.transactions) > MAX_TX_PER_BLOCK:
+                return False, "Too many transactions in block"
             tx_bytes_total = 0
             key_images_seen = set()
             for tx in block.transactions:
@@ -907,6 +914,11 @@ class DAGConsensusEngine:
                 if not valid:
                     return False, f"Invalid transaction: {reason}"
                 tx_bytes = len(tx.serialize())
+                tx_fee = getattr(tx, "fee", 0)
+                # Enforce minimal fee rate per KiB (round up)
+                min_fee = max(1, ((tx_bytes + 1023) // 1024) * MIN_FEE_RATE_PER_KIB)
+                if tx_fee < min_fee:
+                    return False, "Transaction fee below minimum rate"
                 tx_bytes_total += tx_bytes
                 # Collect key images for duplicate detection
                 if hasattr(tx, "inputs"):
