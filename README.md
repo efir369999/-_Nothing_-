@@ -112,9 +112,10 @@ python node.py --run
 
 | Document | Content |
 |----------|---------|
-| Time_v1.0.pdf | Whitepaper. Nash's Ideal Money. Temporal Compression. |
-| ProofOfTime_v1.0.pdf | Technical specification. VDF. Adonis. DAG. |
-| SECURITY_MODEL.md | Security model. Anti-cluster. Known limitations. |
+| Time_v2.0.pdf | Whitepaper v2.0. Nash's Ideal Money. Security proofs. |
+| ProofOfTime_v2.0.pdf | Technical specification. VDF. Adonis. DAG. |
+| SECURITY_MODEL.md | Security model. Anti-cluster. All properties proven. |
+| docs/RELEASE_v2.6.md | Release notes. All security properties proven. |
 
 ---
 
@@ -122,11 +123,12 @@ python node.py --run
 
 ### AI Audits
 
-| Auditor | Score | Status |
-|---------|-------|--------|
-| Claude Opus 4.5 | 9.0/10 | [PASS](audits/anthropic/SECURITY_AUDIT.md) |
-| Gemini 3 Flash | 9.0/10 | [PASS](audits/alphabet/gemini_3_flash_audit.md) |
-| GPT-5.1 Codex | - | [View](audits/openai/gpt-5.1-codex-max-xhigh_audit.md) |
+| Auditor | Version | Score | Status |
+|---------|---------|-------|--------|
+| Claude Opus 4.5 | v2.6 | 9.5/10 | [PASS](audits/anthropic/claude_opus_4.5_v2.6_audit.md) |
+| Claude Opus 4.5 | v2.5 | 9.0/10 | [PASS](audits/anthropic/SECURITY_AUDIT.md) |
+| Gemini 3 Flash | v2.5 | 9.0/10 | [PASS](audits/alphabet/gemini_3_flash_audit.md) |
+| GPT-5.1 Codex | v2.5 | - | [View](audits/openai/gpt-5.1-codex-max-xhigh_audit.md) |
 
 See [audits/](audits/) for full reports.
 
