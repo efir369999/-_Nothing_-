@@ -5,6 +5,138 @@
 
 ---
 
+## Output
+
+**Save audit to:** `audits/{company}/{model}_v{version}_audit.md`
+
+Examples:
+- `audits/anthropic/claude_opus_4.5_v2.6_audit.md`
+- `audits/alphabet/gemini_3_flash_v2.6_audit.md`
+- `audits/openai/gpt-5.1_v2.6_audit.md`
+
+---
+
+## Scoring System
+
+| Category | Weight | Max Score |
+|----------|--------|-----------|
+| Security Properties | 40% | 4.0 |
+| Code Quality | 25% | 2.5 |
+| Test Coverage | 20% | 2.0 |
+| Documentation | 15% | 1.5 |
+| **Total** | 100% | **10.0** |
+
+### Scoring Guide
+
+| Score | Status | Meaning |
+|-------|--------|---------|
+| 9.0+ | PRODUCTION READY | Deploy to mainnet |
+| 8.0-8.9 | TESTNET READY | Safe for testnet |
+| 7.0-7.9 | REVIEW NEEDED | Fix issues first |
+| <7.0 | NOT READY | Major issues |
+
+---
+
+## Audit Template
+
+```markdown
+# Proof of Time — Security Audit v{VERSION}
+
+**Auditor:** {MODEL_NAME}
+**Model ID:** {MODEL_ID}
+**Date:** {DATE}
+**Codebase Version:** v{VERSION}
+
+---
+
+## Executive Summary
+
+{1-2 paragraph summary}
+
+**Overall Assessment:** {PRODUCTION READY / TESTNET READY / NOT READY}
+**Final Score:** {X.X}/10
+
+---
+
+## 1. Security Properties
+
+| Property | Status | Notes |
+|----------|--------|-------|
+| Cluster-cap bypass | {PASS/FAIL} | {notes} |
+| Adaptive adversary | {PASS/FAIL} | {notes} |
+| 33% = Byzantine | {PASS/FAIL} | {notes} |
+| TIME = human time | {PASS/FAIL} | {notes} |
+
+**Score:** {X.X}/4.0
+
+---
+
+## 2. Code Quality
+
+### 2.1 {Module Name}
+{Analysis}
+
+**Score:** {X.X}/2.5
+
+---
+
+## 3. Test Coverage
+
+{Test results and analysis}
+
+**Score:** {X.X}/2.0
+
+---
+
+## 4. Documentation
+
+{Documentation review}
+
+**Score:** {X.X}/1.5
+
+---
+
+## 5. Findings
+
+### Critical
+{List or "None"}
+
+### High
+{List or "None"}
+
+### Medium
+{List or "None"}
+
+### Low
+{List or "None"}
+
+---
+
+## 6. Recommendations
+
+1. {Recommendation}
+2. {Recommendation}
+
+---
+
+## 7. Conclusion
+
+{Final assessment}
+
+**Auditor Signature:**
+```
+Model: {MODEL_ID}
+Date: {DATE}
+Status: {STATUS}
+```
+
+---
+
+*Time is the ultimate proof.*
+```
+
+---
+
 ## Pantheon Modules
 
 | Module | God | File | Purpose |
