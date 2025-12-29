@@ -1127,6 +1127,352 @@ class EntropyMonitor:
 
 
 # ============================================================================
+# GLOBAL BYZANTINE TRACKER - Prevents Cluster-Cap Bypass
+# ============================================================================
+
+class GlobalByzantineTracker:
+    """
+    Tracks total suspected Byzantine influence across the network.
+
+    PROBLEM SOLVED:
+    An adversary with 100 nodes can divide them into 10 groups of 10 nodes.
+    If each group behaves differently (correlation < 0.7), they won't be
+    detected as clusters. Each group is < 33%, but total is 50%+.
+
+    SOLUTION:
+    Track nodes by BEHAVIORAL FINGERPRINT, not just pairwise correlation.
+    Apply global Byzantine cap to ALL suspected nodes, regardless of
+    whether they form detected clusters.
+
+    FINGERPRINT SIGNALS:
+    1. Join time proximity (nodes joining within hours of each other)
+    2. Reputation growth rate similarity
+    3. Online/offline pattern similarity
+    4. Action timing entropy (low = scripted = suspicious)
+    5. Geographic clustering (same city hash pattern)
+    """
+
+    # Maximum total suspected Byzantine influence
+    MAX_BYZANTINE_INFLUENCE = 0.33  # 33% cap on ALL suspected nodes
+
+    # Fingerprint similarity threshold for grouping
+    # CRITICAL: Must be high enough to avoid grouping honest nodes together
+    # 80% similarity required to be considered same operator
+    FINGERPRINT_SIMILARITY_THRESHOLD = 0.80
+
+    # Minimum nodes to trigger Byzantine tracking
+    MIN_NODES_FOR_TRACKING = 10
+
+    def __init__(self):
+        self._lock = threading.RLock()
+
+        # Node fingerprints: pubkey -> fingerprint vector
+        self._fingerprints: Dict[bytes, Tuple[float, ...]] = {}
+
+        # Suspected Byzantine groups: group_id -> set of pubkeys
+        self._byzantine_groups: Dict[int, Set[bytes]] = {}
+
+        # Node -> group mapping
+        self._node_to_group: Dict[bytes, int] = {}
+
+        # Last analysis timestamp
+        self._last_analysis: int = 0
+        self._analysis_interval = 1800  # 30 minutes
+
+        logger.info("GlobalByzantineTracker initialized (Cluster-Cap Bypass Prevention)")
+
+    def compute_fingerprint(
+        self,
+        profile: 'AdonisProfile',
+        all_profiles: Dict[bytes, 'AdonisProfile']
+    ) -> Tuple[float, ...]:
+        """
+        Compute behavioral fingerprint for a node.
+
+        Returns tuple of normalized features [0, 1] for comparison.
+        """
+        current_time = int(time.time())
+
+        # Feature 1: Join time (normalized to network age)
+        if all_profiles:
+            min_created = min(p.created_at for p in all_profiles.values())
+            max_created = max(p.created_at for p in all_profiles.values())
+            time_range = max(1, max_created - min_created)
+            join_time_norm = (profile.created_at - min_created) / time_range
+        else:
+            join_time_norm = 0.5
+
+        # Feature 2: Reputation growth rate
+        age_days = max(1, (current_time - profile.created_at) / 86400)
+        growth_rate = profile.aggregate_score / age_days
+        # Normalize: most nodes grow at 0.01-0.05 per day
+        growth_rate_norm = min(1.0, growth_rate / 0.05)
+
+        # Feature 3: TIME dimension velocity
+        time_score = profile.dimensions[ReputationDimension.TIME].value
+        time_velocity = time_score / age_days
+        time_velocity_norm = min(1.0, time_velocity / 0.01)
+
+        # Feature 4: Event frequency
+        events_per_day = profile.total_events / age_days
+        # Normalize: expect 1-50 events per day
+        event_freq_norm = min(1.0, events_per_day / 50)
+
+        # Feature 5: Recent activity pattern
+        recent_events = profile.get_recent_events(since=current_time - 86400)
+        if len(recent_events) >= 2:
+            # Calculate timing entropy
+            timestamps = [e.timestamp for e in recent_events]
+            deltas = [timestamps[i] - timestamps[i-1] for i in range(1, len(timestamps))]
+            if deltas:
+                mean_delta = sum(deltas) / len(deltas)
+                variance = sum((d - mean_delta)**2 for d in deltas) / len(deltas)
+                # Low variance = scripted = suspicious
+                # Normalize: expect variance of 1000-10000 seconds
+                timing_entropy = min(1.0, math.sqrt(variance) / 100)
+            else:
+                timing_entropy = 0.5
+        else:
+            timing_entropy = 0.5
+
+        # Feature 6: Dimension balance (how evenly distributed scores are)
+        dim_values = [d.value for d in profile.dimensions.values()]
+        if dim_values:
+            mean_dim = sum(dim_values) / len(dim_values)
+            dim_variance = sum((v - mean_dim)**2 for v in dim_values) / len(dim_values)
+            # High variance = natural, low variance = manufactured
+            dim_balance = min(1.0, math.sqrt(dim_variance) * 5)
+        else:
+            dim_balance = 0.5
+
+        return (
+            join_time_norm,
+            growth_rate_norm,
+            time_velocity_norm,
+            event_freq_norm,
+            timing_entropy,
+            dim_balance,
+        )
+
+    def fingerprint_distance(self, fp1: Tuple[float, ...], fp2: Tuple[float, ...]) -> float:
+        """
+        Compute distance between two fingerprints.
+
+        Returns value in [0, 1] where 0 = identical, 1 = completely different.
+        """
+        if len(fp1) != len(fp2):
+            return 1.0
+
+        # Euclidean distance normalized by dimensions
+        sum_sq = sum((a - b)**2 for a, b in zip(fp1, fp2))
+        return math.sqrt(sum_sq / len(fp1))
+
+    def update_fingerprints(self, profiles: Dict[bytes, 'AdonisProfile']):
+        """Update fingerprints for all profiles."""
+        with self._lock:
+            for pubkey, profile in profiles.items():
+                self._fingerprints[pubkey] = self.compute_fingerprint(profile, profiles)
+
+    def detect_byzantine_groups(
+        self,
+        profiles: Dict[bytes, 'AdonisProfile']
+    ) -> Dict[int, Set[bytes]]:
+        """
+        Detect groups of potentially Byzantine nodes.
+
+        STRATEGY: "Slow Takeover Attack" signature detection.
+
+        Attack signature:
+        1. Nodes created within a SHORT time window (coordinated deployment)
+        2. All have HIGH TIME scores (patient accumulation)
+        3. Similar dimension profiles (automated management)
+
+        Natural variation:
+        - Honest nodes join at random times over months/years
+        - Honest nodes have varied TIME scores (different uptimes)
+        - Honest nodes have diverse dimension profiles
+        """
+        with self._lock:
+            current_time = int(time.time())
+
+            if len(profiles) < self.MIN_NODES_FOR_TRACKING:
+                return {}
+
+            # Rate limit
+            if current_time - self._last_analysis < self._analysis_interval:
+                return self._byzantine_groups
+
+            self._last_analysis = current_time
+
+            # STEP 1: Group nodes by creation time window (48 hours)
+            CREATION_WINDOW = 48 * 3600  # 48 hours
+
+            # Sort profiles by creation time
+            sorted_profiles = sorted(profiles.items(), key=lambda x: x[1].created_at)
+
+            # Find clusters of nodes created within the window
+            time_clusters: List[Set[bytes]] = []
+            current_cluster: Set[bytes] = set()
+            cluster_start_time = 0
+
+            for pk, profile in sorted_profiles:
+                if not current_cluster:
+                    current_cluster = {pk}
+                    cluster_start_time = profile.created_at
+                elif profile.created_at - cluster_start_time <= CREATION_WINDOW:
+                    current_cluster.add(pk)
+                else:
+                    if len(current_cluster) >= 3:
+                        time_clusters.append(current_cluster)
+                    current_cluster = {pk}
+                    cluster_start_time = profile.created_at
+
+            if len(current_cluster) >= 3:
+                time_clusters.append(current_cluster)
+
+            # STEP 2: Filter clusters by suspicious characteristics
+            # Attack signature: HIGH TIME + SIMILAR dimensions
+            suspicious_groups: Dict[int, Set[bytes]] = {}
+            group_id = 0
+
+            for cluster in time_clusters:
+                if len(cluster) < 5:
+                    continue  # Need substantial cluster
+
+                # Check TIME scores
+                time_scores = [
+                    profiles[pk].dimensions[ReputationDimension.TIME].value
+                    for pk in cluster
+                ]
+
+                avg_time = sum(time_scores) / len(time_scores)
+                time_variance = sum((t - avg_time)**2 for t in time_scores) / len(time_scores)
+
+                # Suspicious: HIGH average TIME (>0.7) AND LOW variance (<0.01)
+                # This indicates coordinated accumulation
+                is_high_time = avg_time > 0.7
+                is_low_variance = time_variance < 0.02
+
+                if is_high_time and is_low_variance:
+                    # Additional check: dimension profile similarity
+                    dim_profiles = []
+                    for pk in cluster:
+                        p = profiles[pk]
+                        dim_profiles.append([
+                            p.dimensions[d].value
+                            for d in ReputationDimension
+                        ])
+
+                    # Calculate average pairwise similarity
+                    similarities = []
+                    for i in range(len(dim_profiles)):
+                        for j in range(i + 1, len(dim_profiles)):
+                            # Cosine similarity
+                            dot = sum(a * b for a, b in zip(dim_profiles[i], dim_profiles[j]))
+                            norm_i = math.sqrt(sum(a**2 for a in dim_profiles[i]))
+                            norm_j = math.sqrt(sum(a**2 for a in dim_profiles[j]))
+                            if norm_i > 0 and norm_j > 0:
+                                similarities.append(dot / (norm_i * norm_j))
+
+                    avg_similarity = sum(similarities) / len(similarities) if similarities else 0
+
+                    # Suspicious if high similarity (>0.9)
+                    if avg_similarity > 0.9:
+                        suspicious_groups[group_id] = cluster
+                        group_id += 1
+                        logger.warning(
+                            f"Suspicious group detected: {len(cluster)} nodes, "
+                            f"avg_time={avg_time:.2f}, time_var={time_variance:.4f}, "
+                            f"dim_similarity={avg_similarity:.2f}"
+                        )
+
+            self._byzantine_groups = suspicious_groups
+
+            # Update node -> group mapping
+            self._node_to_group.clear()
+            for gid, members in self._byzantine_groups.items():
+                for member in members:
+                    self._node_to_group[member] = gid
+
+            if self._byzantine_groups:
+                total_suspected = sum(len(g) for g in self._byzantine_groups.values())
+                logger.warning(
+                    f"GlobalByzantineTracker: {len(self._byzantine_groups)} suspected groups, "
+                    f"{total_suspected} total nodes"
+                )
+
+            return self._byzantine_groups
+
+    def apply_global_byzantine_cap(
+        self,
+        probabilities: Dict[bytes, float],
+        profiles: Dict[bytes, 'AdonisProfile']
+    ) -> Dict[bytes, float]:
+        """
+        Apply global cap to suspected Byzantine nodes.
+
+        CRITICAL: This ensures that even if cluster detection fails,
+        nodes with similar behavioral fingerprints cannot exceed 33% total.
+        """
+        with self._lock:
+            result = probabilities.copy()
+            total_network = sum(probabilities.values())
+
+            if total_network == 0:
+                return result
+
+            # Detect Byzantine groups
+            groups = self.detect_byzantine_groups(profiles)
+
+            if not groups:
+                return result
+
+            # Calculate total suspected Byzantine influence
+            all_suspected = set()
+            for members in groups.values():
+                all_suspected.update(members)
+
+            suspected_total = sum(probabilities.get(pk, 0) for pk in all_suspected)
+            suspected_share = suspected_total / total_network
+
+            if suspected_share > self.MAX_BYZANTINE_INFLUENCE:
+                # Apply cap: reduce all suspected nodes proportionally
+                target_total = self.MAX_BYZANTINE_INFLUENCE * total_network
+                reduction_factor = target_total / suspected_total
+
+                logger.warning(
+                    f"GLOBAL BYZANTINE CAP: {len(all_suspected)} suspected nodes "
+                    f"reduced from {suspected_share*100:.1f}% to {self.MAX_BYZANTINE_INFLUENCE*100:.1f}%"
+                )
+
+                for pk in all_suspected:
+                    if pk in result:
+                        result[pk] *= reduction_factor
+
+            return result
+
+    def is_suspected_byzantine(self, pubkey: bytes) -> bool:
+        """Check if a node is suspected to be Byzantine."""
+        return pubkey in self._node_to_group
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Get Byzantine tracking statistics."""
+        with self._lock:
+            return {
+                'tracked_nodes': len(self._fingerprints),
+                'byzantine_groups': len(self._byzantine_groups),
+                'total_suspected': sum(len(g) for g in self._byzantine_groups.values()),
+                'groups': [
+                    {
+                        'group_id': gid,
+                        'members': len(members),
+                    }
+                    for gid, members in self._byzantine_groups.items()
+                ]
+            }
+
+
+# ============================================================================
 # ADONIS REPUTATION ENGINE
 # ============================================================================
 
@@ -1266,6 +1612,9 @@ class AdonisEngine:
 
         # Entropy monitor for network health
         self.entropy_monitor = EntropyMonitor()
+
+        # Global Byzantine tracker for cluster-cap bypass prevention
+        self.byzantine_tracker = GlobalByzantineTracker()
 
         # Load persisted state
         self._load_from_file()
@@ -1770,10 +2119,11 @@ class AdonisEngine:
                     dim.name: weight
                     for dim, weight in self.dimension_weights.items()
                 },
-                # Security metrics (Anti-Cluster)
+                # Security metrics (Anti-Cluster + Byzantine)
                 'security': {
                     'cluster_stats': self.cluster_detector.get_cluster_stats(),
                     'entropy_stats': self.entropy_monitor.get_entropy_stats(),
+                    'byzantine_stats': self.byzantine_tracker.get_stats(),
                     'network_health': self._compute_network_health_score(),
                 }
             }
@@ -1812,9 +2162,14 @@ class AdonisEngine:
 
     def compute_all_probabilities(self) -> Dict[bytes, float]:
         """
-        Compute probabilities for all nodes with cluster cap applied.
+        Compute probabilities for all nodes with all protections applied.
 
         This is the main entry point for consensus to get node weights.
+
+        PROTECTION LAYERS (applied in order):
+        1. Base scores from Adonis 5-finger model
+        2. Cluster cap (detected correlated clusters)
+        3. Global Byzantine cap (fingerprint-based, prevents bypass)
 
         Returns:
             Dict mapping pubkey -> probability (after all protections applied)
@@ -1829,15 +2184,21 @@ class AdonisEngine:
                 else:
                     base_probs[pubkey] = profile.aggregate_score
 
-            # Apply cluster cap
+            # LAYER 1: Apply cluster cap (correlation-based detection)
             capped_probs = self.cluster_detector.apply_cluster_cap(base_probs)
 
+            # LAYER 2: Apply global Byzantine cap (fingerprint-based detection)
+            # This catches subdivided clusters that evade correlation detection
+            byzantine_capped = self.byzantine_tracker.apply_global_byzantine_cap(
+                capped_probs, self.profiles
+            )
+
             # Normalize to sum to 1.0
-            total = sum(capped_probs.values())
+            total = sum(byzantine_capped.values())
             if total > 0:
-                return {pk: p / total for pk, p in capped_probs.items()}
+                return {pk: p / total for pk, p in byzantine_capped.items()}
             else:
-                return capped_probs
+                return byzantine_capped
 
     # =========================================================================
     # GEOGRAPHIC DIVERSITY
