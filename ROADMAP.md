@@ -1,10 +1,24 @@
-# Proof of Time — Roadmap
+# Time — Roadmap
 
 *The plan reveals itself through time.*
 
 ---
 
 ## Vision
+
+### Nash's Ideal Money — Realized
+In 2002, John Nash proposed "Ideal Money" — a currency whose inflation asymptotically approaches zero.
+
+Time realizes this vision through Temporal Compression:
+- **5:1 → 1:1** — emission ratio converges to unity
+- **I(t) → 0** — inflation mathematically approaches zero
+- **Asymptotic stability** — purchasing power crystallizes forever
+
+Time is priceless. Now it has a price.
+
+In memory of John Nash (1928–2015).
+
+---
 
 ### 0526 — AI Security Auditing
 AI models are capable of conducting high-quality security audits of code.
@@ -36,7 +50,17 @@ The body as a timestamp server. Life itself proves the passage of time through i
 | v2.0.0 | Dec 2025 | Pantheon: 12 gods architecture |
 | v2.1.0 | Dec 2025 | Geographic diversity (Adonis) |
 | v2.2.0 | Dec 2025 | Pantheon dashboard |
-| **v2.3.0** | Dec 2025 | **Testnet ready** |
+| v2.3.0 | Dec 2025 | Testnet ready |
+| **v2.4.0** | Dec 2025 | **Time Whitepaper v1.0: Ɉ symbol, Nash's Ideal Money** |
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| Time_v1.0.pdf | Whitepaper: Nash's Ideal Money, Temporal Compression, 1:1 convergence |
+| ProofOfTime_v1.pdf | Technical specification: VDF, Adonis, DAG-PHANTOM |
 
 ---
 
@@ -47,9 +71,24 @@ The body as a timestamp server. Life itself proves the passage of time through i
 | Genesis | DONE | Core protocol, VDF, privacy |
 | Pantheon | DONE | 12-module architecture |
 | Adonis | DONE | Five Fingers reputation |
-| Testnet | CURRENT | v2.3.0 deployed |
+| Ideal Money | DONE | Nash's vision, Temporal Compression |
+| Testnet | CURRENT | v2.4.0 deployed |
 | Mainnet | Q1 2026 | Public launch |
 | Mobile | Q2 2026 | Light clients, mobile wallet |
+
+---
+
+## Economics
+
+| Parameter | Value |
+|-----------|-------|
+| Symbol | Ɉ |
+| Base unit | 1 Ɉ = 1 second |
+| Total supply | 1,260,000,000 Ɉ (21M minutes) |
+| Block reward | 50 min → 25 min → 12.5 min → ... |
+| Halving | Every 210,000 blocks (~4 years) |
+| Emission | 132 years |
+| Convergence | 5:1 → 1:1 (Temporal Compression) |
 
 ---
 
@@ -65,6 +104,7 @@ Both are scarce. Both are real. Time is the ultimate proof of work — you canno
 
 *Time is the fire in which we burn.*
 *Time is the proof we cannot forge.*
+*Time is priceless. Now it has a price.*
 
 ---
 
