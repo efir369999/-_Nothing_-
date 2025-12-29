@@ -102,7 +102,7 @@ python node.py --run
 
 | | Bitcoin | Ethereum | Time |
 |---|---------|----------|------|
-| Consensus | PoW | PoS | VDF |
+| Consensus | PoW | PoS | PoT |
 | Influence | Hardware | Stake | Time |
 | 51% attack | $20B | $10B | N × 180 days |
 
