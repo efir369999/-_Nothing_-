@@ -15,30 +15,30 @@ Time is the ultimate proof.
 # ============================================================================
 
 # 1. CHRONOS - Time/VDF: Sequential time proof
-from crypto import WesolowskiVDF as Chronos
-from crypto import VDFProof as ChronosProof
+from pantheon.chronos import WesolowskiVDF as Chronos
+from pantheon.chronos import VDFProof as ChronosProof
 
 # 2. ADONIS - Reputation: Multi-dimensional trust
-from adonis import AdonisEngine as Adonis
-from adonis import AdonisProfile, ReputationEvent, ReputationDimension
+from pantheon.adonis import AdonisEngine as Adonis
+from pantheon.adonis import AdonisProfile, ReputationEvent, ReputationDimension
 
 # 3. HERMES - Network/P2P: Message relay
-from network import P2PNode as Hermes
-from network import Peer as HermesLink
+from pantheon.hermes import P2PNode as Hermes
+from pantheon.hermes import Peer as HermesLink
 
 # 4. HADES - Storage: Persistent state
-from database import BlockchainDB as Hades
-from dag_storage import DAGStorage as HadesDAG
+from pantheon.hades import BlockchainDB as Hades
+from pantheon.hades import DAGStorage as HadesDAG
 
 # 5. ATHENA - Consensus: Leader selection
-from consensus import ConsensusCalculator as Athena
-from consensus import LeaderSelector as AthenaSelector
-from consensus import NodeState as AthenaNode
+from pantheon.athena import ConsensusCalculator as Athena
+from pantheon.athena import LeaderSelector as AthenaSelector
+from pantheon.athena import NodeState as AthenaNode
 
 # 6. PROMETHEUS - Cryptography: Proof generation
-from crypto import Ed25519 as Prometheus
-from crypto import ECVRF as PrometheusVRF
-from crypto import sha256 as prometheus_hash
+from pantheon.prometheus import Ed25519 as Prometheus
+from pantheon.prometheus import ECVRF as PrometheusVRF
+from pantheon.prometheus import sha256 as prometheus_hash
 
 # 7. MNEMOSYNE - Memory/Cache: Transaction pool
 # Mempool is part of engine, create wrapper
@@ -69,18 +69,18 @@ class Mnemosyne:
         return len(self.pool)
 
 # 8. PLUTUS - Wallet: Key management
-from wallet import Wallet as Plutus
-from wallet import WalletCrypto as PlutusKey
+from pantheon.plutus import Wallet as Plutus
+from pantheon.plutus import WalletCrypto as PlutusKey
 
 # 9. NYX - Privacy: Stealth transactions
-from privacy import LSAGSignature as Nyx
-from privacy import StealthAddress as NyxStealth
-from tiered_privacy import PrivacyTier as NyxTier
+from pantheon.nyx import LSAGSignature as Nyx
+from pantheon.nyx import StealthAddress as NyxStealth
+from pantheon.nyx import PrivacyTier as NyxTier
 
 # 10. THEMIS - Validation: Rule enforcement
-from structures import Block as ThemisBlock
-from structures import Transaction as ThemisTx
-from structures import BlockValidator as Themis
+from pantheon.themis import Block as ThemisBlock
+from pantheon.themis import Transaction as ThemisTx
+from pantheon.themis import BlockValidator as Themis
 
 # 11. IRIS - API/RPC: External interface
 # RPC is part of node, create wrapper

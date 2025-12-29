@@ -22,16 +22,17 @@ from enum import IntEnum, auto
 from queue import Queue, Empty
 
 from config import PROTOCOL, NodeConfig, get_block_reward
-from crypto import sha256, Ed25519, WesolowskiVDF, VDFProof, ECVRF, VRFOutput
-from structures import Block, BlockHeader, Transaction, TxType, create_genesis_block
-from privacy import LSAG, Bulletproof, RingCT
-from consensus import (
+from pantheon.prometheus import sha256, Ed25519, ECVRF, VRFOutput
+from pantheon.chronos import WesolowskiVDF, VDFProof
+from pantheon.themis import Block, BlockHeader, Transaction, TxType, create_genesis_block
+from pantheon.nyx import LSAG, Bulletproof, RingCT
+from pantheon.athena import (
     ConsensusEngine, NodeState, NodeStatus, ProbabilityWeights,
     SlashingManager, SlashingEvidence
 )
-from database import BlockchainDB
-from network import P2PNode, Peer, PeerState
-from wallet import Wallet
+from pantheon.hades import BlockchainDB
+from pantheon.hermes import P2PNode, Peer, PeerState
+from pantheon.plutus import Wallet
 
 logger = logging.getLogger("proof_of_time.node")
 

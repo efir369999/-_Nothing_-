@@ -20,7 +20,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from typing import Dict, Any, Optional
 
-from adonis import (
+from pantheon.adonis import (
     AdonisEngine, ReputationDimension, ReputationEvent
 )
 

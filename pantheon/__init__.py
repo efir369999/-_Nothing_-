@@ -24,6 +24,14 @@ Usage:
     from pantheon.athena import ConsensusCalculator
 """
 
+import sys
+from pathlib import Path
+
+# Add root to path for cross-module imports
+_root = str(Path(__file__).parent.parent)
+if _root not in sys.path:
+    sys.path.insert(0, _root)
+
 GENESIS_TIMESTAMP = 1766966400  # Dec 28, 2025 00:00:00 UTC
 
 GODS = {
