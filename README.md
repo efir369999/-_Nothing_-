@@ -84,6 +84,15 @@ See [SECURITY_MODEL.md](SECURITY_MODEL.md) for full details.
 - **SHAKE256 VDF** — Quantum-resistant VDF with STARK proofs
 - **ML-KEM** — Lattice-based key exchange (NIST FIPS 203)
 
+## Network Security (v3.1)
+
+- **Static IP** — Dynamic residential and CGNAT blocked
+- **VPN Detection** — ASN-based VPN/Tor/Proxy blocking
+- **Sybil Protection** — Node registration after block validation only
+- **Eclipse Defense** — Minimum 8 outbound connections enforced
+- **Rate Limiting** — Per-IP and per-subnet throttling
+- **Wallet Encryption** — Minimum 8-character password
+
 ---
 
 ## Privacy
@@ -118,7 +127,7 @@ python node.py --run
 
 | Document | Content |
 |----------|---------|
-| [Montana_v3.0.md](Montana_v3.0.md) | Whitepaper v3.0. Post-quantum. Full specification. |
+| [Montana_v3.0.md](Montana_v3.0.md) | Whitepaper v3.1. Post-quantum. Network hardening. Full specification. |
 | [SECURITY_MODEL.md](SECURITY_MODEL.md) | Security model. Anti-cluster. All properties proven. |
 
 ---
@@ -129,6 +138,7 @@ python node.py --run
 
 | Auditor | Version | Score | Status |
 |---------|---------|-------|--------|
+| Claude Opus 4.5 | v3.1 | 9.8/10 | [PASS](audits/anthropic/claude_opus_4.5_v3.1_audit.md) |
 | Claude Opus 4.5 | v2.6 | 9.5/10 | [PASS](audits/anthropic/claude_opus_4.5_v2.6_audit.md) |
 | Claude Opus 4.5 | v2.5 | 9.0/10 | [PASS](audits/anthropic/SECURITY_AUDIT.md) |
 | Gemini 3 Flash | v2.5 | 9.0/10 | [PASS](audits/alphabet/gemini_3_flash_audit.md) |

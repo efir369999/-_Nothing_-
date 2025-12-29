@@ -1,6 +1,6 @@
 # Ɉ Montana: A Peer-to-Peer Quantum-Resistant Temporal Currency
 
-**Version 3.0**
+**Version 3.1**
 **Alejandro Montana**
 alejandromontana@tutamail.com
 **December 2025**
@@ -19,6 +19,14 @@ A purely peer-to-peer electronic cash system would allow online payments without
 - Crypto-agility layer — runtime switching between legacy/PQ/hybrid backends
 
 The protocol now provides long-term security against quantum computing threats.
+
+**Version 3.1 additions:** Network security hardening for production readiness:
+- Static IP validation — dynamic residential and CGNAT addresses blocked
+- VPN/Proxy detection — ASN-based identification of anonymizing services
+- Sybil protection — node registration only after validated block production
+- Eclipse defense — minimum 8 outbound connections enforced
+- Rate limiting — per-IP and per-subnet connection throttling
+- Wallet encryption — minimum 8-character password requirement
 
 Time cannot be bought, manufactured, or transferred—only spent.
 
@@ -1015,6 +1023,146 @@ DNS_SEEDS = [
 
 **Compact Blocks:** For bandwidth efficiency, relay block headers + short transaction IDs. Peers reconstruct from mempool.
 
+### 10.6 Network Security Hardening (v3.1)
+
+Production-grade security measures for mainnet readiness.
+
+**Static IP Validation:**
+
+```python
+# IP types blocked by default
+BLOCKED_IP_TYPES = [
+    "CGNAT",           # 100.64.0.0/10 - Carrier-Grade NAT
+    "DYNAMIC",         # Residential dynamic IPs
+    "RESERVED",        # RFC 5737, documentation
+    "LOOPBACK",        # 127.0.0.0/8
+    "LINK_LOCAL",      # 169.254.0.0/16
+]
+
+# Validation flow
+def validate_peer_ip(ip):
+    if is_reserved(ip): return False
+    if is_cgnat(ip): return False
+    if not has_valid_rdns(ip): return WARN
+    if is_known_vpn_asn(ip): return False
+    return True
+```
+
+**VPN/Proxy Detection:**
+
+```python
+# ASN-based detection
+KNOWN_VPN_ASNS = [
+    "AS9009",   # M247 (NordVPN, Surfshark)
+    "AS20473",  # Choopa/Vultr (various VPNs)
+    "AS16276",  # OVH (hosting, VPNs)
+    # ... 50+ known VPN/hosting ASNs
+]
+
+def detect_vpn(ip):
+    asn = lookup_asn(ip)
+    rdns = lookup_rdns(ip)
+
+    # ASN check
+    if asn in KNOWN_VPN_ASNS:
+        return True, "Known VPN ASN"
+
+    # rDNS pattern check
+    vpn_patterns = ["vpn", "proxy", "tor", "exit", "relay"]
+    if any(p in rdns.lower() for p in vpn_patterns):
+        return True, "VPN pattern in rDNS"
+
+    return False, None
+```
+
+**Sybil Protection:**
+
+```python
+# Node registration ONLY after block validation
+def register_block_producer(block):
+    # Called ONLY from block validation code
+    # NEVER from network message handlers
+
+    producer = block.header.producer_key
+
+    # Rate limiting: max 1 new node per 10 minutes
+    if time_since_last_registration < 600:
+        return False
+
+    # Must have valid VDF proof
+    if not verify_vdf(block):
+        return False
+
+    # Must have valid VRF (leader selection)
+    if not verify_vrf(block):
+        return False
+
+    # Only then register
+    consensus.register_node(producer)
+    return True
+```
+
+**Eclipse Attack Defense:**
+
+```python
+# Connection requirements
+MIN_OUTBOUND_CONNECTIONS = 8    # Always maintain
+MAX_INBOUND_RATIO = 0.7         # Max 70% inbound
+PROTECTED_PEERS_COUNT = 8       # Never evict
+
+def get_eviction_candidates():
+    candidates = []
+    for peer in peers:
+        # Never evict outbound peers
+        if peer.is_outbound:
+            continue
+        # Never evict protected peers
+        if peer in protected_peers:
+            continue
+        candidates.append(peer)
+    return candidates
+
+def maintain_connections():
+    outbound = count_outbound()
+    if outbound < MIN_OUTBOUND_CONNECTIONS:
+        # Force new outbound connections
+        connect_to_random_peers(MIN_OUTBOUND - outbound)
+```
+
+**Rate Limiting:**
+
+```python
+# Per-IP limits
+MAX_CONNECTIONS_PER_IP = 1
+MAX_MESSAGES_PER_MINUTE = 600
+
+# Per-subnet limits
+MAX_CONNECTIONS_PER_SUBNET_24 = 3   # /24 IPv4
+MAX_CONNECTIONS_PER_SUBNET_48 = 5   # /48 IPv6
+
+# Reputation decay
+REPUTATION_DECAY_PER_HOUR = 0.01
+REPUTATION_RECOVERY_RATE = 0.05
+```
+
+**Wallet Security:**
+
+```python
+MIN_PASSWORD_LENGTH = 8
+
+def derive_wallet_key(password, salt):
+    if len(password) < MIN_PASSWORD_LENGTH:
+        raise ValueError("Password must be at least 8 characters")
+
+    return argon2id(
+        password=password,
+        salt=salt,
+        time_cost=4,
+        memory_cost=65536,
+        parallelism=4
+    )
+```
+
 ---
 
 ## 11. Privacy
@@ -1485,9 +1633,10 @@ BLOCK_TIME = 600                  # 10 minutes in seconds
 | 1.0 | Dec 2025 | Initial specification |
 | 2.0 | Dec 2025 | Five Fingers of Adonis, anti-cluster protection, known limitations |
 | 2.6 | Dec 2025 | All security properties proven via executable tests |
-| **3.0** | Dec 2025 | **Post-quantum cryptography: SPHINCS+, SHA3-256, SHAKE256 VDF, STARK proofs, ML-KEM, crypto-agility layer** |
+| 3.0 | Dec 2025 | Post-quantum cryptography: SPHINCS+, SHA3-256, SHAKE256 VDF, STARK proofs, ML-KEM, crypto-agility layer |
+| **3.1** | Dec 2025 | **Network security hardening: static IP validation, VPN/proxy detection, Sybil protection, Eclipse defense, rate limiting, wallet encryption** |
 
 ---
 
-*Ɉ Montana Technical Specification v3.0*
+*Ɉ Montana Technical Specification v3.1*
 *December 2025*
