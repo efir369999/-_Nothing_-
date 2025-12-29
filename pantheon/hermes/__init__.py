@@ -1,7 +1,4 @@
-"""
-HERMES - God of Networks
-
-P2P networking with Noise Protocol XX encryption.
-Gossip protocol, peer discovery, message relay.
-"""
-from network import P2PNetwork, Peer, Message, GossipProtocol
+"""HERMES - God of Networks. P2P with Noise Protocol."""
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from network import *

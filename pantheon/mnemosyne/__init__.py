@@ -1,8 +1,2 @@
-"""
-MNEMOSYNE - God of Memory
-
-Transaction mempool and caching.
-Pending transactions, orphan handling, eviction.
-"""
-# Mempool is part of node.py
-# from node import Mempool
+"""MNEMOSYNE - Goddess of Memory. Mempool and cache."""
+# Mempool is integrated in node.py

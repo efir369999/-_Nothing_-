@@ -1,7 +1,5 @@
-"""
-CHRONOS - God of Time
-
-VDF (Verifiable Delay Functions) and temporal proofs.
-Sequential time computation that cannot be parallelized.
-"""
+"""CHRONOS - God of Time. VDF and temporal proofs."""
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from crypto import WesolowskiVDF, VDFProof, VDFCheckpoint
+from poh import *

@@ -1,7 +1,4 @@
-"""
-THEMIS - Goddess of Validation
-
-Transaction and block validation rules.
-Script execution, signature verification.
-"""
-from structures import Transaction, Block, BlockHeader
+"""THEMIS - Goddess of Validation. Transaction rules."""
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from structures import *

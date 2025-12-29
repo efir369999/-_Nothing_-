@@ -1,13 +1,4 @@
-"""
-ADONIS - God of Reputation
-
-Multi-dimensional reputation system with 6 dimensions:
-RELIABILITY, INTEGRITY, CONTRIBUTION, LONGEVITY, COMMUNITY, GEOGRAPHY
-"""
-from adonis import (
-    AdonisEngine,
-    ReputationProfile,
-    ReputationDimension,
-    ReputationEvent,
-    DimensionScore,
-)
+"""ADONIS - God of Reputation. 6-dimension trust system."""
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from adonis import *

@@ -1,11 +1,6 @@
-"""
-NYX - Goddess of Privacy
-
-Ring signatures (LSAG), stealth addresses, Bulletproofs.
-Tiered privacy: T0 (public) to T3 (full privacy).
-
-Status: LIMITED - T2/T3 disabled by default.
-"""
-from privacy import StealthAddress, RingSignature, LSAG
-from tiered_privacy import PrivacyTier, TieredTransaction
-from ristretto import RistrettoPoint
+"""NYX - Goddess of Privacy. Ring signatures, stealth. Status: LIMITED."""
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from privacy import *
+from tiered_privacy import *
+from ristretto import *

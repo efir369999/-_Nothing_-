@@ -1,9 +1,2 @@
-"""
-ANANKE - Goddess of Governance
-
-On-chain governance and protocol upgrades.
-Proposals, voting, execution.
-
-Status: PLANNED - Not yet implemented.
-"""
+"""ANANKE - Goddess of Governance. Status: PLANNED."""
 # Governance module planned for future release

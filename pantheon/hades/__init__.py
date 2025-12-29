@@ -1,8 +1,5 @@
-"""
-HADES - God of Storage
-
-Persistent storage with SQLite backend.
-DAG storage, block database, chain state.
-"""
-from database import BlockchainDB
-from dag_storage import DAGStorage
+"""HADES - God of Storage. SQLite and DAG."""
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from database import *
+from dag_storage import *

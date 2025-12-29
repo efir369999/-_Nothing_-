@@ -1,7 +1,4 @@
-"""
-PLUTUS - God of Wealth
-
-Wallet management, key derivation, UTXO handling.
-Address generation, transaction building.
-"""
-from wallet import Wallet, Address, UTXO
+"""PLUTUS - God of Wealth. Wallet and UTXO."""
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from wallet import *
