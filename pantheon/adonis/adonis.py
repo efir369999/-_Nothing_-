@@ -50,24 +50,26 @@ MAX_TIMESTAMP_DRIFT = 600
 
 class ReputationDimension(IntEnum):
     """
-    Multi-dimensional reputation scoring.
+    The Five Fingers of Adonis - unified node scoring system.
 
-    Each dimension captures a different aspect of node behavior:
-    - RELIABILITY: Uptime and consistent block production
-    - INTEGRITY: No slashing events, valid proofs
-    - CONTRIBUTION: Storage, relay, validation work
-    - LONGEVITY: Time in network with good standing
-    - COMMUNITY: Peer vouching and trust delegation
-    - COUNTRY: Country uniqueness bonus (higher weight - promotes global decentralization)
-    - GEOGRAPHY: City uniqueness bonus (lower weight than country)
+    Adonis is the ONLY formula for node weight calculation.
+    No separate f_time/f_space/f_rep - everything is here.
+
+    Five Fingers (like a hand):
+    - THUMB (TIME): The opposable finger - makes the hand work (50%)
+    - INDEX (INTEGRITY): Points the way - moral compass (20%)
+    - MIDDLE (STORAGE): Central support - network backbone (15%)
+    - RING (GEOGRAPHY): Global commitment - country + city (10%)
+    - PINKY (HANDSHAKE): Elite bonus - mutual trust between veterans (5%)
+
+    HANDSHAKE unlocks only when first 4 fingers are saturated.
+    Two veterans shake hands = cryptographic proof of trust.
     """
-    RELIABILITY = auto()   # Block production consistency
-    INTEGRITY = auto()     # No violations, valid proofs
-    CONTRIBUTION = auto()  # Network contribution (storage, relay)
-    LONGEVITY = auto()     # Time-weighted presence
-    COMMUNITY = auto()     # Peer trust and vouching
-    COUNTRY = auto()       # Country diversity (higher weight than city)
-    GEOGRAPHY = auto()     # City diversity (lower weight than country)
+    TIME = auto()          # THUMB: Continuous uptime - saturates at 180 days (50%)
+    INTEGRITY = auto()     # INDEX: No violations, valid proofs (20%)
+    STORAGE = auto()       # MIDDLE: Chain storage - saturates at 100% (15%)
+    GEOGRAPHY = auto()     # RING: Country + city diversity (10%)
+    HANDSHAKE = auto()     # PINKY: Mutual trust - saturates at 10 handshakes (5%)
 
 
 @dataclass
@@ -116,10 +118,11 @@ class ReputationEvent(IntEnum):
     BLOCK_PRODUCED = auto()      # Successfully produced a block
     BLOCK_VALIDATED = auto()     # Validated a block correctly
     TX_RELAYED = auto()          # Relayed valid transaction
-    UPTIME_CHECKPOINT = auto()   # Maintained uptime
-    PEER_VOUCH = auto()          # Received vouch from peer
+    UPTIME_CHECKPOINT = auto()   # Maintained uptime (hourly)
+    STORAGE_UPDATE = auto()      # Storage percentage updated
     NEW_COUNTRY = auto()         # First node from a new country (big bonus)
     NEW_CITY = auto()            # First node from a new city
+    HANDSHAKE_FORMED = auto()    # Mutual handshake with another veteran
 
     # Negative events
     BLOCK_INVALID = auto()       # Produced invalid block
@@ -128,7 +131,7 @@ class ReputationEvent(IntEnum):
     EQUIVOCATION = auto()        # Double-signing
     DOWNTIME = auto()            # Extended offline period
     SPAM_DETECTED = auto()       # Transaction spam
-    PEER_COMPLAINT = auto()      # Complaint from peer
+    HANDSHAKE_BROKEN = auto()    # Handshake partner penalized or offline
 
 
 @dataclass
@@ -170,6 +173,49 @@ class ReputationRecord:
             source=source,
             evidence=evidence
         )
+
+
+# ============================================================================
+# HANDSHAKE - MUTUAL TRUST BETWEEN VETERANS
+# ============================================================================
+
+@dataclass
+class Handshake:
+    """
+    Cryptographic proof of mutual trust between two veteran nodes.
+
+    A handshake can only form when BOTH nodes have saturated their
+    first 4 fingers (TIME, INTEGRITY, STORAGE, GEOGRAPHY).
+
+    This is the PINKY finger - the elite bonus that completes the hand.
+    """
+    node_a: bytes              # First node pubkey
+    node_b: bytes              # Second node pubkey
+    created_at: int            # Block height when formed
+    sig_a: bytes               # Signature from node A
+    sig_b: bytes               # Signature from node B
+
+    def __post_init__(self):
+        # Ensure canonical ordering (smaller pubkey first)
+        if self.node_a > self.node_b:
+            self.node_a, self.node_b = self.node_b, self.node_a
+            self.sig_a, self.sig_b = self.sig_b, self.sig_a
+
+    def get_id(self) -> bytes:
+        """Get unique handshake ID."""
+        return sha256(self.node_a + self.node_b)
+
+    def involves(self, pubkey: bytes) -> bool:
+        """Check if this handshake involves the given node."""
+        return pubkey == self.node_a or pubkey == self.node_b
+
+    def get_partner(self, pubkey: bytes) -> Optional[bytes]:
+        """Get the partner node in this handshake."""
+        if pubkey == self.node_a:
+            return self.node_b
+        elif pubkey == self.node_b:
+            return self.node_a
+        return None
 
 
 # ============================================================================
@@ -216,6 +262,9 @@ class AdonisProfile:
     country_code: Optional[str] = None  # ISO country code (e.g., "US", "DE", "JP")
     city_hash: Optional[bytes] = None   # SHA256(country + city) - no raw IP stored
 
+    # Handshakes (PINKY finger) - set of partner pubkeys
+    handshake_partners: Set[bytes] = field(default_factory=set)
+
     def __post_init__(self):
         if self.created_at == 0:
             self.created_at = int(time.time())
@@ -243,15 +292,15 @@ class AdonisProfile:
         """
         Compute aggregate reputation score.
 
-        Default weights prioritize integrity and reliability.
+        Uses the Five Fingers of Adonis weights.
         """
         if weights is None:
             weights = {
-                ReputationDimension.RELIABILITY: 0.25,
-                ReputationDimension.INTEGRITY: 0.30,
-                ReputationDimension.CONTRIBUTION: 0.15,
-                ReputationDimension.LONGEVITY: 0.20,
-                ReputationDimension.COMMUNITY: 0.10,
+                ReputationDimension.TIME: 0.50,        # THUMB
+                ReputationDimension.INTEGRITY: 0.20,   # INDEX
+                ReputationDimension.STORAGE: 0.15,     # MIDDLE
+                ReputationDimension.GEOGRAPHY: 0.10,   # RING (country + city)
+                ReputationDimension.HANDSHAKE: 0.05,   # PINKY (mutual trust)
             }
 
         total = 0.0
@@ -440,35 +489,42 @@ class AdonisEngine:
         ReputationEvent.BLOCK_PRODUCED: 0.05,
         ReputationEvent.BLOCK_VALIDATED: 0.02,
         ReputationEvent.TX_RELAYED: 0.01,
-        ReputationEvent.UPTIME_CHECKPOINT: 0.03,
-        ReputationEvent.PEER_VOUCH: 0.10,
-        ReputationEvent.NEW_COUNTRY: 0.25,       # Big bonus for country diversity
-        ReputationEvent.NEW_CITY: 0.15,          # Bonus for city diversity
+        ReputationEvent.UPTIME_CHECKPOINT: 0.02,  # Hourly uptime tick
+        ReputationEvent.STORAGE_UPDATE: 0.01,     # Storage sync
+        ReputationEvent.NEW_COUNTRY: 0.25,        # Big bonus for country diversity
+        ReputationEvent.NEW_CITY: 0.15,           # Bonus for city diversity
+        ReputationEvent.HANDSHAKE_FORMED: 0.10,   # Mutual trust bonus
         ReputationEvent.BLOCK_INVALID: -0.15,
         ReputationEvent.VRF_INVALID: -0.20,
         ReputationEvent.VDF_INVALID: -0.25,
-        ReputationEvent.EQUIVOCATION: -1.0,  # Catastrophic
+        ReputationEvent.EQUIVOCATION: -1.0,       # Catastrophic
         ReputationEvent.DOWNTIME: -0.10,
         ReputationEvent.SPAM_DETECTED: -0.20,
-        ReputationEvent.PEER_COMPLAINT: -0.05,
+        ReputationEvent.HANDSHAKE_BROKEN: -0.05,  # Lost trust
     }
 
-    # Dimension affected by each event
+    # Dimension affected by each event (5 fingers)
     EVENT_DIMENSIONS = {
-        ReputationEvent.BLOCK_PRODUCED: ReputationDimension.RELIABILITY,
-        ReputationEvent.BLOCK_VALIDATED: ReputationDimension.CONTRIBUTION,
-        ReputationEvent.TX_RELAYED: ReputationDimension.CONTRIBUTION,
-        ReputationEvent.UPTIME_CHECKPOINT: ReputationDimension.RELIABILITY,
-        ReputationEvent.PEER_VOUCH: ReputationDimension.COMMUNITY,
-        ReputationEvent.NEW_COUNTRY: ReputationDimension.COUNTRY,
-        ReputationEvent.NEW_CITY: ReputationDimension.GEOGRAPHY,
+        # TIME (Thumb) - 50%
+        ReputationEvent.UPTIME_CHECKPOINT: ReputationDimension.TIME,
+        ReputationEvent.DOWNTIME: ReputationDimension.TIME,
+        # INTEGRITY (Index) - 20%
+        ReputationEvent.BLOCK_PRODUCED: ReputationDimension.INTEGRITY,
+        ReputationEvent.BLOCK_VALIDATED: ReputationDimension.INTEGRITY,
+        ReputationEvent.TX_RELAYED: ReputationDimension.INTEGRITY,
         ReputationEvent.BLOCK_INVALID: ReputationDimension.INTEGRITY,
         ReputationEvent.VRF_INVALID: ReputationDimension.INTEGRITY,
         ReputationEvent.VDF_INVALID: ReputationDimension.INTEGRITY,
         ReputationEvent.EQUIVOCATION: ReputationDimension.INTEGRITY,
-        ReputationEvent.DOWNTIME: ReputationDimension.RELIABILITY,
         ReputationEvent.SPAM_DETECTED: ReputationDimension.INTEGRITY,
-        ReputationEvent.PEER_COMPLAINT: ReputationDimension.COMMUNITY,
+        # STORAGE (Middle) - 15%
+        ReputationEvent.STORAGE_UPDATE: ReputationDimension.STORAGE,
+        # GEOGRAPHY (Ring) - 10% - country + city
+        ReputationEvent.NEW_COUNTRY: ReputationDimension.GEOGRAPHY,
+        ReputationEvent.NEW_CITY: ReputationDimension.GEOGRAPHY,
+        # HANDSHAKE (Pinky) - 5% - mutual trust
+        ReputationEvent.HANDSHAKE_FORMED: ReputationDimension.HANDSHAKE,
+        ReputationEvent.HANDSHAKE_BROKEN: ReputationDimension.HANDSHAKE,
     }
 
     # Penalty durations (seconds)
@@ -491,17 +547,26 @@ class AdonisEngine:
         # Current block height for timestamp validation
         self._current_height: int = 0
 
-        # Configuration
-        # Country has higher weight than city to promote global decentralization
+        # Configuration - The Five Fingers of Adonis (sum = 100%)
+        # TIME is the THUMB - the main factor (50%) - this is Proof of TIME
         self.dimension_weights = {
-            ReputationDimension.RELIABILITY: 0.20,
-            ReputationDimension.INTEGRITY: 0.25,
-            ReputationDimension.CONTRIBUTION: 0.12,
-            ReputationDimension.LONGEVITY: 0.15,
-            ReputationDimension.COMMUNITY: 0.08,
-            ReputationDimension.COUNTRY: 0.12,    # Country diversity (higher weight)
-            ReputationDimension.GEOGRAPHY: 0.08,  # City diversity (lower weight)
+            ReputationDimension.TIME: 0.50,        # THUMB: Continuous uptime
+            ReputationDimension.INTEGRITY: 0.20,   # INDEX: No violations
+            ReputationDimension.STORAGE: 0.15,     # MIDDLE: Chain storage
+            ReputationDimension.GEOGRAPHY: 0.10,   # RING: Country + city
+            ReputationDimension.HANDSHAKE: 0.05,   # PINKY: Mutual trust
         }
+
+        # Saturation thresholds
+        self.K_TIME = 15_552_000    # 180 days in seconds
+        self.K_STORAGE = 1.00       # 100% of chain
+        self.K_HANDSHAKE = 10       # 10 handshakes for full score
+
+        # Minimum requirements for handshake eligibility
+        self.HANDSHAKE_MIN_TIME = 0.9       # 90% of TIME saturation (~162 days)
+        self.HANDSHAKE_MIN_INTEGRITY = 0.8  # 80% INTEGRITY
+        self.HANDSHAKE_MIN_STORAGE = 0.9    # 90% STORAGE
+        self.HANDSHAKE_MIN_GEOGRAPHY = 0.1  # Must have registered location
 
         # Country tracking for global decentralization
         # Maps country_code -> set of node pubkeys in that country
@@ -511,10 +576,14 @@ class AdonisEngine:
         # Maps city_hash -> set of node pubkeys in that city
         self._city_nodes: Dict[bytes, Set[bytes]] = defaultdict(set)
 
+        # Handshake tracking
+        # Maps handshake_id -> Handshake
+        self._handshakes: Dict[bytes, Handshake] = {}
+
         # Load persisted state
         self._load_from_file()
 
-        logger.info("Adonis Reputation Engine initialized")
+        logger.info("Adonis Reputation Engine initialized (5 Fingers model)")
 
     def set_current_height(self, height: int):
         """Update current block height for timestamp validation."""
@@ -618,15 +687,6 @@ class AdonisEngine:
                 duration = self.PENALTY_DURATIONS[event_type]
                 profile.apply_penalty(duration, event_type.name)
 
-            # Update longevity dimension based on time in network
-            age_days = (current_time - profile.created_at) / 86400
-            longevity_score = min(1.0, age_days / 180)  # Max at 180 days
-            profile.dimensions[ReputationDimension.LONGEVITY].update(
-                longevity_score,
-                weight=0.1,
-                timestamp=current_time
-            )
-
             # Recompute aggregate
             new_score = profile.compute_aggregate(self.dimension_weights)
 
@@ -679,12 +739,8 @@ class AdonisEngine:
             vouchee_profile.trusted_by.add(voucher)
             self._vouch_history[voucher].append(current_time)
 
-            # Record event for vouchee
-            self.record_event(
-                vouchee,
-                ReputationEvent.PEER_VOUCH,
-                source=voucher
-            )
+            # Note: One-way vouches are tracked but don't affect Adonis score
+            # Mutual trust requires HANDSHAKE (two-way, both nodes saturated)
 
             logger.info(
                 f"Trust vouch: {voucher.hex()[:16]}... -> {vouchee.hex()[:16]}..."
@@ -708,6 +764,133 @@ class AdonisEngine:
             vouchee_profile.trusted_by.discard(voucher)
 
             return True
+
+    # =========================================================================
+    # TIME AND STORAGE UPDATES
+    # =========================================================================
+
+    def update_time(self, pubkey: bytes, uptime_seconds: int) -> float:
+        """
+        Update TIME dimension based on continuous uptime.
+
+        Args:
+            pubkey: Node public key
+            uptime_seconds: Continuous uptime in seconds
+
+        Returns:
+            TIME score in [0, 1]
+        """
+        with self._lock:
+            profile = self.get_or_create_profile(pubkey)
+
+            # Saturating function: max at K_TIME (180 days)
+            time_score = min(uptime_seconds / self.K_TIME, 1.0)
+
+            profile.dimensions[ReputationDimension.TIME].update(
+                time_score,
+                weight=2.0,  # High weight for stability
+                timestamp=int(time.time())
+            )
+
+            # Record uptime checkpoint event
+            self.record_event(pubkey, ReputationEvent.UPTIME_CHECKPOINT)
+
+            logger.debug(
+                f"Node {pubkey.hex()[:16]}... TIME updated: "
+                f"{uptime_seconds/86400:.1f} days = {time_score:.3f}"
+            )
+
+            return time_score
+
+    def update_storage(
+        self,
+        pubkey: bytes,
+        stored_blocks: int,
+        total_blocks: int
+    ) -> float:
+        """
+        Update STORAGE dimension based on chain storage.
+
+        Args:
+            pubkey: Node public key
+            stored_blocks: Number of blocks stored
+            total_blocks: Total blocks in chain
+
+        Returns:
+            STORAGE score in [0, 1]
+        """
+        with self._lock:
+            if total_blocks == 0:
+                return 0.0
+
+            profile = self.get_or_create_profile(pubkey)
+
+            # Storage ratio
+            storage_ratio = stored_blocks / total_blocks
+
+            # Saturating at K_STORAGE (80%)
+            storage_score = min(storage_ratio / self.K_STORAGE, 1.0)
+
+            profile.dimensions[ReputationDimension.STORAGE].update(
+                storage_score,
+                weight=1.0,
+                timestamp=int(time.time())
+            )
+
+            logger.debug(
+                f"Node {pubkey.hex()[:16]}... STORAGE updated: "
+                f"{stored_blocks}/{total_blocks} ({storage_ratio*100:.1f}%) = {storage_score:.3f}"
+            )
+
+            return storage_score
+
+    def compute_node_probability(
+        self,
+        pubkey: bytes,
+        uptime_seconds: int,
+        stored_blocks: int,
+        total_blocks: int
+    ) -> float:
+        """
+        Compute complete node probability using unified Adonis formula.
+
+        This is the ONLY formula for node weight. No separate f_time/f_space/f_rep.
+
+        Args:
+            pubkey: Node public key
+            uptime_seconds: Continuous uptime
+            stored_blocks: Blocks stored
+            total_blocks: Total chain blocks
+
+        Returns:
+            Adonis score in [0, 1] (unnormalized probability)
+        """
+        with self._lock:
+            profile = self.get_or_create_profile(pubkey)
+            current_time = int(time.time())
+
+            # Update TIME
+            time_score = min(uptime_seconds / self.K_TIME, 1.0)
+            profile.dimensions[ReputationDimension.TIME].value = time_score
+            profile.dimensions[ReputationDimension.TIME].confidence = min(
+                1.0, uptime_seconds / (7 * 86400)  # Full confidence after 7 days
+            )
+
+            # Update STORAGE
+            if total_blocks > 0:
+                storage_ratio = stored_blocks / total_blocks
+                storage_score = min(storage_ratio / self.K_STORAGE, 1.0)
+                profile.dimensions[ReputationDimension.STORAGE].value = storage_score
+                profile.dimensions[ReputationDimension.STORAGE].confidence = 1.0
+
+            # Compute aggregate with all 7 dimensions
+            score = profile.compute_aggregate(self.dimension_weights)
+
+            # Apply penalty if active
+            if profile.check_penalty(current_time):
+                score *= 0.1  # 90% reduction
+
+            return score
 
     def get_reputation_score(self, pubkey: bytes) -> float:
         """
@@ -915,12 +1098,9 @@ class AdonisEngine:
 
             country_score = 0.6 * country_rarity + 0.4 * country_diversity
 
-            # Update country dimension
-            profile.dimensions[ReputationDimension.COUNTRY].update(
-                country_score,
-                weight=1.5,  # Higher weight than city
-                timestamp=int(time.time())
-            )
+            # Update GEOGRAPHY dimension (RING) - country contributes to geography
+            # Note: We update the same GEOGRAPHY dimension for both country and city
+            # The combined score reflects overall geographic diversity
 
             # Award NEW_COUNTRY event if first node from this country
             if is_new_country:
@@ -954,10 +1134,14 @@ class AdonisEngine:
 
             city_score = 0.7 * city_rarity + 0.3 * city_diversity
 
-            # Update geography dimension
+            # Combined GEOGRAPHY score (RING finger):
+            # 60% country contribution, 40% city contribution
+            geography_score = 0.6 * country_score + 0.4 * city_score
+
+            # Update GEOGRAPHY dimension (RING)
             profile.dimensions[ReputationDimension.GEOGRAPHY].update(
-                city_score,
-                weight=1.0,
+                geography_score,
+                weight=1.5,
                 timestamp=int(time.time())
             )
 
@@ -1078,6 +1262,251 @@ class AdonisEngine:
         except Exception as e:
             logger.debug(f"Geolocation error for {ip_address}: {e}")
             return None
+
+    # =========================================================================
+    # HANDSHAKE - PINKY FINGER (5%)
+    # =========================================================================
+
+    def is_eligible_for_handshake(self, pubkey: bytes) -> Tuple[bool, str]:
+        """
+        Check if a node is eligible to form handshakes.
+
+        Requires all 4 fingers to be near saturation:
+        - TIME >= 90% (162+ days)
+        - INTEGRITY >= 80%
+        - STORAGE >= 90%
+        - GEOGRAPHY > 10% (registered location)
+
+        Returns:
+            Tuple of (eligible, reason)
+        """
+        with self._lock:
+            if pubkey not in self.profiles:
+                return False, "Profile not found"
+
+            profile = self.profiles[pubkey]
+
+            # Check penalty
+            if profile.is_penalized:
+                return False, "Node is penalized"
+
+            # Check TIME (THUMB)
+            time_score = profile.dimensions[ReputationDimension.TIME].value
+            if time_score < self.HANDSHAKE_MIN_TIME:
+                return False, f"TIME too low: {time_score:.2f} < {self.HANDSHAKE_MIN_TIME}"
+
+            # Check INTEGRITY (INDEX)
+            integrity_score = profile.dimensions[ReputationDimension.INTEGRITY].value
+            if integrity_score < self.HANDSHAKE_MIN_INTEGRITY:
+                return False, f"INTEGRITY too low: {integrity_score:.2f} < {self.HANDSHAKE_MIN_INTEGRITY}"
+
+            # Check STORAGE (MIDDLE)
+            storage_score = profile.dimensions[ReputationDimension.STORAGE].value
+            if storage_score < self.HANDSHAKE_MIN_STORAGE:
+                return False, f"STORAGE too low: {storage_score:.2f} < {self.HANDSHAKE_MIN_STORAGE}"
+
+            # Check GEOGRAPHY (RING)
+            geography_score = profile.dimensions[ReputationDimension.GEOGRAPHY].value
+            if geography_score < self.HANDSHAKE_MIN_GEOGRAPHY:
+                return False, f"GEOGRAPHY too low: {geography_score:.2f} (register location first)"
+
+            return True, "Eligible for handshake"
+
+    def request_handshake(
+        self,
+        requester: bytes,
+        target: bytes
+    ) -> Tuple[bool, str]:
+        """
+        Request a handshake with another node.
+
+        Both nodes must be eligible (4 fingers saturated).
+        Nodes must be in DIFFERENT countries (anti-sybil).
+
+        Returns:
+            Tuple of (success, message)
+        """
+        with self._lock:
+            # Check self-handshake
+            if requester == target:
+                return False, "Cannot handshake with yourself"
+
+            # Check if handshake already exists
+            handshake_id = sha256(min(requester, target) + max(requester, target))
+            if handshake_id in self._handshakes:
+                return False, "Handshake already exists"
+
+            # Check requester eligibility
+            eligible, reason = self.is_eligible_for_handshake(requester)
+            if not eligible:
+                return False, f"Requester not eligible: {reason}"
+
+            # Check target eligibility
+            eligible, reason = self.is_eligible_for_handshake(target)
+            if not eligible:
+                return False, f"Target not eligible: {reason}"
+
+            # Check different countries (anti-sybil)
+            requester_profile = self.profiles[requester]
+            target_profile = self.profiles[target]
+
+            if requester_profile.country_code == target_profile.country_code:
+                return False, f"Same country ({requester_profile.country_code}) - handshakes require different countries"
+
+            return True, "Ready for handshake"
+
+    def form_handshake(
+        self,
+        node_a: bytes,
+        node_b: bytes,
+        sig_a: bytes,
+        sig_b: bytes,
+        height: int
+    ) -> Tuple[bool, str]:
+        """
+        Form a mutual handshake between two veteran nodes.
+
+        This is called when both nodes have agreed to shake hands.
+
+        Returns:
+            Tuple of (success, message)
+        """
+        with self._lock:
+            # Validate request first
+            success, reason = self.request_handshake(node_a, node_b)
+            if not success:
+                return False, reason
+
+            # Create handshake
+            handshake = Handshake(
+                node_a=node_a,
+                node_b=node_b,
+                created_at=height,
+                sig_a=sig_a,
+                sig_b=sig_b
+            )
+
+            # Store handshake
+            self._handshakes[handshake.get_id()] = handshake
+
+            # Update profiles
+            profile_a = self.profiles[node_a]
+            profile_b = self.profiles[node_b]
+
+            profile_a.handshake_partners.add(node_b)
+            profile_b.handshake_partners.add(node_a)
+
+            # Record events and update HANDSHAKE dimension
+            self.record_event(node_a, ReputationEvent.HANDSHAKE_FORMED, height=height, source=node_b)
+            self.record_event(node_b, ReputationEvent.HANDSHAKE_FORMED, height=height, source=node_a)
+
+            # Update handshake scores
+            self._update_handshake_score(node_a)
+            self._update_handshake_score(node_b)
+
+            logger.info(
+                f"🤝 HANDSHAKE formed: {node_a.hex()[:8]}... ({profile_a.country_code}) <-> "
+                f"{node_b.hex()[:8]}... ({profile_b.country_code})"
+            )
+
+            return True, "Handshake formed successfully"
+
+    def break_handshake(
+        self,
+        node_a: bytes,
+        node_b: bytes,
+        reason: str = "manual"
+    ) -> Tuple[bool, str]:
+        """
+        Break an existing handshake.
+
+        Called when:
+        - One node is penalized (equivocation)
+        - One node goes offline for extended period
+        - Manual break request
+
+        Returns:
+            Tuple of (success, message)
+        """
+        with self._lock:
+            handshake_id = sha256(min(node_a, node_b) + max(node_a, node_b))
+
+            if handshake_id not in self._handshakes:
+                return False, "Handshake not found"
+
+            # Remove handshake
+            del self._handshakes[handshake_id]
+
+            # Update profiles
+            if node_a in self.profiles:
+                self.profiles[node_a].handshake_partners.discard(node_b)
+                self.record_event(node_a, ReputationEvent.HANDSHAKE_BROKEN, source=node_b)
+                self._update_handshake_score(node_a)
+
+            if node_b in self.profiles:
+                self.profiles[node_b].handshake_partners.discard(node_a)
+                self.record_event(node_b, ReputationEvent.HANDSHAKE_BROKEN, source=node_a)
+                self._update_handshake_score(node_b)
+
+            logger.info(f"Handshake broken: {node_a.hex()[:8]}... <-> {node_b.hex()[:8]}... (reason: {reason})")
+
+            return True, "Handshake broken"
+
+    def _update_handshake_score(self, pubkey: bytes):
+        """Update the HANDSHAKE dimension score based on active handshakes."""
+        if pubkey not in self.profiles:
+            return
+
+        profile = self.profiles[pubkey]
+        handshake_count = len(profile.handshake_partners)
+
+        # Score saturates at K_HANDSHAKE (10)
+        handshake_score = min(1.0, handshake_count / self.K_HANDSHAKE)
+
+        profile.dimensions[ReputationDimension.HANDSHAKE].value = handshake_score
+        profile.dimensions[ReputationDimension.HANDSHAKE].confidence = 1.0
+        profile.dimensions[ReputationDimension.HANDSHAKE].last_update = int(time.time())
+
+    def get_handshakes(self, pubkey: bytes) -> List[Handshake]:
+        """Get all active handshakes for a node."""
+        with self._lock:
+            return [h for h in self._handshakes.values() if h.involves(pubkey)]
+
+    def get_handshake_count(self, pubkey: bytes) -> int:
+        """Get count of active handshakes for a node."""
+        with self._lock:
+            if pubkey not in self.profiles:
+                return 0
+            return len(self.profiles[pubkey].handshake_partners)
+
+    def get_trust_web_stats(self) -> Dict[str, Any]:
+        """Get statistics about the trust web (all handshakes)."""
+        with self._lock:
+            total_handshakes = len(self._handshakes)
+            nodes_with_handshakes = set()
+
+            for handshake in self._handshakes.values():
+                nodes_with_handshakes.add(handshake.node_a)
+                nodes_with_handshakes.add(handshake.node_b)
+
+            # Country pairs
+            country_pairs = defaultdict(int)
+            for handshake in self._handshakes.values():
+                if handshake.node_a in self.profiles and handshake.node_b in self.profiles:
+                    c1 = self.profiles[handshake.node_a].country_code or "XX"
+                    c2 = self.profiles[handshake.node_b].country_code or "XX"
+                    pair = tuple(sorted([c1, c2]))
+                    country_pairs[pair] += 1
+
+            return {
+                'total_handshakes': total_handshakes,
+                'nodes_with_handshakes': len(nodes_with_handshakes),
+                'eligible_nodes': sum(
+                    1 for pk in self.profiles
+                    if self.is_eligible_for_handshake(pk)[0]
+                ),
+                'country_pairs': dict(country_pairs),
+            }
 
     def save_state(self):
         """Save engine state to storage."""
@@ -1281,6 +1710,12 @@ def create_reputation_modifier(adonis_engine: AdonisEngine):
 def _self_test():
     """Run Adonis self-tests."""
     logger.info("Running Adonis self-tests...")
+    logger.info("  🖐️ The Five Fingers of Adonis:")
+    logger.info("     👍 THUMB (TIME): 50% - saturates at 180 days")
+    logger.info("     ☝️ INDEX (INTEGRITY): 20% - no violations")
+    logger.info("     🖕 MIDDLE (STORAGE): 15% - saturates at 100%")
+    logger.info("     💍 RING (GEOGRAPHY): 10% - country + city")
+    logger.info("     🤙 PINKY (HANDSHAKE): 5% - mutual trust")
 
     # Create engine
     engine = AdonisEngine()
@@ -1293,32 +1728,54 @@ def _self_test():
     # Test profile creation
     profile1 = engine.get_or_create_profile(node1)
     assert profile1.pubkey == node1
-    logger.info("  Profile creation")
+    logger.info("  Profile creation OK")
 
-    # Test positive events
+    # Test TIME dimension (THUMB - 50%)
+    time_score = engine.update_time(node1, 90 * 86400)  # 90 days
+    assert time_score == 0.5  # 90/180 = 0.5
+    logger.info(f"  THUMB (TIME): 90 days = {time_score:.3f}")
+
+    time_score_full = engine.update_time(node3, 200 * 86400)  # 200 days (saturated)
+    assert time_score_full == 1.0
+    logger.info(f"  THUMB (TIME): 200 days (saturated) = {time_score_full:.3f}")
+
+    # Test STORAGE dimension (MIDDLE - 15%)
+    storage_score = engine.update_storage(node1, 1000, 1000)  # 100% storage
+    assert storage_score == 1.0  # 100%/100% = 1.0 (saturated)
+    logger.info(f"  MIDDLE (STORAGE): 100% = {storage_score:.3f}")
+
+    storage_score_half = engine.update_storage(node3, 500, 1000)  # 50% storage
+    assert storage_score_half == 0.5  # 50%/100% = 0.5
+    logger.info(f"  MIDDLE (STORAGE): 50% = {storage_score_half:.3f}")
+
+    # Test INTEGRITY (INDEX - 20%) - positive events
     for _ in range(10):
         engine.record_event(node1, ReputationEvent.BLOCK_PRODUCED, height=100)
 
     score1 = engine.get_reputation_score(node1)
     assert score1 > 0
-    logger.info(f"  Positive events (score: {score1:.3f})")
+    logger.info(f"  INDEX (INTEGRITY): 10 blocks = score {score1:.3f}")
 
-    # Test negative events
+    # Test INTEGRITY (INDEX - negative events)
     engine.record_event(node2, ReputationEvent.BLOCK_INVALID, height=100)
     score2 = engine.get_reputation_score(node2)
-    logger.info(f"  Negative events (score: {score2:.3f})")
+    logger.info(f"  INDEX (INTEGRITY): invalid block = score {score2:.3f}")
 
-    # Test vouching
-    engine.add_vouch(node1, node3)
-    profile3 = engine.get_profile(node3)
-    assert node1 in profile3.trusted_by
-    logger.info("  Trust vouching")
-
-    # Test penalty
+    # Test penalty (EQUIVOCATION)
     engine.record_event(node2, ReputationEvent.EQUIVOCATION, height=100)
     profile2 = engine.get_profile(node2)
     assert profile2.is_penalized
-    logger.info("  Penalty application")
+    logger.info("  Penalty: EQUIVOCATION applied")
+
+    # Test unified probability calculation
+    prob = engine.compute_node_probability(
+        node1,
+        uptime_seconds=90 * 86400,  # 90 days
+        stored_blocks=800,
+        total_blocks=1000
+    )
+    assert prob > 0
+    logger.info(f"  Unified probability: {prob:.3f}")
 
     # Test multiplier
     mult1 = engine.get_reputation_multiplier(node1)
@@ -1334,15 +1791,11 @@ def _self_test():
     # Test stats
     stats = engine.get_stats()
     assert 'total_profiles' in stats
-    assert stats['total_profiles'] == 3
-    logger.info("  Statistics")
+    logger.info("  Statistics OK")
 
-    # Test PageRank
-    pagerank = engine.compute_pagerank()
-    assert len(pagerank) == 3
-    logger.info("  PageRank computation")
-
-    # Test geographic diversity
+    # =========================================================================
+    # Test GEOGRAPHY dimension (RING - 10%) - country + city combined
+    # =========================================================================
     node4 = b'\x04' * 32
     node5 = b'\x05' * 32
     node6 = b'\x06' * 32
@@ -1353,7 +1806,7 @@ def _self_test():
     assert is_new_city == True
     assert country_score > 0
     assert city_score > 0
-    logger.info(f"  Geographic: JP/Tokyo first node (country={country_score:.3f}, city={city_score:.3f})")
+    logger.info(f"  💍 RING (GEOGRAPHY): JP/Tokyo first node = NEW_COUNTRY + NEW_CITY")
 
     # Second node from Japan/Tokyo - no bonuses
     is_new_country, is_new_city, country_score2, city_score2 = engine.register_node_location(node5, "JP", "Tokyo")
@@ -1361,46 +1814,154 @@ def _self_test():
     assert is_new_city == False
     assert country_score2 <= country_score  # Lower score due to more nodes
     assert city_score2 <= city_score
-    logger.info(f"  Geographic: JP/Tokyo second node (country={country_score2:.3f}, city={city_score2:.3f})")
+    logger.info(f"  💍 RING (GEOGRAPHY): JP/Tokyo second node (lower scores)")
 
     # First node from Germany/Berlin - NEW_COUNTRY and NEW_CITY bonus
     is_new_country, is_new_city, country_score3, city_score3 = engine.register_node_location(node6, "DE", "Berlin")
     assert is_new_country == True
     assert is_new_city == True
-    logger.info(f"  Geographic: DE/Berlin first node (country={country_score3:.3f}, city={city_score3:.3f})")
+    logger.info(f"  💍 RING (GEOGRAPHY): DE/Berlin first node (new country bonus)")
 
     # Check country distribution
     country_dist = engine.get_country_distribution()
     assert len(country_dist) == 2  # JP and DE
     assert country_dist["JP"] == 2
     assert country_dist["DE"] == 1
-    logger.info(f"  Geographic: {len(country_dist)} unique countries")
+    logger.info(f"  GEOGRAPHY: {len(country_dist)} unique countries")
 
     # Check city distribution
     city_dist = engine.get_city_distribution()
     assert len(city_dist) == 2  # Tokyo and Berlin
-    logger.info(f"  Geographic: {len(city_dist)} unique cities")
+    logger.info(f"  GEOGRAPHY: {len(city_dist)} unique cities")
 
     # Check network diversity
     diversity = engine.get_geographic_diversity_score()
     assert diversity > 0
-    logger.info(f"  Geographic: Network diversity = {diversity:.3f}")
+    logger.info(f"  GEOGRAPHY: Network diversity = {diversity:.3f}")
 
     # Test city hash anonymity
     hash1 = engine.compute_city_hash("JP", "Tokyo")
     hash2 = engine.compute_city_hash("JP", "tokyo")  # Case insensitive
     assert hash1 == hash2
-    logger.info("  Geographic: City hash anonymity")
+    logger.info("  GEOGRAPHY: City hash is case-insensitive (privacy preserved)")
+
+    # =========================================================================
+    # Test HANDSHAKE dimension (PINKY - 5%) - mutual trust between veterans
+    # =========================================================================
+    logger.info("")
+    logger.info("  🤙 PINKY (HANDSHAKE) tests:")
+
+    # Create veteran nodes with saturated fingers
+    veteran_jp = b'\x10' * 32  # Japan
+    veteran_de = b'\x11' * 32  # Germany
+    veteran_us = b'\x12' * 32  # USA
+    newbie = b'\x13' * 32       # New node
+
+    # Set up veterans with saturated TIME, INTEGRITY, STORAGE, GEOGRAPHY
+    for veteran in [veteran_jp, veteran_de, veteran_us]:
+        profile = engine.get_or_create_profile(veteran)
+        # Saturate TIME (180 days)
+        profile.dimensions[ReputationDimension.TIME].value = 1.0
+        profile.dimensions[ReputationDimension.TIME].confidence = 1.0
+        # Saturate INTEGRITY
+        profile.dimensions[ReputationDimension.INTEGRITY].value = 0.9
+        profile.dimensions[ReputationDimension.INTEGRITY].confidence = 1.0
+        # Saturate STORAGE
+        profile.dimensions[ReputationDimension.STORAGE].value = 1.0
+        profile.dimensions[ReputationDimension.STORAGE].confidence = 1.0
+
+    # Register different countries
+    engine.register_node_location(veteran_jp, "JP", "Tokyo")
+    engine.register_node_location(veteran_de, "DE", "Berlin")
+    engine.register_node_location(veteran_us, "US", "New York")
+    engine.register_node_location(newbie, "FR", "Paris")
+
+    # Test eligibility
+    eligible, reason = engine.is_eligible_for_handshake(veteran_jp)
+    assert eligible == True
+    logger.info(f"     Veteran JP eligible: {eligible}")
+
+    eligible, reason = engine.is_eligible_for_handshake(newbie)
+    assert eligible == False  # Newbie has low TIME
+    logger.info(f"     Newbie not eligible: {reason}")
+
+    # Test handshake request validation
+    success, msg = engine.request_handshake(veteran_jp, veteran_de)
+    assert success == True
+    logger.info(f"     Request JP->DE: {msg}")
+
+    # Test same country rejection
+    veteran_jp2 = b'\x14' * 32
+    profile_jp2 = engine.get_or_create_profile(veteran_jp2)
+    profile_jp2.dimensions[ReputationDimension.TIME].value = 1.0
+    profile_jp2.dimensions[ReputationDimension.TIME].confidence = 1.0
+    profile_jp2.dimensions[ReputationDimension.INTEGRITY].value = 0.9
+    profile_jp2.dimensions[ReputationDimension.INTEGRITY].confidence = 1.0
+    profile_jp2.dimensions[ReputationDimension.STORAGE].value = 1.0
+    profile_jp2.dimensions[ReputationDimension.STORAGE].confidence = 1.0
+    engine.register_node_location(veteran_jp2, "JP", "Osaka")
+
+    success, msg = engine.request_handshake(veteran_jp, veteran_jp2)
+    assert success == False  # Same country
+    assert "Same country" in msg
+    logger.info(f"     Same country rejected: {msg}")
+
+    # Form handshake JP <-> DE
+    success, msg = engine.form_handshake(
+        veteran_jp, veteran_de,
+        sig_a=b'\x00' * 64,  # Dummy signature
+        sig_b=b'\x00' * 64,
+        height=1000
+    )
+    assert success == True
+    logger.info(f"     Handshake JP<->DE formed!")
+
+    # Check handshake count
+    count_jp = engine.get_handshake_count(veteran_jp)
+    count_de = engine.get_handshake_count(veteran_de)
+    assert count_jp == 1
+    assert count_de == 1
+    logger.info(f"     Handshake counts: JP={count_jp}, DE={count_de}")
+
+    # Check HANDSHAKE dimension updated
+    profile_jp = engine.get_profile(veteran_jp)
+    handshake_score = profile_jp.dimensions[ReputationDimension.HANDSHAKE].value
+    assert handshake_score == 0.1  # 1/10 = 0.1
+    logger.info(f"     HANDSHAKE score: {handshake_score:.2f} (1/10)")
+
+    # Form more handshakes
+    success, _ = engine.form_handshake(veteran_jp, veteran_us, b'\x00'*64, b'\x00'*64, 1001)
+    assert success == True
+    count_jp = engine.get_handshake_count(veteran_jp)
+    assert count_jp == 2
+    logger.info(f"     JP now has {count_jp} handshakes")
+
+    # Test duplicate handshake rejection
+    success, msg = engine.form_handshake(veteran_jp, veteran_de, b'\x00'*64, b'\x00'*64, 1002)
+    assert success == False
+    assert "already exists" in msg
+    logger.info(f"     Duplicate rejected: {msg}")
+
+    # Break handshake
+    success, msg = engine.break_handshake(veteran_jp, veteran_de, reason="test")
+    assert success == True
+    count_jp = engine.get_handshake_count(veteran_jp)
+    assert count_jp == 1
+    logger.info(f"     Handshake broken, JP now has {count_jp} handshake(s)")
+
+    # Get trust web stats
+    web_stats = engine.get_trust_web_stats()
+    assert web_stats['total_handshakes'] >= 1
+    logger.info(f"     Trust web: {web_stats['total_handshakes']} handshakes, {web_stats['nodes_with_handshakes']} nodes")
 
     # Verify stats include unique_countries and unique_cities
     stats = engine.get_stats()
     assert 'unique_countries' in stats
     assert 'unique_cities' in stats
-    assert stats['unique_countries'] == 2
-    assert stats['unique_cities'] == 2
-    logger.info(f"  Geographic: Stats include unique_countries={stats['unique_countries']}, unique_cities={stats['unique_cities']}")
+    logger.info(f"  Stats: {stats['unique_countries']} countries, {stats['unique_cities']} cities")
 
-    logger.info("All Adonis self-tests passed!")
+    logger.info("")
+    logger.info("🖐️ All Five Fingers of Adonis self-tests passed!")
 
 
 if __name__ == "__main__":

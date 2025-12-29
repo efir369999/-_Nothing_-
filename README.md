@@ -37,33 +37,29 @@ Layer 2: PoT (Proof of Time)
 
 **ECVRF** (Verifiable Random Function) selects block producer proportionally to node weight.
 
-### Node Weight
+### Node Weight: The Five Fingers of Adonis
 
 ```
-P(i) = 60% × Time + 20% × Storage + 20% × Reputation
-
-Time:       saturates at 180 days uptime
-Storage:    saturates at 80% chain history
-Reputation: 7-dimensional Adonis score
+P(i) = Adonis(i) / Σ Adonis(all)
 ```
 
-**Saturation** = newcomer catches up to veteran in 180 days. This is a feature.
+Five dimensions — like fingers on a hand:
 
-### Reputation: Adonis System
+| Finger | Dimension | Weight | What it measures |
+|--------|-----------|--------|------------------|
+| 👍 Thumb | **TIME** | **50%** | Continuous uptime (saturates at 180 days) |
+| ☝️ Index | INTEGRITY | 20% | No violations, valid proofs |
+| 🖕 Middle | STORAGE | 15% | Chain history (saturates at 100%) |
+| 💍 Ring | GEOGRAPHY | 10% | Country + city diversity |
+| 🤙 Pinky | HANDSHAKE | 5% | Mutual trust between veterans |
 
-7 dimensions that encourage decentralization:
+**TIME is the thumb.** Makes the hand work. 50% weight — this is Proof of Time.
 
-| Dimension | Weight | What it measures |
-|-----------|--------|------------------|
-| Integrity | 25% | No violations, valid proofs |
-| Reliability | 20% | Uptime, block production |
-| Longevity | 15% | Time in network |
-| **Country** | **12%** | Unique country bonus |
-| Contribution | 12% | Storage, relay, validation |
-| Community | 8% | Peer vouching |
-| City | 8% | Unique city bonus |
+**INTEGRITY has double protection**: 20% weight + 180-day quarantine for equivocation.
 
-**Geographic decentralization**: First node from a new country gets +0.25 bonus. First from a new city gets +0.15. Fewer nodes in your location = higher score. This incentivizes global distribution.
+**GEOGRAPHY rewards decentralization**: First node from new country +0.25, new city +0.15.
+
+**HANDSHAKE is elite bonus**: Unlocks when 4 fingers saturated. Two veterans from different countries shake hands = cryptographic trust. Anti-sybil by design.
 
 ### DAG
 
@@ -78,7 +74,7 @@ Each block references 1-8 parents. PHANTOM-PoT algorithm for ordering. Horizonta
 | # | God | Function |
 |---|-----|----------|
 | 1 | **Chronos** | VDF, PoH, time proofs |
-| 2 | **Adonis** | 7-dimensional reputation |
+| 2 | **Adonis** | 5-finger reputation |
 | 3 | **Hermes** | P2P, Noise Protocol |
 | 4 | **Hades** | DAG, SQLite storage |
 | 5 | **Athena** | VRF consensus |
