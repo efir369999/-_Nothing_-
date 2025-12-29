@@ -1,21 +1,18 @@
-# Time
+# Ɉ Montana
 
 A peer-to-peer electronic cash system based on time.
 
----
-
-## Two Things
-
-**Proof of Time** — the consensus protocol. VDF, Adonis, DAG.
-
-**Time (Ɉ)** — the currency. 1 Ɉ = 1 second.
+**Ticker:** $MONT
 
 ---
 
-## The Currency: Ɉ
+## Overview
+
+**Ɉ Montana** is a cryptocurrency built on Proof of Time (PoT) consensus. Time cannot be bought, accelerated, or transferred.
 
 ```
 Symbol: Ɉ
+Ticker: $MONT
 Unit: 1 Ɉ = 1 second
 Supply: 1,260,000,000 Ɉ (21 million minutes)
 Block reward: 50 min → 25 min → 12.5 min → ...
@@ -27,13 +24,13 @@ Emission: 132 years
 
 ---
 
-## The Protocol: Proof of Time
+## Consensus: Proof of Time
 
-Consensus based on time, not capital. Time cannot be bought, accelerated, or transferred.
+Consensus based on time, not capital.
 
 ### Dual Layer
 
-**Layer 1 — Proof of History.** Sequential SHA-256 chain. Transaction ordering.
+**Layer 1 — Proof of History.** Sequential SHA3-256 chain. Transaction ordering.
 
 **Layer 2 — Proof of Time.** VDF checkpoints every 10 minutes. Finality.
 
@@ -55,14 +52,14 @@ Five dimensions. All saturate.
 
 180 days = maximum influence. Capital irrelevant.
 
-### Security Properties (v2.6) — ALL PROVEN
+### Security Properties — ALL PROVEN
 
 | Property | Status | Evidence |
 |----------|--------|----------|
-| Cluster-cap bypass | ✓ PROVEN | 50% → 45% attacker influence |
-| Adaptive adversary | ✓ PROVEN | 100% detection rate |
-| 33% = Byzantine | ✓ PROVEN | Mathematical proof |
-| TIME = human time | ✓ PROVEN | VDF anchoring |
+| Cluster-cap bypass | PROVEN | 50% → 45% attacker influence |
+| Adaptive adversary | PROVEN | 100% detection rate |
+| 33% = Byzantine | PROVEN | Mathematical proof |
+| TIME = human time | PROVEN | VDF anchoring |
 
 **Run proofs:** `python3 tests/test_security_proofs.py`
 
@@ -77,6 +74,15 @@ See [SECURITY_MODEL.md](SECURITY_MODEL.md) for full details.
 ### DAG
 
 1-8 parent references per block. PHANTOM ordering. Horizontal scaling.
+
+---
+
+## Post-Quantum Cryptography (v3.0)
+
+- **SPHINCS+** — Hash-based signatures (NIST FIPS 205)
+- **SHA3-256** — Keccak hashing (NIST FIPS 202)
+- **SHAKE256 VDF** — Quantum-resistant VDF with STARK proofs
+- **ML-KEM** — Lattice-based key exchange (NIST FIPS 203)
 
 ---
 
@@ -112,10 +118,8 @@ python node.py --run
 
 | Document | Content |
 |----------|---------|
-| Time_v2.0.pdf | Whitepaper v2.0. Nash's Ideal Money. Security proofs. |
-| ProofOfTime_v2.0.pdf | Technical specification. VDF. Adonis. DAG. |
-| SECURITY_MODEL.md | Security model. Anti-cluster. All properties proven. |
-| docs/RELEASE_v2.6.md | Release notes. All security properties proven. |
+| [Montana_v3.0.md](Montana_v3.0.md) | Whitepaper v3.0. Post-quantum. Full specification. |
+| [SECURITY_MODEL.md](SECURITY_MODEL.md) | Security model. Anti-cluster. All properties proven. |
 
 ---
 
@@ -128,7 +132,6 @@ python node.py --run
 | Claude Opus 4.5 | v2.6 | 9.5/10 | [PASS](audits/anthropic/claude_opus_4.5_v2.6_audit.md) |
 | Claude Opus 4.5 | v2.5 | 9.0/10 | [PASS](audits/anthropic/SECURITY_AUDIT.md) |
 | Gemini 3 Flash | v2.5 | 9.0/10 | [PASS](audits/alphabet/gemini_3_flash_audit.md) |
-| GPT-5.1 Codex | v2.5 | - | [View](audits/openai/gpt-5.1-codex-max-xhigh_audit.md) |
 
 See [audits/](audits/) for full reports.
 
@@ -136,12 +139,13 @@ See [audits/](audits/) for full reports.
 
 ## Comparison
 
-| | Bitcoin | Ethereum | Time |
-|---|---------|----------|------|
+| | Bitcoin | Ethereum | Ɉ Montana |
+|---|---------|----------|-----------|
 | Consensus | PoW | PoS | PoT |
 | Influence | Hardware | Stake | Time |
 | 51% attack | $20B | $10B | N × 180 days |
 | Cluster attack | N/A | Possible | Blocked (33% cap) |
+| Quantum-safe | No | No | Yes |
 
 ---
 

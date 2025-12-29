@@ -1,4 +1,4 @@
-# Time — Roadmap
+# Ɉ Montana — Roadmap
 
 *The plan reveals itself through time.*
 
@@ -9,7 +9,7 @@
 ### Nash's Ideal Money — Realized
 In 2002, John Nash proposed "Ideal Money" — a currency whose inflation asymptotically approaches zero.
 
-Time realizes this vision through Temporal Compression:
+Ɉ Montana realizes this vision through Temporal Compression:
 - **5:1 → 1:1** — emission ratio converges to unity
 - **I(t) → 0** — inflation mathematically approaches zero
 - **Asymptotic stability** — purchasing power crystallizes forever
@@ -51,38 +51,35 @@ The body as a timestamp server. Life itself proves the passage of time through i
 | v2.1.0 | Dec 2025 | Geographic diversity (Adonis) |
 | v2.2.0 | Dec 2025 | Pantheon dashboard |
 | v2.3.0 | Dec 2025 | Testnet ready |
-| v2.4.0 | Dec 2025 | Time Whitepaper v1.0: Ɉ symbol, Nash's Ideal Money |
-| **v2.5.0** | Dec 2025 | **Anti-Cluster Protection: Slow Takeover Attack defense** |
+| v2.4.0 | Dec 2025 | Whitepaper v1.0: Ɉ symbol, Nash's Ideal Money |
+| v2.5.0 | Dec 2025 | Anti-Cluster Protection: Slow Takeover Attack defense |
+| v2.6.0 | Dec 2025 | All security properties proven |
+| **v3.0.0** | Dec 2025 | **Post-Quantum Cryptography: SPHINCS+, SHA3, SHAKE256 VDF** |
 
 ---
 
-## v2.5.0 — Anti-Cluster Protection
+## v3.0.0 — Post-Quantum Cryptography
 
-Defense against the "Slow Takeover Attack" — patient accumulation of TIME across coordinated nodes.
+Quantum-resistant cryptographic stack following NIST standards.
 
 ### New Features
 
 | Feature | Description |
 |---------|-------------|
-| **ClusterDetector** | Identifies correlated nodes through behavioral analysis |
-| **Correlation Penalty** | 50% score reduction for highly correlated nodes |
-| **Global Cluster Cap** | Maximum 33% network influence per cluster |
-| **EntropyMonitor** | Tracks network diversity health |
-| **Entropy Decay** | TIME stops accumulating when diversity drops |
-| **Independence Verification** | Handshakes require provably independent nodes |
+| **SPHINCS+** | Hash-based signatures (NIST FIPS 205) |
+| **SHA3-256** | Keccak hashing (NIST FIPS 202) |
+| **SHAKE256 VDF** | Quantum-resistant VDF with STARK proofs |
+| **ML-KEM** | Lattice-based key exchange (NIST FIPS 203) |
+| **Crypto-Agility** | Runtime switching between legacy/PQ/hybrid |
 
-### Security Constants
+### Security Against Quantum Attacks
 
-```python
-MAX_CORRELATION_THRESHOLD = 0.7   # 70% similarity = suspicious
-CORRELATION_PENALTY_FACTOR = 0.5  # 50% penalty
-MAX_CLUSTER_INFLUENCE = 0.33      # 33% cap
-MIN_NETWORK_ENTROPY = 0.5         # Health threshold
 ```
-
-### Documentation
-
-- [SECURITY_MODEL.md](SECURITY_MODEL.md) — Complete security model with honest limitations
+Ed25519 → SPHINCS+ (quantum-safe)
+SHA-256 → SHA3-256 (quantum-safe)
+RSA VDF → SHAKE256 VDF (quantum-safe)
+X25519 → ML-KEM (quantum-safe)
+```
 
 ---
 
@@ -90,9 +87,8 @@ MIN_NETWORK_ENTROPY = 0.5         # Health threshold
 
 | Document | Description |
 |----------|-------------|
-| Time_v1.0.pdf | Whitepaper: Nash's Ideal Money, Temporal Compression, 1:1 convergence |
-| ProofOfTime_v1.0.pdf | Technical specification: VDF, Adonis, DAG-PHANTOM |
-| SECURITY_MODEL.md | Security model: Anti-cluster, known limitations |
+| [Montana_v3.0.md](Montana_v3.0.md) | Whitepaper v3.0: Post-quantum, full specification |
+| [SECURITY_MODEL.md](SECURITY_MODEL.md) | Security model: Anti-cluster, proven properties |
 
 ---
 
@@ -105,7 +101,8 @@ MIN_NETWORK_ENTROPY = 0.5         # Health threshold
 | Adonis | DONE | Five Fingers reputation |
 | Ideal Money | DONE | Nash's vision, Temporal Compression |
 | Anti-Cluster | DONE | Slow Takeover Attack defense |
-| Testnet | CURRENT | v2.5.0 deployed |
+| Post-Quantum | DONE | SPHINCS+, SHA3, SHAKE256 |
+| Testnet | CURRENT | v3.0 deployed |
 | Mainnet | Q1 2026 | Public launch |
 | Mobile | Q2 2026 | Light clients, mobile wallet |
 
@@ -115,7 +112,9 @@ MIN_NETWORK_ENTROPY = 0.5         # Health threshold
 
 | Parameter | Value |
 |-----------|-------|
+| Name | Ɉ Montana |
 | Symbol | Ɉ |
+| Ticker | $MONT |
 | Base unit | 1 Ɉ = 1 second |
 | Total supply | 1,260,000,000 Ɉ (21M minutes) |
 | Block reward | 50 min → 25 min → 12.5 min → ... |

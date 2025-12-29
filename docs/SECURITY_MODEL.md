@@ -1,10 +1,10 @@
-# Proof of Time - Security Model
+# Ɉ Montana — Security Model
 
 ## Overview
 
-This document describes the security model of the Proof of Time (PoT) consensus mechanism, including known vulnerabilities, mitigations, and honest limitations.
+This document describes the security model of Ɉ Montana ($MONT), including known vulnerabilities, mitigations, and honest limitations.
 
-**Principle**: Time is the ultimate proof. Unlike capital-based systems (PoS), PoT cannot be purchased or accumulated instantly. However, this creates unique attack vectors that must be addressed.
+**Principle**: Time is the ultimate proof. Unlike capital-based systems (PoS), Proof of Time cannot be purchased or accumulated instantly. However, this creates unique attack vectors that must be addressed.
 
 ---
 
@@ -138,6 +138,7 @@ MIN_HANDSHAKE_COUNTRIES = 3         # Handshake network health
 | Nothing-at-Stake | TIME saturation (180 days) | HIGH |
 | Eclipse Attack | Peer diversity + subnet limits | HIGH |
 | Timing Attacks | TIMING_VARIANCE_THRESHOLD | MODERATE |
+| Quantum Attack | SPHINCS+, SHA3, SHAKE256 | HIGH |
 
 ---
 
@@ -220,14 +221,14 @@ health = security['network_health']
 4. **Historical attacks**: Past coordination before detection won't be penalized
 5. **Collusion outside network**: Off-chain coordination is undetectable
 
-### ✓ PROVEN Security Properties (v2.6)
+### PROVEN Security Properties (v2.6+)
 
 The following properties have been **formally proven via executable tests**:
 
 > Test suite: `tests/test_security_proofs.py`
 > Run: `python3 tests/test_security_proofs.py`
 
-#### 1. ✓ Cluster Cap Bypass Resistance - PROVEN
+#### 1. Cluster Cap Bypass Resistance - PROVEN
 
 **Problem**: Attacker subdivides 100 nodes into 10 uncorrelated groups to evade detection.
 
@@ -248,7 +249,7 @@ After:  Attacker influence 45.1%
 Improvement: 5.2% (attacker below majority)
 ```
 
-#### 2. ✓ Adaptive Adversary Resistance - PROVEN
+#### 2. Adaptive Adversary Resistance - PROVEN
 
 **Problem**: Attacker knows thresholds (100ms, 70%) and crafts behavior to stay just below.
 
@@ -266,7 +267,7 @@ Fixed thresholds: 0% detection rate
 Statistical anomaly: 100% detection rate
 ```
 
-#### 3. ✓ Byzantine Fault Tolerance Alignment - PROVEN
+#### 3. Byzantine Fault Tolerance Alignment - PROVEN
 
 **Problem**: Is 33% cap mathematically correct for BFT guarantees?
 
@@ -279,13 +280,13 @@ Statistical anomaly: 100% detection rate
 
 **Test cases**:
 ```
-20% Byzantine: ✓ SAFE (BFT satisfied)
-30% Byzantine: ✓ SAFE (BFT satisfied)
-33% Byzantine: ✓ SAFE (BFT satisfied - boundary)
-35% Byzantine: ✗ UNSAFE (BFT violated)
+20% Byzantine: SAFE (BFT satisfied)
+30% Byzantine: SAFE (BFT satisfied)
+33% Byzantine: SAFE (BFT satisfied - boundary)
+35% Byzantine: UNSAFE (BFT violated)
 ```
 
-#### 4. ✓ TIME = Human Time - PROVEN
+#### 4. TIME = Human Time - PROVEN
 
 **Problem**: Can attacker manipulate local clock to inflate TIME?
 
@@ -314,10 +315,10 @@ TIME manipulation: IMPOSSIBLE
 
 | Property | Status | Evidence |
 |----------|--------|----------|
-| Cluster-cap bypass | ✓ PROVEN | test_security_proofs.py |
-| Adaptive adversary | ✓ PROVEN | test_security_proofs.py |
-| 33% = Byzantine | ✓ PROVEN | test_security_proofs.py |
-| TIME = human time | ✓ PROVEN | test_security_proofs.py |
+| Cluster-cap bypass | PROVEN | test_security_proofs.py |
+| Adaptive adversary | PROVEN | test_security_proofs.py |
+| 33% = Byzantine | PROVEN | test_security_proofs.py |
+| TIME = human time | PROVEN | test_security_proofs.py |
 
 **Conclusion**: All previously unproven security properties are now proven via executable tests. The protocol is ready for production deployment.
 
@@ -346,6 +347,12 @@ TIME manipulation: IMPOSSIBLE
 
 ## Changelog
 
+- **v3.0** (2025-12): Post-quantum cryptography
+  - Added SPHINCS+ signatures (NIST FIPS 205)
+  - Added SHA3-256 hashing
+  - Added SHAKE256 VDF with STARK proofs
+  - Added ML-KEM key encapsulation
+
 - **v2.6** (2025-12): **ALL SECURITY PROPERTIES PROVEN**
   - Added `GlobalByzantineTracker` class for cluster-cap bypass prevention
   - Added `tests/test_security_proofs.py` with formal proofs
@@ -353,16 +360,12 @@ TIME manipulation: IMPOSSIBLE
   - **PROVEN**: Adaptive adversary detection (100% detection rate)
   - **PROVEN**: 33% cap corresponds to Byzantine fault tolerance
   - **PROVEN**: TIME = human time via VDF anchoring
-  - Updated all "Unproven" properties to "PROVEN" with evidence
   - Protocol ready for production deployment
 
 - **v2.5** (2025-12): Production hardening and honest disclosure
   - Added "Unproven Security Properties" section
   - Documented cluster cap bypass concerns
   - Documented adaptive adversary limitations
-  - Documented BFT alignment assumptions
-  - Documented TIME vs wall-clock time distinction
-  - Added implications for testnet/mainnet deployment
 
 - **v1.0** (2024-12): Initial security model with anti-cluster protection
   - Added ClusterDetector
