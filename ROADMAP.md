@@ -51,7 +51,38 @@ The body as a timestamp server. Life itself proves the passage of time through i
 | v2.1.0 | Dec 2025 | Geographic diversity (Adonis) |
 | v2.2.0 | Dec 2025 | Pantheon dashboard |
 | v2.3.0 | Dec 2025 | Testnet ready |
-| **v2.4.0** | Dec 2025 | **Time Whitepaper v1.0: Ɉ symbol, Nash's Ideal Money** |
+| v2.4.0 | Dec 2025 | Time Whitepaper v1.0: Ɉ symbol, Nash's Ideal Money |
+| **v2.5.0** | Dec 2025 | **Anti-Cluster Protection: Slow Takeover Attack defense** |
+
+---
+
+## v2.5.0 — Anti-Cluster Protection
+
+Defense against the "Slow Takeover Attack" — patient accumulation of TIME across coordinated nodes.
+
+### New Features
+
+| Feature | Description |
+|---------|-------------|
+| **ClusterDetector** | Identifies correlated nodes through behavioral analysis |
+| **Correlation Penalty** | 50% score reduction for highly correlated nodes |
+| **Global Cluster Cap** | Maximum 33% network influence per cluster |
+| **EntropyMonitor** | Tracks network diversity health |
+| **Entropy Decay** | TIME stops accumulating when diversity drops |
+| **Independence Verification** | Handshakes require provably independent nodes |
+
+### Security Constants
+
+```python
+MAX_CORRELATION_THRESHOLD = 0.7   # 70% similarity = suspicious
+CORRELATION_PENALTY_FACTOR = 0.5  # 50% penalty
+MAX_CLUSTER_INFLUENCE = 0.33      # 33% cap
+MIN_NETWORK_ENTROPY = 0.5         # Health threshold
+```
+
+### Documentation
+
+- [SECURITY_MODEL.md](SECURITY_MODEL.md) — Complete security model with honest limitations
 
 ---
 
@@ -61,6 +92,7 @@ The body as a timestamp server. Life itself proves the passage of time through i
 |----------|-------------|
 | Time_v1.0.pdf | Whitepaper: Nash's Ideal Money, Temporal Compression, 1:1 convergence |
 | ProofOfTime_v1.0.pdf | Technical specification: VDF, Adonis, DAG-PHANTOM |
+| SECURITY_MODEL.md | Security model: Anti-cluster, known limitations |
 
 ---
 
@@ -72,7 +104,8 @@ The body as a timestamp server. Life itself proves the passage of time through i
 | Pantheon | DONE | 12-module architecture |
 | Adonis | DONE | Five Fingers reputation |
 | Ideal Money | DONE | Nash's vision, Temporal Compression |
-| Testnet | CURRENT | v2.4.0 deployed |
+| Anti-Cluster | DONE | Slow Takeover Attack defense |
+| Testnet | CURRENT | v2.5.0 deployed |
 | Mainnet | Q1 2026 | Public launch |
 | Mobile | Q2 2026 | Light clients, mobile wallet |
 

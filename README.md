@@ -55,6 +55,19 @@ Five dimensions. All saturate.
 
 180 days = maximum influence. Capital irrelevant.
 
+### Anti-Cluster Protection (v2.5)
+
+Defense against "Slow Takeover Attack":
+
+| Protection | Description |
+|------------|-------------|
+| **Correlation Detection** | Nodes acting synchronously are identified and penalized |
+| **Cluster Cap** | No cluster can exceed 33% of network influence |
+| **Entropy Decay** | TIME stops accumulating when network diversity drops |
+| **Independence Verification** | Handshakes require provably independent nodes |
+
+See [SECURITY_MODEL.md](SECURITY_MODEL.md) for full details.
+
 ### DAG
 
 1-8 parent references per block. PHANTOM ordering. Horizontal scaling.
@@ -95,6 +108,21 @@ python node.py --run
 |----------|---------|
 | Time_v1.0.pdf | Whitepaper. Nash's Ideal Money. Temporal Compression. |
 | ProofOfTime_v1.0.pdf | Technical specification. VDF. Adonis. DAG. |
+| SECURITY_MODEL.md | Security model. Anti-cluster. Known limitations. |
+
+---
+
+## Security
+
+### AI Audits
+
+| Auditor | Score | Status |
+|---------|-------|--------|
+| Claude Opus 4.5 | 9.0/10 | [PASS](audits/anthropic/SECURITY_AUDIT.md) |
+| Gemini 3 Flash | 9.0/10 | [PASS](audits/alphabet/gemini_3_flash_audit.md) |
+| GPT-5.1 Codex | - | [View](audits/openai/gpt-5.1-codex-max-xhigh_audit.md) |
+
+See [audits/](audits/) for full reports.
 
 ---
 
@@ -105,6 +133,7 @@ python node.py --run
 | Consensus | PoW | PoS | PoT |
 | Influence | Hardware | Stake | Time |
 | 51% attack | $20B | $10B | N × 180 days |
+| Cluster attack | N/A | Possible | Blocked (33% cap) |
 
 ---
 
