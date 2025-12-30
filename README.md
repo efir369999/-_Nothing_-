@@ -20,43 +20,67 @@ Halving: every 210,000 blocks (~4 years)
 Emission: 132 years
 ```
 
-**Temporal Compression:** Reward ratio converges from 5:1 to 1:1. Inflation asymptotically approaches zero. Nash's Ideal Money realized.
-
 ---
 
-## Consensus: Proof of Time
+## Consensus: ADAM (Anchored Deterministic Asynchronous Mesh)
 
-Consensus based on time, not capital.
+**Bitcoin is the clock. SHAKE256 VDF is the insurance.**
 
-### Dual Layer
+### 7 Temporal Levels
 
-**Layer 1 — Proof of History.** Sequential SHA3-256 chain. Transaction ordering.
+| Level | Name | Description |
+|-------|------|-------------|
+| 0 | NODE_UTC | Hardware clock (UTC) |
+| 1 | GLOBAL_NTP | 13 national metrology laboratories |
+| 2 | MEMPOOL_TIME | Bitcoin mempool observation |
+| 3 | BLOCK_TIME | Bitcoin block confirmation |
+| 4 | BITCOIN_ACTIVE | Normal operation, VDF not needed |
+| 5 | VDF_FALLBACK | Bitcoin down 2+ blocks, SHAKE256 VDF active |
+| 6 | VDF_DEACTIVATE | Bitcoin returned +20 blocks, transition back |
 
-**Layer 2 — Proof of Time.** VDF checkpoints every 10 minutes. Finality.
+**Normal operation:** Levels 0-4. Bitcoin provides authoritative time.
 
-### Block Production (DAG)
+**Fallback only:** Level 5 activates ONLY when Bitcoin unavailable for 2+ blocks (~20 min). SHAKE256 VDF provides sovereign timekeeping. PoH (SHA3-256 chain) provides instant transaction ordering.
+
+### 13 National Metrology Laboratories
+
+```
+USA: NIST/USNO (time.nist.gov)
+UK: NPL (ntp1.npl.co.uk)
+Germany: PTB (ptbtime1.ptb.de)
+Russia: ВНИИФТРИ (ntp2.vniiftri.ru)
+China: NIM (cn.pool.ntp.org)
+Japan: NICT (ntp.jst.mfeed.ad.jp)
+Canada: NRC (time.nrc.ca)
+Australia: NMI (ntp.ausaid.gov.au)
+India: NPL (in.pool.ntp.org)
+Sweden: Netnod (ntp.se)
+Switzerland: METAS (ntp.metas.ch)
+South Korea: KRISS (time.kriss.re.kr)
+Mexico: CENAM (ntp.cenam.mx)
+```
+
+### DAG-PHANTOM Ordering
 
 In DAG architecture, there is no leader selection. Any eligible node can produce blocks. ECVRF determines eligibility. PHANTOM orders blocks.
 
-### Adonis Score (v4.0+)
+### Five Fingers (Reputation)
 
-Five dimensions. All saturate.
-
-| Dimension | Weight | Saturation |
-|-----------|--------|------------|
+| Finger | Weight | Saturation |
+|--------|--------|------------|
 | TIME | 50% | 210,000 BTC blocks (resets at halving) |
 | INTEGRITY | 20% | No violations |
 | STORAGE | 15% | Full chain history |
 | EPOCHS | 10% | Bitcoin halvings survived |
 | HANDSHAKE | 5% | 12 Apostle trust bonds |
 
-TIME measured in Bitcoin blocks. Resets at each halving. Capital irrelevant.
+TIME measured in Bitcoin blocks. Resets at each halving.
 
-### The Twelve Apostles (v4.0)
+### The Twelve Apostles
 
 Each node selects exactly 12 trust partners. Attack one → collective slashing.
 
-### HAL: Human Analyse Language (v4.1)
+### HAL: Human Analyse Language
 
 Proof of humanity, not just proof of time. Named after Hal Finney (1956-2014).
 
@@ -66,79 +90,49 @@ Proof of humanity, not just proof of time. Named after Hal Finney (1956-2014).
 | Social | 6 | 0.6 | Custom social graph |
 | Time-Locked | 12 | 1.0 | Bitcoin halving anchored |
 
-**Sybil cost:** Creating N fake identities = N × 4 years waiting.
-
-### Security Properties — ALL PROVEN
-
-| Property | Status | Evidence |
-|----------|--------|----------|
-| Cluster-cap bypass | PROVEN | 50% → 45% attacker influence |
-| Adaptive adversary | PROVEN | 100% detection rate |
-| 33% = Byzantine | PROVEN | Mathematical proof |
-| TIME = human time | PROVEN | VDF anchoring |
-
-**Run proofs:** `python3 tests/test_security_proofs.py`
-
-Defense mechanisms:
-- **GlobalByzantineTracker** — Detects subdivided clusters by behavioral fingerprint
-- **Correlation Detection** — Nodes acting synchronously are penalized
-- **33% Cluster Cap** — No cluster exceeds Byzantine threshold
-- **VDF Anchoring** — TIME cannot be manipulated via clock attacks
-
-See [SECURITY_MODEL.md](SECURITY_MODEL.md) for full details.
-
-### DAG
-
-1-8 parent references per block. PHANTOM ordering. Horizontal scaling.
+**Sybil cost:** N fake identities = N × 4 years waiting.
 
 ---
 
-## Post-Quantum Cryptography (v3.0)
+## Post-Quantum Cryptography
 
-- **SPHINCS+** — Hash-based signatures (NIST FIPS 205)
-- **SHA3-256** — Keccak hashing (NIST FIPS 202)
-- **SHAKE256 VDF** — Quantum-resistant VDF with STARK proofs
-- **ML-KEM** — Lattice-based key exchange (NIST FIPS 203)
+VDF (SHAKE256) is backup timing when Bitcoin unavailable. Quantum-resistant cryptography ensures long-term security.
 
-## Network Security (v3.1)
-
-- **Static IP** — Dynamic residential and CGNAT blocked
-- **VPN Detection** — ASN-based VPN/Tor/Proxy blocking
-- **Sybil Protection** — Node registration after block validation only
-- **Eclipse Defense** — Minimum 8 outbound connections enforced
-- **Rate Limiting** — Per-IP and per-subnet throttling
-- **Wallet Encryption** — Minimum 8-character password
+| Function | Algorithm | Standard |
+|----------|-----------|----------|
+| Signatures | SPHINCS+-SHAKE-128f | NIST FIPS 205 |
+| Hashing | SHA3-256 | NIST FIPS 202 |
+| VDF | SHAKE256 | NIST FIPS 202 |
+| Key Exchange | ML-KEM-768 | NIST FIPS 203 |
 
 ---
 
 ## Privacy
 
-| Tier | Hidden | Fee |
-|------|--------|-----|
-| T0 | Nothing | 1× |
-| T1 | Receiver | 2× |
-| T2 | + Amount | 5× |
-| T3 | + Sender | 10× |
+| Tier | Hidden | Fee | Status |
+|------|--------|-----|--------|
+| T0 | Nothing | 1× | Production |
+| T1 | Receiver (stealth) | 2× | Production |
+
+T2/T3 removed. Only T0 and T1 supported.
 
 ---
 
-## Architecture
+## Architecture: 11 Pantheon Gods
 
-11 modules (Pantheon):
-
-| Module | Domain | Description |
-|--------|--------|-------------|
-| ADAM | Time | 7 temporal levels, Bitcoin anchor, VDF |
-| PAUL | P2P | Noise Protocol, peer management |
+| Module | Name | Responsibility |
+|--------|------|----------------|
+| ADAM | Anchored Deterministic Asynchronous Mesh | 7 temporal levels, Bitcoin anchor, VDF fallback |
+| PAUL | Peer Authenticated Unified Link | P2P, Noise Protocol |
 | HADES | Storage | SQLite, DAG persistence |
-| ATHENA | Consensus | DAG ordering, finality |
+| ATHENA | Consensus | DAG ordering, PHANTOM, finality (no leader) |
 | PROMETHEUS | Crypto | VDF, VRF, SPHINCS+, SHA3 |
-| PLUTUS | Wallet | Key management, TX building |
-| NYX | Privacy | T0/T1 tiers, stealth addresses |
+| PLUTUS | Wallet | Key management, AES-256-GCM |
+| NYX | Privacy | T0/T1 only, stealth addresses |
 | THEMIS | Validation | Block/TX verification |
-| IRIS | RPC | JSON-RPC 2.0 interface |
-| APOSTLES | Trust | 12 Apostle handshakes, slashing |
-| HAL | Human Analyse Language | Reputation, Sybil detection, behavioral analysis |
+| IRIS | RPC | JSON-RPC 2.0 |
+| APOSTLES | Trust | 12 Apostles, handshakes, slashing |
+| HAL | Human Analyse Language | Reputation, Sybil detection |
 
 ---
 
@@ -155,36 +149,8 @@ python node.py --run
 
 | Document | Content |
 |----------|---------|
-| [Montana_v4.3.md](Montana_v4.3.md) | Whitepaper v4.3. Full specification. |
-| [Montana_v4.3.pdf](Montana_v4.3.pdf) | PDF version. |
-| [SECURITY_MODEL.md](docs/SECURITY_MODEL.md) | Security model. Anti-cluster. All properties proven. |
-
----
-
-## Security
-
-### AI Audits
-
-| Auditor | Version | Score | Status |
-|---------|---------|-------|--------|
-| Claude Opus 4.5 | v4.0 | 9.2/10 | [PASS](audits/anthropic/claude_opus_4.5_v4.0_audit.md) |
-| Claude Opus 4.5 | v3.1 | 9.8/10 | [PASS](audits/anthropic/claude_opus_4.5_v3.1_audit.md) |
-| Claude Opus 4.5 | v2.6 | 9.5/10 | [PASS](audits/anthropic/claude_opus_4.5_v2.6_audit.md) |
-| Gemini 3 Flash | v2.5 | 9.0/10 | [PASS](audits/alphabet/gemini_3_flash_audit.md) |
-
-See [audits/](audits/) for full reports.
-
----
-
-## Comparison
-
-| | Bitcoin | Ethereum | Ɉ Montana |
-|---|---------|----------|-----------|
-| Consensus | PoW | PoS | PoT |
-| Influence | Hardware | Stake | Time |
-| 51% attack | $20B | $10B | N × 180 days |
-| Cluster attack | N/A | Possible | Blocked (33% cap) |
-| Quantum-safe | No | No | Yes |
+| [Montana_v4.3.md](Montana_v4.3.md) | Whitepaper v4.3 |
+| [Montana_v4.3.pdf](Montana_v4.3.pdf) | PDF version |
 
 ---
 
@@ -195,11 +161,11 @@ See [audits/](audits/) for full reports.
 | v1.0 | ✓ Done | Core PoT consensus, VDF, basic wallet |
 | v2.0 | ✓ Done | DAG-PHANTOM, tiered privacy |
 | v3.0 | ✓ Done | Post-quantum crypto (SPHINCS+, ML-KEM) |
-| v3.1 | ✓ Done | Network hardening, VPN blocking, rate limits |
+| v3.1 | ✓ Done | Network hardening, VPN blocking |
 | v4.0 | ✓ Done | 12 Apostles, EPOCHS, Bitcoin Oracle |
-| v4.1 | ✓ Done | HAL: Human Analyse Language (Sybil resistance) |
+| v4.1 | ✓ Done | HAL: Human Analyse Language |
 | v4.2 | ✓ Done | Bitcoin-anchored TIME dimension |
-| v4.3 | ✓ Done | Module consolidation: ADAM, HAL, PAUL, 11 Gods |
+| v4.3 | ✓ Done | Module consolidation: ADAM, HAL, PAUL |
 | v5.0 | Planned | Mainnet launch, mobile wallet |
 
 ---
