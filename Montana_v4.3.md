@@ -12,7 +12,7 @@ December 30, 2025
 
 ---
 
-<div style="margin: 0.5em 1cm; text-align: justify;">
+<div style="text-align: justify;">
 
 **Abstract.** A peer-to-peer quantum-resistant electronic cash system based on Proof of Time (PoT). Existing consensus mechanisms—Proof of Work and Proof of Stake—scale influence through purchasable resources, concentrating power in capital owners. Ɉ Montana ($MONT) replaces resource expenditure with temporal presence.
 
