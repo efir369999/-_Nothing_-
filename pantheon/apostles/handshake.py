@@ -37,6 +37,17 @@ from dataclasses import dataclass, field
 from hashlib import sha3_256
 from enum import IntEnum, auto
 
+# Hal Humanity System imports
+from pantheon.hal.humanity import (
+    HumanityTier,
+    HumanityProof,
+    HumanityProfile,
+    HumanityVerifier,
+    get_max_apostles,
+    verify_different_humans,
+    HANDSHAKE_MIN_HUMANITY,
+)
+
 logger = logging.getLogger("montana.apostles.handshake")
 
 
@@ -263,6 +274,20 @@ class NodeProfile:
     is_slashed: bool = False
     handshake_count: int = 0
     first_seen: int = 0            # Bitcoin height when registered
+    # Hal Humanity System (v4.1)
+    humanity_tier: HumanityTier = HumanityTier.HARDWARE  # Default bootstrap tier
+    humanity_proofs: List[HumanityProof] = field(default_factory=list)
+
+    @property
+    def humanity_score(self) -> float:
+        """Compute humanity score from proofs."""
+        from pantheon.hal.humanity import compute_humanity_score
+        return compute_humanity_score(self.humanity_proofs)
+
+    @property
+    def max_apostles(self) -> int:
+        """Get max Apostles allowed based on humanity tier."""
+        return get_max_apostles(self.humanity_tier)
 
 
 # ============================================================================
@@ -499,27 +524,40 @@ class ApostleManager:
 
     def can_form_handshake(
         self,
-        target: NodeProfile
+        target: NodeProfile,
+        my_profile: Optional[NodeProfile] = None
     ) -> Tuple[bool, str]:
         """
         Check if handshake can be formed with target.
 
         Requirements:
-        1. Not at max handshakes (12)
+        1. Not at max handshakes for my humanity tier
         2. Target integrity >= 50%
         3. Target not slashed
         4. Not already connected
+        5. [v4.1] Target has minimum humanity score
+        6. [v4.1] My handshakes don't exceed tier limit
 
         Args:
             target: Target node profile
+            my_profile: My node profile (for humanity tier checks)
 
         Returns:
             (can_form, reason) tuple
         """
         with self._lock:
-            # Check my handshake count
-            if len(self._outgoing) >= MAX_APOSTLES:
-                return False, f"Already at max handshakes ({MAX_APOSTLES})"
+            current_handshakes = len(self._outgoing)
+
+            # Determine max apostles based on humanity tier
+            if my_profile and my_profile.humanity_tier != HumanityTier.NONE:
+                # v4.1: Use tier-based limits
+                max_allowed = my_profile.max_apostles
+                if current_handshakes >= max_allowed:
+                    return False, f"Tier {my_profile.humanity_tier.name} limited to {max_allowed} Apostles"
+            else:
+                # Legacy: Use global MAX_APOSTLES
+                if current_handshakes >= MAX_APOSTLES:
+                    return False, f"Already at max handshakes ({MAX_APOSTLES})"
 
             # Check if already connected
             if target.pubkey in self._outgoing:
@@ -533,12 +571,24 @@ class ApostleManager:
             if target.is_slashed:
                 return False, "Target is slashed"
 
+            # v4.1: Check target humanity score
+            if target.humanity_proofs:
+                if target.humanity_score < HANDSHAKE_MIN_HUMANITY:
+                    return False, f"Target humanity score too low ({target.humanity_score:.2f} < {HANDSHAKE_MIN_HUMANITY})"
+
+            # v4.1: Check target humanity tier limit
+            if target.humanity_tier != HumanityTier.NONE:
+                target_max = target.max_apostles
+                if target.handshake_count >= target_max:
+                    return False, f"Target at tier limit ({target.handshake_count}/{target_max})"
+
             return True, "Requirements met"
 
     def initiate_handshake(
         self,
         my_privkey: bytes,
-        target: NodeProfile
+        target: NodeProfile,
+        my_profile: Optional[NodeProfile] = None
     ) -> Tuple[Optional[HandshakeRequest], Optional[str]]:
         """
         Initiate handshake with target.
@@ -546,13 +596,14 @@ class ApostleManager:
         Args:
             my_privkey: My private key
             target: Target node profile
+            my_profile: My node profile (for v4.1 humanity tier checks)
 
         Returns:
             (HandshakeRequest, error) tuple
         """
         with self._lock:
-            # Check requirements
-            can_form, reason = self.can_form_handshake(target)
+            # Check requirements (includes v4.1 humanity tier checks)
+            can_form, reason = self.can_form_handshake(target, my_profile)
             if not can_form:
                 return None, reason
 

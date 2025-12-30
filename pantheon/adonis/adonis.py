@@ -27,6 +27,15 @@ from collections import defaultdict
 from pantheon.prometheus import sha256
 from config import PROTOCOL
 
+# Hal Humanity System imports
+from pantheon.hal.humanity import (
+    HumanityTier,
+    HumanityProof,
+    HumanityProfile,
+    compute_humanity_score,
+    get_max_apostles,
+)
+
 logger = logging.getLogger("proof_of_time.adonis")
 
 
@@ -304,6 +313,63 @@ class AdonisProfile:
 
     # Handshakes (PINKY finger) - set of partner pubkeys
     handshake_partners: Set[bytes] = field(default_factory=set)
+
+    # =========================================================================
+    # Hal Humanity System (v4.1)
+    # =========================================================================
+    # Graduated trust tiers: HARDWARE (3) -> SOCIAL (6) -> TIME_LOCKED (12)
+    humanity_tier: HumanityTier = HumanityTier.HARDWARE  # Bootstrap tier
+    humanity_proofs: List[HumanityProof] = field(default_factory=list)
+    # Identity commitments: epoch -> commitment_hash
+    identity_commitments: Dict[int, bytes] = field(default_factory=dict)
+
+    @property
+    def humanity_score(self) -> float:
+        """Compute humanity score from all valid proofs."""
+        return compute_humanity_score(self.humanity_proofs)
+
+    @property
+    def max_apostles(self) -> int:
+        """Get max Apostles allowed based on humanity tier."""
+        return get_max_apostles(self.humanity_tier)
+
+    def add_humanity_proof(self, proof: HumanityProof) -> Tuple[bool, str]:
+        """Add a humanity proof to the profile."""
+        if proof.pubkey != self.pubkey:
+            return False, "Proof pubkey does not match profile"
+
+        # Check for duplicates
+        for existing in self.humanity_proofs:
+            if (existing.tier == proof.tier and
+                existing.proof_type == proof.proof_type and
+                existing.proof_data == proof.proof_data):
+                return False, "Duplicate proof"
+
+        self.humanity_proofs.append(proof)
+
+        # Update tier to highest valid tier
+        valid_proofs = [p for p in self.humanity_proofs if p.is_valid]
+        if valid_proofs:
+            self.humanity_tier = max(p.tier for p in valid_proofs)
+
+        return True, f"Proof added (tier now {self.humanity_tier.name})"
+
+    def is_eligible_for_handshake(self) -> Tuple[bool, str]:
+        """Check if profile is eligible to form handshakes."""
+        from pantheon.hal.humanity import HANDSHAKE_MIN_HUMANITY
+
+        # Check humanity score
+        score = self.humanity_score
+        if score < HANDSHAKE_MIN_HUMANITY:
+            return False, f"Humanity score too low: {score:.2f} < {HANDSHAKE_MIN_HUMANITY}"
+
+        # Check current handshakes vs tier limit
+        current = len(self.handshake_partners)
+        max_allowed = self.max_apostles
+        if current >= max_allowed:
+            return False, f"At tier limit: {current}/{max_allowed} Apostles"
+
+        return True, f"Eligible for {max_allowed - current} more handshakes"
 
     def __post_init__(self):
         if self.created_at == 0:

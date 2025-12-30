@@ -1,8 +1,8 @@
-# Ɉ Montana
+# Ɉ Montana: Time-Proven Human Temporal Currency
 
-A peer-to-peer electronic cash system based on time.
+*A peer-to-peer electronic cash system based on time and humanity.*
 
-**Ticker:** $MONT
+**Ticker:** $MONT | **Version:** 4.2
 
 ---
 
@@ -38,7 +38,7 @@ Consensus based on time, not capital.
 
 ECVRF selects block producer. Probability proportional to Adonis score.
 
-### Adonis Score
+### Adonis Score (v4.0+)
 
 Five dimensions. All saturate.
 
@@ -47,10 +47,26 @@ Five dimensions. All saturate.
 | TIME | 50% | 180 days uptime |
 | INTEGRITY | 20% | No violations |
 | STORAGE | 15% | Full chain history |
-| GEOGRAPHY | 10% | Location diversity |
-| HANDSHAKE | 5% | Veteran trust bonds |
+| EPOCHS | 10% | Bitcoin halvings survived |
+| HANDSHAKE | 5% | 12 Apostle trust bonds |
 
 180 days = maximum influence. Capital irrelevant.
+
+### The Twelve Apostles (v4.0)
+
+Each node selects exactly 12 trust partners. Attack one → collective slashing.
+
+### Hal Humanity System (v4.1)
+
+Proof of humanity, not just proof of time. Named after Hal Finney.
+
+| Tier | Max Apostles | Weight | Proof |
+|------|--------------|--------|-------|
+| Hardware | 3 | 0.3 | TPM / Secure Enclave / FIDO2 |
+| Social | 6 | 0.6 | Custom social graph |
+| Time-Locked | 12 | 1.0 | Bitcoin halving anchored |
+
+**Sybil cost:** Creating N fake identities = N × 4 years waiting.
 
 ### Security Properties — ALL PROVEN
 
@@ -108,9 +124,24 @@ See [SECURITY_MODEL.md](SECURITY_MODEL.md) for full details.
 
 ## Architecture
 
-12 modules (Pantheon):
+14 modules (Pantheon):
 
-Chronos (VDF), Adonis (reputation), Hermes (P2P), Hades (storage), Athena (consensus), Prometheus (crypto), Mnemosyne (mempool), Plutus (wallet), Nyx (privacy), Themis (validation), Iris (RPC), Ananke (governance).
+| Module | Domain | Description |
+|--------|--------|-------------|
+| Chronos | VDF | Time proofs, SHAKE256 VDF |
+| Adonis | Reputation | 5 dimensions, score calculation |
+| Hermes | P2P | Noise Protocol, peer management |
+| Hades | Storage | SQLite, DAG persistence |
+| Athena | Consensus | Leader selection, finality |
+| Prometheus | Crypto | SPHINCS+, ECVRF, SHA3 |
+| Mnemosyne | Mempool | Transaction pool |
+| Plutus | Wallet | Key management, TX building |
+| Nyx | Privacy | T0-T3 tiers, Bulletproofs |
+| Themis | Validation | Block/TX verification |
+| Iris | RPC | JSON-RPC interface |
+| Ananke | Governance | Protocol upgrades |
+| Apostles | Trust | 12 Apostle handshakes, slashing |
+| Hal | Humanity | Sybil resistance (v4.1) |
 
 ---
 
@@ -127,7 +158,8 @@ python node.py --run
 
 | Document | Content |
 |----------|---------|
-| [Montana_v3.1.md](Montana_v3.1.md) | Whitepaper v3.1. Post-quantum. Network hardening. Full specification. |
+| [Montana_v4.2.md](Montana_v4.2.md) | Whitepaper v4.2. 12 Apostles. Hal Humanity. Full specification. |
+| [Montana_v4.2.pdf](Montana_v4.2.pdf) | PDF version. |
 | [SECURITY_MODEL.md](SECURITY_MODEL.md) | Security model. Anti-cluster. All properties proven. |
 
 ---
@@ -138,9 +170,9 @@ python node.py --run
 
 | Auditor | Version | Score | Status |
 |---------|---------|-------|--------|
+| Claude Opus 4.5 | v4.0 | 9.2/10 | [PASS](audits/anthropic/claude_opus_4.5_v4.0_audit.md) |
 | Claude Opus 4.5 | v3.1 | 9.8/10 | [PASS](audits/anthropic/claude_opus_4.5_v3.1_audit.md) |
 | Claude Opus 4.5 | v2.6 | 9.5/10 | [PASS](audits/anthropic/claude_opus_4.5_v2.6_audit.md) |
-| Claude Opus 4.5 | v2.5 | 9.0/10 | [PASS](audits/anthropic/SECURITY_AUDIT.md) |
 | Gemini 3 Flash | v2.5 | 9.0/10 | [PASS](audits/alphabet/gemini_3_flash_audit.md) |
 
 See [audits/](audits/) for full reports.
@@ -159,12 +191,29 @@ See [audits/](audits/) for full reports.
 
 ---
 
+## Roadmap
+
+| Version | Status | Features |
+|---------|--------|----------|
+| v1.0 | ✓ Done | Core PoT consensus, VDF, basic wallet |
+| v2.0 | ✓ Done | DAG-PHANTOM, tiered privacy |
+| v3.0 | ✓ Done | Post-quantum crypto (SPHINCS+, ML-KEM) |
+| v3.1 | ✓ Done | Network hardening, VPN blocking, rate limits |
+| v4.0 | ✓ Done | 12 Apostles, EPOCHS, Bitcoin Oracle |
+| v4.1 | ✓ Done | Hal Humanity System (Sybil resistance) |
+| v4.2 | ✓ Done | Documentation, integration completeness |
+| v5.0 | Planned | Mainnet launch, mobile wallet |
+
+---
+
 ## Contact
 
 alejandromontana@tutamail.com
 
 ---
 
-Time is priceless. Now it has a price.
+**Ɉ Montana** — Time-Proven Human Temporal Currency
+
+*Time cannot be bought. Humanity cannot be faked.*
 
 **Ɉ**
