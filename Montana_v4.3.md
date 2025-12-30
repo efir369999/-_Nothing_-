@@ -1,6 +1,6 @@
-# Ɉ Time-Proven Human Temporal Currency
+# Ɉ Montana: Time-Proven Human Temporal Currency
 
-<div style="text-align: center; margin: 2em 0;">
+<div style="text-align: center; margin: 1em 0;">
 
 Alejandro Montana
 
@@ -12,25 +12,13 @@ December 2025
 
 ---
 
-<div style="margin: 2em 2cm; text-align: justify;">
+<div style="margin: 1em 2cm; text-align: justify;">
 
-**Abstract.** A peer-to-peer quantum-resistant electronic cash system without reliance on financial institutions. Existing cryptocurrency solutions—Proof of Work and Proof of Stake—scale influence through purchasable resources, concentrating power in capital owners. Ɉ Montana ($MONT) builds consensus on Proof of Time. Influence accumulates through time presence, not resource expenditure. The network timestamps blocks through sequential computation that cannot be parallelized or accelerated.
+**Abstract.** A peer-to-peer quantum-resistant electronic cash system without reliance on financial institutions. Existing cryptocurrency solutions—Proof of Work and Proof of Stake—scale influence through purchasable resources, concentrating power in capital owners. Ɉ Montana ($MONT) builds consensus on Proof of Time. Influence accumulates through time presence, not resource expenditure.
 
-**Core innovations:**
+**Core innovations:** Proof of Time (VDF-based consensus), 11 Pantheon Gods (modular architecture), 12 Apostles (trust network), HAL (Sybil resistance), Bitcoin Anchoring (210,000 BTC blocks per epoch), Post-Quantum Cryptography (SPHINCS+, SHA3-256, SHAKE256).
 
-**Proof of Time** — VDF-based consensus where time cannot be bought or accelerated.
-
-**11 Pantheon Gods** — Modular architecture with clear separation of concerns.
-
-**12 Apostles** — Trust network with collective accountability.
-
-**HAL (Human Analyse Language)** — Sybil resistance through graduated trust and time-locked proofs.
-
-**Bitcoin Anchoring** — TIME dimension tied to 210,000 BTC blocks per epoch.
-
-**Post-Quantum Cryptography** — SPHINCS+, SHA3-256, SHAKE256 VDF.
-
-Time cannot be bought, manufactured, or transferred—only spent. Humanity cannot be faked across Bitcoin halvings—only proven.
+Time cannot be bought—only spent. Humanity cannot be faked—only proven.
 
 </div>
 
