@@ -487,7 +487,7 @@ class TestNetworkEdgeCases(unittest.TestCase):
     
     def test_block_timeout_detection(self):
         """BlockTimeoutMonitor should detect timeouts."""
-        from pantheon.hermes.network import BlockTimeoutMonitor
+        from pantheon.paul.network import BlockTimeoutMonitor
         
         timeout_detected = []
         
@@ -508,7 +508,7 @@ class TestNetworkEdgeCases(unittest.TestCase):
     
     def test_eclipse_protection(self):
         """Eclipse protection should limit connections per IP."""
-        from pantheon.hermes.network import EclipseProtection
+        from pantheon.paul.network import EclipseProtection
         
         eclipse = EclipseProtection()
         

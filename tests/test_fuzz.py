@@ -317,7 +317,7 @@ class TestNetworkFuzz(unittest.TestCase):
     def test_fuzz_message_parsing(self):
         """Fuzz network message parsing."""
         # Note: MessageSerializer is part of message layer, test basic network structures
-        from pantheon.hermes.network import VersionPayload
+        from pantheon.paul.network import VersionPayload
         
         for _ in range(FUZZ_ITERATIONS):
             try:
@@ -328,7 +328,7 @@ class TestNetworkFuzz(unittest.TestCase):
     
     def test_fuzz_version_payload(self):
         """Fuzz version message payload."""
-        from pantheon.hermes.network import VersionPayload
+        from pantheon.paul.network import VersionPayload
         
         survived = FuzzDeserialize.fuzz_method(
             lambda data: VersionPayload.deserialize(data),
@@ -338,7 +338,7 @@ class TestNetworkFuzz(unittest.TestCase):
     
     def test_fuzz_inv_item(self):
         """Fuzz inventory item parsing."""
-        from pantheon.hermes.network import InvItem
+        from pantheon.paul.network import InvItem
         
         for _ in range(FUZZ_ITERATIONS):
             try:
@@ -470,7 +470,7 @@ class TestBoundaryConditions(unittest.TestCase):
         from pantheon.prometheus.crypto import VDFProof
         from pantheon.athena.consensus import NodeState, SlashingEvidence
         from pantheon.nyx.privacy import LSAGSignature, RingSignatureError
-        from pantheon.hermes.network import VersionPayload
+        from pantheon.paul.network import VersionPayload
         from pantheon.plutus.wallet import WalletOutput
         
         deserialize_methods = [

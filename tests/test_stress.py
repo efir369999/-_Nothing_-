@@ -309,7 +309,7 @@ class TestNetworkStress(unittest.TestCase):
     
     def test_eclipse_protection_under_load(self):
         """Test Eclipse protection with many connection attempts."""
-        from pantheon.hermes.network import EclipseProtection
+        from pantheon.paul.network import EclipseProtection
         
         eclipse = EclipseProtection()
         
@@ -333,7 +333,7 @@ class TestNetworkStress(unittest.TestCase):
     
     def test_ban_manager_under_load(self):
         """Test ban manager with many violations."""
-        from pantheon.hermes.network import BanManager
+        from pantheon.paul.network import BanManager
         
         ban_manager = BanManager()
         

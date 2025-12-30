@@ -65,7 +65,7 @@ except ImportError:
 from pantheon.prometheus import sha256, sha256d, Ed25519, X25519
 from pantheon.themis import Block, BlockHeader, Transaction
 from config import PROTOCOL, NetworkConfig
-from pantheon.hermes.ip_validator import IPValidator, ValidationResult, IPType
+from pantheon.paul.ip_validator import IPValidator, ValidationResult, IPType
 
 logger = logging.getLogger("proof_of_time.network")
 

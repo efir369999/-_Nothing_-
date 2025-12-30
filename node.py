@@ -30,7 +30,7 @@ from pantheon.athena import (
     SlashingManager, SlashingEvidence
 )
 from pantheon.hades import BlockchainDB
-from pantheon.hermes import P2PNode, Peer, PeerState
+from pantheon.paul import P2PNode, Peer, PeerState
 from pantheon.plutus import Wallet
 
 logger = logging.getLogger("proof_of_time.node")

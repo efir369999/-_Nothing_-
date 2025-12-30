@@ -53,12 +53,12 @@ PANTHEON_GODS = [
     },
     {
         "id": 3,
-        "name": "Hermes",
+        "name": "Paul",
         "domain": "Network / P2P",
         "symbol": "network",
         "color": "#00CED1",
-        "description": "Peer-to-peer message relay with Noise Protocol",
-        "module": "network.P2PNode",
+        "description": "Peer Authenticated Unified Link - P2P with Noise Protocol",
+        "module": "paul.P2PNode",
         "status": "active"
     },
     {
@@ -678,7 +678,7 @@ DASHBOARD_HTML = '''<!DOCTYPE html>
 
         // God icons (emoji fallback)
         const godIcons = {
-            'Chronos': '⏳', 'HAL': '🖐️', 'Hermes': '🌐',
+            'Adam': '⏳', 'HAL': '🖐️', 'Paul': '🌐',
             'Hades': '💾', 'Athena': '⚖️', 'Prometheus': '🔥',
             'Mnemosyne': '🧠', 'Plutus': '💰', 'Nyx': '🌙',
             'Themis': '✓', 'Iris': '📡', 'Ananke': '🗳️'

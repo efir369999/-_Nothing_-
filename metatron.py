@@ -63,11 +63,11 @@ PANTHEON = {
         domain="Humanity/Reputation",
         modules=["pantheon.hal.reputation"]
     ),
-    "hermes": God(
-        name="Hermes",
+    "paul": God(
+        name="Paul",
         symbol="📡",
         domain="P2P Network",
-        modules=["pantheon.hermes.network", "pantheon.hermes.bootstrap"]
+        modules=["pantheon.paul.network", "pantheon.paul.bootstrap"]
     ),
     "hades": God(
         name="Hades",
@@ -291,9 +291,9 @@ class Metatron:
                     "our_uptime": int(time.time() - self.start_time) if self.start_time else 0,
                 }
 
-            # HERMES - Network
+            # PAUL - Network
             if hasattr(self.node, 'network') and self.node.network:
-                self.gods["hermes"].metrics = {
+                self.gods["paul"].metrics = {
                     "peers": self.node.network.get_peer_count(),
                     "connected": self.node.network.get_peer_count() > 0,
                 }
@@ -433,11 +433,11 @@ class Metatron:
         print(f"    Uptime: {col(fmt_time(uptime), W)}  │  Nodes: {col(nodes, C)}")
         print()
 
-        # Hermes - Network
-        he = self.gods["hermes"].metrics
-        peers = he.get("peers", 0)
+        # Paul - Network
+        pa = self.gods["paul"].metrics
+        peers = pa.get("peers", 0)
 
-        print(col("  📡 HERMES ", M) + col("──────────────────────────────────────────────────", D))
+        print(col("  📡 PAUL ", M) + col("────────────────────────────────────────────────────", D))
         status = col("●", G) + " Connected" if peers > 0 else col("○", R) + " Solo"
         print(f"    Peers: {col(peers, W)}  │  {status}")
         print()

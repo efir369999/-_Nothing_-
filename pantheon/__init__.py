@@ -6,7 +6,7 @@ Each god represents a core protocol component:
 | # | God        | Domain      | Module        | Status  |
 |---|------------|-------------|---------------|---------|
 | 1 | Adam       | Time        | adam/         | Active  |
-| 2 | Hermes     | Network     | hermes/       | Active  |
+| 2 | Paul       | Network     | paul/         | Active  |
 | 3 | Hades      | Storage     | hades/        | Active  |
 | 4 | Athena     | Consensus   | athena/       | Active  |
 | 5 | Prometheus | Crypto      | prometheus/   | Active  |
@@ -39,7 +39,7 @@ GENESIS_TIMESTAMP = 1766966400  # Dec 28, 2025 00:00:00 UTC
 
 GODS = {
     1:  "ADAM",        # Time / VDF / Bitcoin Oracle
-    2:  "HERMES",      # Network / P2P
+    2:  "PAUL",        # Network / P2P (Peer Authenticated Unified Link)
     3:  "HADES",       # Storage / DAG
     4:  "ATHENA",      # Consensus / Leader Selection
     5:  "PROMETHEUS",  # Cryptography

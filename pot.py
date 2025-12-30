@@ -63,8 +63,8 @@ def get_hal_metrics():
         f"status=ACTIVE",
     ]
 
-def get_hermes_metrics():
-    """HERMES: Network/P2P metrics."""
+def get_paul_metrics():
+    """PAUL: Network/P2P metrics."""
     net = _get_network_stats()
     return [
         f"peers={net['peers']}",
@@ -378,7 +378,7 @@ def _get_governance_stats():
 GODS = {
     1:  {"name": "ADAM",       "get": get_adam_metrics},
     2:  {"name": "HAL",        "get": get_hal_metrics},
-    3:  {"name": "HERMES",     "get": get_hermes_metrics},
+    3:  {"name": "PAUL",       "get": get_paul_metrics},
     4:  {"name": "HADES",      "get": get_hades_metrics},
     5:  {"name": "ATHENA",     "get": get_athena_metrics},
     6:  {"name": "PROMETHEUS", "get": get_prometheus_metrics},
