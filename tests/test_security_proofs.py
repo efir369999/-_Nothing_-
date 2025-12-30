@@ -334,8 +334,8 @@ class ClusterCapBypassProof:
                     samples=50,
                     last_update=int(time.time())
                 )
-                profile.dimensions[ReputationDimension.GEOGRAPHY] = DimensionScore(
-                    value=0.3,  # Same region
+                profile.dimensions[ReputationDimension.EPOCHS] = DimensionScore(
+                    value=0.25,  # 1 halving survived
                     confidence=1.0,
                     samples=10,
                     last_update=int(time.time())
@@ -360,8 +360,8 @@ class ClusterCapBypassProof:
                     samples=random.randint(10, 100),
                     last_update=int(time.time()) - random.randint(0, 86400)
                 )
-                profile.dimensions[ReputationDimension.GEOGRAPHY] = DimensionScore(
-                    value=random.uniform(0.2, 0.9),  # Different regions
+                profile.dimensions[ReputationDimension.EPOCHS] = DimensionScore(
+                    value=random.uniform(0.0, 0.5),  # 0-2 halvings survived
                     confidence=1.0,
                     samples=random.randint(5, 20),
                     last_update=int(time.time()) - random.randint(0, 86400)

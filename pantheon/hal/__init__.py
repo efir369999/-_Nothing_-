@@ -93,6 +93,22 @@ from .timelock import (
     MIN_EPOCHS_FOR_TIMELOCKED,
 )
 
+from .behavioral import (
+    # Cluster detection (Layer 1 - pairwise correlation)
+    ClusterDetector,
+    ClusterInfo,
+    ActionRecord,
+    # Byzantine tracking (Layer 2 - behavioral fingerprinting)
+    GlobalByzantineTracker,
+    # Constants
+    CORRELATION_WINDOW_SECONDS,
+    MAX_CORRELATION_THRESHOLD,
+    CORRELATION_PENALTY_FACTOR,
+    MAX_CLUSTER_INFLUENCE,
+    MAX_BYZANTINE_INFLUENCE,
+    FINGERPRINT_SIMILARITY_THRESHOLD,
+)
+
 __all__ = [
     # Core
     'HumanityTier',
@@ -134,4 +150,15 @@ __all__ = [
     'HANDSHAKE_MIN_HUMANITY',
     'HALVING_INTERVAL',
     'MIN_EPOCHS_FOR_TIMELOCKED',
+    # Behavioral (Sybil detection)
+    'ClusterDetector',
+    'ClusterInfo',
+    'ActionRecord',
+    'GlobalByzantineTracker',
+    'CORRELATION_WINDOW_SECONDS',
+    'MAX_CORRELATION_THRESHOLD',
+    'CORRELATION_PENALTY_FACTOR',
+    'MAX_CLUSTER_INFLUENCE',
+    'MAX_BYZANTINE_INFLUENCE',
+    'FINGERPRINT_SIMILARITY_THRESHOLD',
 ]
