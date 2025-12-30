@@ -1,22 +1,26 @@
 # Ɉ Montana: Time-Proven Human Temporal Currency
 
-<div style="text-align: center; margin: 1em 0;">
+<div style="text-align: center; margin: 0.5em 0;">
 
 Alejandro Montana
 
 alejandromontana@tutamail.com
 
-December 2025
+December 30, 2025
 
 </div>
 
 ---
 
-<div style="margin: 1em 2cm; text-align: justify;">
+<div style="margin: 0.5em 1cm; text-align: justify;">
 
-**Abstract.** A peer-to-peer quantum-resistant electronic cash system without reliance on financial institutions. Existing cryptocurrency solutions—Proof of Work and Proof of Stake—scale influence through purchasable resources, concentrating power in capital owners. Ɉ Montana ($MONT) builds consensus on Proof of Time. Influence accumulates through time presence, not resource expenditure.
+**Abstract.** A peer-to-peer quantum-resistant electronic cash system based on Proof of Time (PoT). Existing consensus mechanisms—Proof of Work and Proof of Stake—scale influence through purchasable resources, concentrating power in capital owners. Ɉ Montana ($MONT) replaces resource expenditure with temporal presence.
 
-**Core innovations:** Proof of Time (VDF-based consensus), 11 Pantheon Gods (modular architecture), 12 Apostles (trust network), HAL (Sybil resistance), Bitcoin Anchoring (210,000 BTC blocks per epoch), Post-Quantum Cryptography (SPHINCS+, SHA3-256, SHAKE256).
+**ADAM (Anchored Deterministic Asynchronous Mesh)** implements 7 temporal levels with Bitcoin as primary time oracle. Levels 0-4 operate under Bitcoin time. Level 5 (VDF_FALLBACK) activates only when Bitcoin is unavailable for 2+ blocks—SHAKE256 VDF provides sovereign timekeeping. Level 6 transitions back after Bitcoin recovers for 20+ blocks. This architecture ensures the network operates independently while anchoring to Bitcoin's immutable timeline.
+
+**Proof of Time** measures node reputation through Bitcoin blocks, not seconds. TIME dimension (50% weight) saturates at 210,000 BTC blocks (~4 years) and resets at each halving. A billionaire and a student accumulate identical influence over the same epoch. **HAL (Human Analyse Language)** adds Sybil resistance: 3 hardware attestations → 6 social bonds → 12 time-locked Apostles. Creating N fake identities costs N × 4 years.
+
+**Post-quantum cryptography** (SPHINCS+, SHA3-256, ML-KEM-768) ensures long-term security. **DAG-PHANTOM** orders blocks without leader selection—any eligible node produces blocks, ECVRF determines eligibility.
 
 Time cannot be bought—only spent. Humanity cannot be faked—only proven.
 
