@@ -26,7 +26,7 @@ import logging
 import threading
 import json
 from typing import Optional, Tuple, Dict, Any, List, Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import IntEnum, auto
 from datetime import datetime
 

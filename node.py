@@ -17,20 +17,17 @@ import struct
 import threading
 import logging
 from typing import Dict, List, Optional, Callable, Set
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import IntEnum, auto
 from queue import Queue, Empty
 
 from config import PROTOCOL, NodeConfig, get_block_reward
 from pantheon.prometheus import sha256, Ed25519, ECVRF, VRFOutput, WesolowskiVDF, VDFProof
-from pantheon.themis import Block, BlockHeader, Transaction, TxType, create_genesis_block
-from pantheon.nyx import LSAG, Bulletproof, RingCT
-from pantheon.athena import (
-    ConsensusEngine, NodeState, NodeStatus, ProbabilityWeights,
-    SlashingManager, SlashingEvidence
-)
+from pantheon.themis import Block, BlockHeader, Transaction, create_genesis_block
+from pantheon.nyx import LSAG, Bulletproof
+from pantheon.athena import ConsensusEngine
 from pantheon.hades import BlockchainDB
-from pantheon.paul import P2PNode, Peer, PeerState
+from pantheon.paul import P2PNode, Peer
 from pantheon.plutus import Wallet
 
 logger = logging.getLogger("proof_of_time.node")
@@ -1304,7 +1301,7 @@ def _render_dashboard(node, db_path: str = '/var/lib/proofoftime/blockchain.db')
     from datetime import datetime, timezone
     from config import (
         PROTOCOL, get_block_reward, get_halving_epoch, blocks_until_halving,
-        estimate_total_supply_at_height, seconds_to_minutes, MAX_SUPPLY_SECONDS
+        estimate_total_supply_at_height, MAX_SUPPLY_SECONDS
     )
 
     # Colors

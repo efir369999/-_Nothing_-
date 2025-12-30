@@ -18,14 +18,13 @@ import struct
 import logging
 import threading
 from pathlib import Path
-from typing import List, Optional, Dict, Tuple, Iterator
+from typing import List, Optional, Dict, Tuple
 from contextlib import contextmanager
-from dataclasses import dataclass
 
-from pantheon.themis import Block, BlockHeader, Transaction, TxOutput
+from pantheon.themis import Block, BlockHeader, Transaction
 # Import directly from consensus.py to avoid circular import with athena.__init__
 from pantheon.athena.consensus import NodeState, NodeStatus
-from config import PROTOCOL, StorageConfig
+from config import StorageConfig
 
 logger = logging.getLogger("proof_of_time.database")
 

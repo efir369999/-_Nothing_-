@@ -17,15 +17,12 @@ import struct
 import time
 import logging
 import threading
-import json
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple, Iterator
-from dataclasses import dataclass, field
+from typing import List, Optional, Tuple
 from collections import OrderedDict
 from contextlib import contextmanager
-from enum import IntEnum
 
-from config import PROTOCOL, StorageConfig
+from config import StorageConfig
 
 logger = logging.getLogger("proof_of_time.dag_storage")
 

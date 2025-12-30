@@ -12,47 +12,33 @@ Time is the ultimate proof.
 """
 
 import os
-import struct
 import time
 import logging
 import threading
 import queue
-from typing import Dict, List, Optional, Set, Tuple, Callable
-from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Tuple, Callable
 from enum import IntEnum
-from collections import defaultdict
 
 # Core modules
-from config import PROTOCOL, NodeConfig, get_block_reward, TemporalCompression
-from pantheon.prometheus import sha256, sha256d, Ed25519, WesolowskiVDF, ECVRF
+from config import NodeConfig
+from pantheon.prometheus import Ed25519
 from pantheon.athena import (
     NodeState, NodeStatus, ConsensusCalculator, LeaderSelector,
     SybilDetector, SlashingManager, WeightRebalancer, ProbabilityWeights
 )
 
 # HAL reputation module (Human Analyse Language)
-from pantheon.hal import (
-    HalEngine, HalProfile, ReputationEvent, ReputationDimension,
-    compute_f_rep, create_reputation_modifier,
-)
+from pantheon.hal import HalEngine, HalProfile, ReputationEvent
 
-# DAG modules - import from submodules to avoid circular import
-from pantheon.hades.dag import (
-    DAGBlock, DAGBlockHeader, PHANTOMOrdering,
-    DAGConsensusEngine, DAGBlockProducer,
-    MAX_PARENTS, MIN_WEIGHT_THRESHOLD
-)
+# DAG modules
+from pantheon.hades.dag import DAGBlock, DAGConsensusEngine, DAGBlockProducer
 from pantheon.hades.dag_storage import DAGStorage
 
 # Privacy modules
 from pantheon.nyx import (
-    PrivacyTier, TieredOutput, TieredInput, TieredTransaction,
-    TieredTransactionBuilder, TierValidator, AnonymitySetManager,
-    TIER_SPECS
+    PrivacyTier, TieredTransaction, TieredTransactionBuilder,
+    TierValidator, AnonymitySetManager, TIER_SPECS
 )
-
-# Data structures
-from pantheon.themis import Transaction, Block, MerkleTree
 
 logger = logging.getLogger("proof_of_time.engine")
 

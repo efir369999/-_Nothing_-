@@ -18,8 +18,7 @@ import struct
 import time
 import logging
 import threading
-import heapq
-from typing import List, Dict, Set, Optional, Tuple, Iterator
+from typing import List, Dict, Set, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import IntEnum
 from collections import defaultdict
@@ -27,7 +26,7 @@ from collections import defaultdict
 import os
 from pantheon.prometheus import sha256, sha256d, Ed25519, WesolowskiVDF, VDFProof, ECVRF
 from config import PROTOCOL
-from pantheon.nyx import TierValidator, EXPERIMENTAL_PRIVACY_ENABLED
+from pantheon.nyx import TierValidator
 
 logger = logging.getLogger("proof_of_time.dag")
 

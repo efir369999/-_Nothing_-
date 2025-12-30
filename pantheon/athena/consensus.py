@@ -15,24 +15,23 @@ Time is the ultimate proof.
 
 import time
 import struct
-import hashlib
 import logging
 import threading
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Set, Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import IntEnum, auto
-from collections import defaultdict
 
 from pantheon.prometheus import sha256, Ed25519, ECVRF, VRFOutput
-from pantheon.themis import Block, BlockHeader, Transaction, create_genesis_block
-from config import PROTOCOL, NodeConfig, get_block_reward
+from pantheon.themis import Block, create_genesis_block
+from config import PROTOCOL, NodeConfig
 
 # HAL integration (for enhanced reputation)
 try:
-    from pantheon.hal import HalEngine, compute_f_rep
+    from pantheon.hal import HalEngine
     HAL_AVAILABLE = True
 except ImportError:
+    HalEngine = None
     HAL_AVAILABLE = False
 
 logger = logging.getLogger("proof_of_time.consensus")
