@@ -22,8 +22,7 @@ from enum import IntEnum, auto
 from queue import Queue, Empty
 
 from config import PROTOCOL, NodeConfig, get_block_reward
-from pantheon.prometheus import sha256, Ed25519, ECVRF, VRFOutput
-from pantheon.chronos import WesolowskiVDF, VDFProof
+from pantheon.prometheus import sha256, Ed25519, ECVRF, VRFOutput, WesolowskiVDF, VDFProof
 from pantheon.themis import Block, BlockHeader, Transaction, TxType, create_genesis_block
 from pantheon.nyx import LSAG, Bulletproof, RingCT
 from pantheon.athena import (

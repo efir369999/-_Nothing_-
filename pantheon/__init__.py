@@ -1,11 +1,11 @@
 """
-PANTHEON - The 14 Gods of Proof of Time
+PANTHEON - The Gods of Proof of Time
 
 Each god represents a core protocol component:
 
 | # | God        | Domain      | Module        | Status  |
 |---|------------|-------------|---------------|---------|
-| 1 | Chronos    | Time/VDF    | chronos/      | Active  |
+| 1 | Adam       | Time        | adam/         | Active  |
 | 2 | Hermes     | Network     | hermes/       | Active  |
 | 3 | Hades      | Storage     | hades/        | Active  |
 | 4 | Athena     | Consensus   | athena/       | Active  |
@@ -19,11 +19,11 @@ Each god represents a core protocol component:
 |12 | Apostles   | Trust/12    | apostles/     | Active  |
 |13 | Hal        | Humanity    | hal/          | Active  |
 
-HAL = Human Analyse Language (unified reputation + humanity system)
-Named after Hal Finney, who understood Sybil resistance before anyone else.
+ADAM = Anchored Deterministic Asynchronous Mesh (God of Time)
+HAL = Human Analyse Language (reputation + humanity system)
 
 Usage:
-    from pantheon.chronos import WesolowskiVDF
+    from pantheon.adam import Adam, AdamLevel
     from pantheon.hal import HalEngine, HumanityTier
     from pantheon.athena import ConsensusCalculator
 """
@@ -31,7 +31,6 @@ Usage:
 import sys
 from pathlib import Path
 
-# Add root to path for cross-module imports
 _root = str(Path(__file__).parent.parent)
 if _root not in sys.path:
     sys.path.insert(0, _root)
@@ -39,7 +38,7 @@ if _root not in sys.path:
 GENESIS_TIMESTAMP = 1766966400  # Dec 28, 2025 00:00:00 UTC
 
 GODS = {
-    1:  "CHRONOS",     # Time / VDF
+    1:  "ADAM",        # Time / VDF / Bitcoin Oracle
     2:  "HERMES",      # Network / P2P
     3:  "HADES",       # Storage / DAG
     4:  "ATHENA",      # Consensus / Leader Selection
@@ -54,4 +53,4 @@ GODS = {
     13: "HAL",         # Humanity / Reputation
 }
 
-PROTOCOL_PROMPT = "Proof of Time: Chronos proves, Athena selects, Hal trusts."
+PROTOCOL_PROMPT = "Proof of Time: Adam proves, Athena selects, Hal trusts."
