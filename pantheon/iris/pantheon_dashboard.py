@@ -13,12 +13,10 @@ Usage:
 """
 
 import json
-import time
 import argparse
 import logging
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
-from typing import Dict, Any, Optional
 
 from pantheon.hal import (
     HalEngine, ReputationDimension, ReputationEvent,

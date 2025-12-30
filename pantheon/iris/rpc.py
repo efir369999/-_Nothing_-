@@ -14,16 +14,12 @@ Time is the ultimate proof.
 """
 
 import json
-import struct
-import hashlib
 import threading
 import logging
 import time
 import base64
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from typing import Dict, List, Optional, Any, Callable, Tuple
-from dataclasses import dataclass
-from functools import wraps
+from typing import Dict, List, Optional, Any
 
 from node import FullNode
 from pantheon.plutus import Wallet
@@ -373,7 +369,7 @@ class RPCMethods:
         if command == "add":
             self.node.connect_peer(host, port)
         elif command == "remove":
-            pass  # TODO
+            self.node.disconnect_peer(host, port)
         elif command == "onetry":
             self.node.connect_peer(host, port)
     
