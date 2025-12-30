@@ -24,7 +24,7 @@ from queue import Queue, Empty
 from config import PROTOCOL, NodeConfig, get_block_reward
 from pantheon.prometheus import sha256, Ed25519, ECVRF, VRFOutput, WesolowskiVDF, VDFProof
 from pantheon.themis import Block, BlockHeader, Transaction, create_genesis_block
-from pantheon.nyx import LSAG, Bulletproof
+from pantheon.nyx import LSAG
 from pantheon.athena import ConsensusEngine
 from pantheon.hades import BlockchainDB
 from pantheon.paul import P2PNode, Peer
@@ -328,11 +328,8 @@ class Mempool:
                 logger.debug(f"Tx rejected: output {i} invalid commitment")
                 return False
 
-            # Verify range proof (proves amount is in valid range [0, 2^64))
-            if out.range_proof is not None:
-                if not Bulletproof.verify(out.commitment, out.range_proof):
-                    logger.debug(f"Tx rejected: output {i} invalid range proof")
-                    return False
+            # T0/T1 transactions don't use range proofs
+            # T2/T3 (confidential) are not supported in production
 
         # Verify commitment balance: sum(inputs) = sum(outputs) + fee
         # This is done by checking: sum(pseudo_commits) - sum(output_commits) - fee*H = 0
@@ -1002,12 +999,8 @@ class FullNode:
                     logger.warning(f"Block tx {i} input {j}: invalid ring signature")
                     return False
 
-            # Validate range proofs
-            for j, out in enumerate(tx.outputs):
-                if out.range_proof is not None:
-                    if not Bulletproof.verify(out.commitment, out.range_proof):
-                        logger.warning(f"Block tx {i} output {j}: invalid range proof")
-                        return False
+            # T0/T1 transactions don't use range proofs
+            # T2/T3 (confidential) are not supported in production
 
             # Validate commitment balance
             try:

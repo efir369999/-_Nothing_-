@@ -21,7 +21,7 @@ Time is the ultimate proof. Trust is sacred.
 import struct
 import time
 import logging
-from typing import List, Optional, Tuple, Dict, Any
+from typing import List, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import IntEnum
 
@@ -29,10 +29,7 @@ from pantheon.prometheus import (
     sha256, sha256d, Ed25519, MerkleTree,
     VDFProof, VRFOutput, WesolowskiVDF, ECVRF
 )
-from pantheon.nyx import (
-    LSAGSignature, StealthOutput, RangeProof,
-    RingCTInput, RingCTOutput
-)
+from pantheon.nyx import LSAGSignature
 from config import PROTOCOL, get_block_reward
 
 logger = logging.getLogger("proof_of_time.structures")
@@ -220,7 +217,7 @@ class TxOutput(Serializable):
     
     # Amount hiding
     commitment: bytes = b''  # Pedersen commitment C
-    range_proof: Optional[RangeProof] = None
+    range_proof: Optional[bytes] = None  # T2/T3 not supported (legacy field)
     encrypted_amount: bytes = b''
     
     # Output index (for identification)
@@ -237,10 +234,9 @@ class TxOutput(Serializable):
         # Amount hiding
         data.extend(self.commitment)
         
-        # Range proof
+        # Range proof (legacy - T2/T3 not supported)
         if self.range_proof:
-            proof_bytes = self.range_proof.serialize()
-            data.extend(write_bytes(proof_bytes))
+            data.extend(write_bytes(self.range_proof))
         else:
             data.extend(write_varint(0))
         
@@ -269,14 +265,11 @@ class TxOutput(Serializable):
         commitment = data[offset:offset + 32]
         offset += 32
         
-        # Range proof
+        # Range proof (legacy - T2/T3 not supported)
         if len(data) < offset + 1:
             raise ValueError("TxOutput: data too short for range proof length")
         proof_bytes, offset = read_bytes(data, offset)
-        if proof_bytes:
-            range_proof = RangeProof.deserialize(proof_bytes)
-        else:
-            range_proof = None
+        range_proof = proof_bytes if proof_bytes else None
         
         # Encrypted amount
         if len(data) < offset + 1:

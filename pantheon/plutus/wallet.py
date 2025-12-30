@@ -45,7 +45,7 @@ except ImportError:
 from pantheon.prometheus import sha256, Ed25519, hmac_sha256
 from pantheon.nyx import (
     StealthAddress, StealthOutput, LSAG, Pedersen,
-    Bulletproof, generate_key_image, Ed25519Point
+    generate_key_image, Ed25519Point
 )
 from pantheon.themis import Transaction, TxInput, TxOutput, TxType
 from pantheon.hades import BlockchainDB
@@ -850,9 +850,9 @@ class Wallet:
                 
                 output_blindings.append(blinding)
                 
-                # Commitment and range proof
+                # Commitment (T1 stealth - no range proof)
                 commit = Pedersen.commit(amount, blinding)
-                range_proof = Bulletproof.prove(amount, blinding)
+                range_proof = None  # T2/T3 range proofs not supported
                 
                 tx_output = TxOutput(
                     stealth_address=stealth_out.one_time_address,
@@ -882,7 +882,7 @@ class Wallet:
                 change_blinding = Ed25519Point.scalar_sub(total_in_blind, used_blind)
                 
                 commit = Pedersen.commit(change, change_blinding)
-                range_proof = Bulletproof.prove(change, change_blinding)
+                range_proof = None  # T2/T3 range proofs not supported
                 
                 change_output = TxOutput(
                     stealth_address=stealth_out.one_time_address,

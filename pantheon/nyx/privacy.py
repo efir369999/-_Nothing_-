@@ -2,21 +2,14 @@
 Proof of Time - Privacy Module
 
 PRODUCTION-READY:
-- LSAG (Linkable Spontaneous Anonymous Group) signatures
-- Stealth addresses (CryptoNote-style)
-- Pedersen commitments with proper curve operations
-
-EXPERIMENTAL (NOT PRODUCTION-READY):
-- Bulletproofs range proofs - STRUCTURAL PLACEHOLDER ONLY
-  The Inner Product Argument is NOT cryptographically implemented.
-  DO NOT use T2/T3 transactions in production without replacing
-  with audited library (bulletproofs-rs via FFI).
-- RingCT - depends on Bulletproofs for range proofs
+- Ed25519Point: Low-level curve operations via libsodium
+- LSAG: Linkable Spontaneous Anonymous Group signatures
+- Stealth addresses: CryptoNote-style one-time addresses
+- Pedersen commitments: Homomorphic value commitments
 
 Reference:
 - CryptoNote v2.0
-- Ring Signature Confidential Transactions (RingCT)
-- Bulletproofs: Short Proofs for Confidential Transactions
+- "Linkable Spontaneous Anonymous Group Signature" (Liu et al., 2004)
 
 Time is the ultimate proof.
 """
@@ -27,7 +20,7 @@ import struct
 import secrets
 import logging
 from typing import List, Tuple, Optional
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 try:
     import nacl.bindings
@@ -51,11 +44,6 @@ class PrivacyError(Exception):
 
 class RingSignatureError(PrivacyError):
     """Ring signature error."""
-    pass
-
-
-class RangeProofError(PrivacyError):
-    """Range proof error."""
     pass
 
 
@@ -83,7 +71,6 @@ DOMAIN_KEY_IMAGE = b"PoT_KeyImage_v1"
 DOMAIN_RING_SIG = b"PoT_RingSig_v1"
 DOMAIN_STEALTH = b"PoT_Stealth_v1"
 DOMAIN_COMMITMENT = b"PoT_Commitment_v1"
-DOMAIN_BULLETPROOF = b"PoT_Bulletproof_v1"
 
 
 # ============================================================================
@@ -1171,817 +1158,6 @@ class Pedersen:
         return hmac.compare_digest(commitment, expected)
 
 
-# ============================================================================
-# ============================================================================
-# BULLETPROOFS RANGE PROOFS - EXPERIMENTAL / STRUCTURAL PLACEHOLDER
-# ============================================================================
-#
-# WARNING: This is NOT a production-ready Bulletproofs implementation!
-#
-# The Inner Product Argument (IPA) generates RANDOM values instead of
-# computing cryptographically valid proofs. The verify() function only
-# checks structural validity, NOT cryptographic soundness.
-#
-# For production use, you MUST:
-# 1. Replace with audited library (bulletproofs-rs, dalek-bulletproofs)
-# 2. Use FFI bindings (PyO3) to call Rust implementation
-# 3. Run full test vectors from the Bulletproofs paper
-#
-# Current status:
-# - Prove: Generates structurally valid but cryptographically FAKE proofs
-# - Verify: Only validates structure, NOT cryptographic soundness
-# - Batch verify: Same limitation as single verify
-#
-# ============================================================================
-
-@dataclass
-class RangeProof:
-    """
-    Bulletproof range proof structure.
-    
-    Proves v ∈ [0, 2^64) without revealing v.
-    
-    Components (per Bulletproofs paper):
-    - A: Commitment to bit vectors aL, aR
-    - S: Commitment to blinding vectors sL, sR
-    - T1, T2: Commitments to polynomial coefficients
-    - tau_x: Blinding for polynomial evaluation
-    - mu: Aggregated blinding
-    - t_hat: Polynomial evaluation
-    - L, R: Inner product proof vectors
-    - a, b: Final inner product values
-    """
-    # Round 1: Vector commitments
-    A: bytes = b''  # 32 bytes
-    S: bytes = b''  # 32 bytes
-    
-    # Round 2: Polynomial commitments
-    T1: bytes = b''  # 32 bytes
-    T2: bytes = b''  # 32 bytes
-    
-    # Round 3: Proof values
-    tau_x: bytes = b''  # 32 bytes
-    mu: bytes = b''  # 32 bytes
-    t_hat: bytes = b''  # 32 bytes (actually scalar)
-    
-    # Inner product proof
-    L: List[bytes] = field(default_factory=list)  # log2(n) * 32 bytes
-    R: List[bytes] = field(default_factory=list)  # log2(n) * 32 bytes
-    a: bytes = b''  # 32 bytes
-    b: bytes = b''  # 32 bytes
-    
-    def serialize(self) -> bytes:
-        """Serialize range proof."""
-        data = bytearray()
-        
-        # Fixed components
-        data.extend(self.A)
-        data.extend(self.S)
-        data.extend(self.T1)
-        data.extend(self.T2)
-        data.extend(self.tau_x)
-        data.extend(self.mu)
-        data.extend(self.t_hat)
-        
-        # Variable length inner product proof
-        data.extend(struct.pack('<H', len(self.L)))
-        for l in self.L:
-            data.extend(l)
-        for r in self.R:
-            data.extend(r)
-        
-        data.extend(self.a)
-        data.extend(self.b)
-        
-        return bytes(data)
-    
-    @classmethod
-    def deserialize(cls, data: bytes) -> 'RangeProof':
-        """Deserialize range proof."""
-        offset = 0
-        
-        A = data[offset:offset + 32]; offset += 32
-        S = data[offset:offset + 32]; offset += 32
-        T1 = data[offset:offset + 32]; offset += 32
-        T2 = data[offset:offset + 32]; offset += 32
-        tau_x = data[offset:offset + 32]; offset += 32
-        mu = data[offset:offset + 32]; offset += 32
-        t_hat = data[offset:offset + 32]; offset += 32
-        
-        n_L = struct.unpack_from('<H', data, offset)[0]; offset += 2
-        
-        L = []
-        for _ in range(n_L):
-            L.append(data[offset:offset + 32])
-            offset += 32
-        
-        R = []
-        for _ in range(n_L):
-            R.append(data[offset:offset + 32])
-            offset += 32
-        
-        a = data[offset:offset + 32]; offset += 32
-        b = data[offset:offset + 32]; offset += 32
-        
-        return cls(A=A, S=S, T1=T1, T2=T2, tau_x=tau_x, mu=mu, t_hat=t_hat,
-                   L=L, R=R, a=a, b=b)
-    
-    @property
-    def size(self) -> int:
-        """Proof size in bytes."""
-        return 7 * 32 + 2 + len(self.L) * 64 + 64
-
-
-class Bulletproof:
-    """
-    Bulletproofs range proof - EXPERIMENTAL / STRUCTURAL PLACEHOLDER.
-
-    ⚠️  WARNING: NOT CRYPTOGRAPHICALLY SECURE ⚠️
-
-    This implementation is for STRUCTURE AND TESTING ONLY.
-    The Inner Product Argument (IPA) is NOT implemented - it generates
-    random values. The verify() only checks structural validity.
-
-    DO NOT USE FOR REAL FUNDS. T2/T3 transactions using this will
-    NOT provide actual range proof security.
-
-    For production, replace with:
-    - bulletproofs-rs via PyO3 FFI
-    - dalek-bulletproofs Python bindings
-    - Any audited Bulletproofs library
-
-    Reference: "Bulletproofs: Short Proofs for Confidential Transactions"
-    by Bünz, Bootle, Boneh, Poelstra, Wuille, Maxwell (2018)
-    """
-    
-    BIT_LENGTH = 64  # Prove value in [0, 2^64)
-    
-    @staticmethod
-    def _vector_commit(
-        values: List[int],
-        blindings: List[bytes],
-        generators_g: List[bytes],
-        generators_h: List[bytes],
-        blinding_gen: bytes
-    ) -> bytes:
-        """Compute vector Pedersen commitment."""
-        n = len(values)
-        
-        # Start with blinding commitment
-        result = Ed25519Point.scalarmult_base(blindings[0] if blindings else b'\x00' * 32)
-        
-        for i in range(n):
-            v_scalar = values[i].to_bytes(32, 'little')
-            v_G = Ed25519Point.scalarmult(v_scalar, generators_g[i])
-            result = Ed25519Point.point_add(result, v_G)
-        
-        return result
-    
-    @staticmethod
-    def prove(value: int, blinding: bytes) -> RangeProof:
-        """
-        Generate Bulletproof range proof.
-        
-        Args:
-            value: Value to prove in range [0, 2^64)
-            blinding: Blinding factor for commitment
-        
-        Returns:
-            RangeProof object
-        
-        Raises:
-            RangeProofError: If value out of range
-        """
-        if value < 0 or value >= (1 << Bulletproof.BIT_LENGTH):
-            raise RangeProofError(f"Value {value} out of range [0, 2^{Bulletproof.BIT_LENGTH})")
-        
-        n = Bulletproof.BIT_LENGTH
-        
-        # Binary decomposition
-        aL = [(value >> i) & 1 for i in range(n)]
-        aR = [aL[i] - 1 for i in range(n)]  # aR = aL - 1^n
-        
-        # Generate blinding factors
-        alpha = Ed25519Point.scalar_random()  # For A
-        rho = Ed25519Point.scalar_random()  # For S
-        
-        # Get generators
-        G_vec = PedersenGenerators.get_generator_vector(n, b"G_")
-        H_vec = PedersenGenerators.get_generator_vector(n, b"H_")
-        
-        # A = h^alpha * g^aL * h^aR (simplified)
-        A = Ed25519Point.scalarmult_base(alpha)
-        for i in range(n):
-            # Skip zero terms
-            if aL[i] != 0:
-                aL_scalar = aL[i].to_bytes(32, 'little')
-                g_term = Ed25519Point.scalarmult(aL_scalar, G_vec[i])
-                A = Ed25519Point.point_add(A, g_term)
-            
-            if aR[i] != 0:
-                aR_scalar = ((aR[i]) % CURVE_ORDER).to_bytes(32, 'little')
-                h_term = Ed25519Point.scalarmult(aR_scalar, H_vec[i])
-                A = Ed25519Point.point_add(A, h_term)
-        
-        # S = h^rho * g^sL * h^sR (random masks)
-        sL = [Ed25519Point.scalar_random() for _ in range(n)]
-        sR = [Ed25519Point.scalar_random() for _ in range(n)]
-        
-        S = Ed25519Point.scalarmult_base(rho)
-        for i in range(n):
-            g_term = Ed25519Point.scalarmult(sL[i], G_vec[i])
-            h_term = Ed25519Point.scalarmult(sR[i], H_vec[i])
-            S = Ed25519Point.point_add(S, g_term)
-            S = Ed25519Point.point_add(S, h_term)
-        
-        # Fiat-Shamir challenge y, z
-        y = Ed25519Point.hash_to_scalar(DOMAIN_BULLETPROOF + A + S)
-        z = Ed25519Point.hash_to_scalar(DOMAIN_BULLETPROOF + A + S + y)
-        
-        # Compute polynomial coefficients t0, t1, t2
-        # t(x) = <l(x), r(x)> where l(x) and r(x) are linear in x
-        
-        # t1 and t2 commitments
-        tau_1 = Ed25519Point.scalar_random()
-        tau_2 = Ed25519Point.scalar_random()
-        
-        # T1 = g^t1 * h^tau1 (simplified - using G and H)
-        t1_value = secrets.randbelow(CURVE_ORDER)
-        t1_scalar = t1_value.to_bytes(32, 'little')
-        T1_g = Ed25519Point.scalarmult(t1_scalar, PedersenGenerators.get_G())
-        T1_h = Ed25519Point.scalarmult(tau_1, PedersenGenerators.get_H())
-        T1 = Ed25519Point.point_add(T1_g, T1_h)
-        
-        t2_value = secrets.randbelow(CURVE_ORDER)
-        t2_scalar = t2_value.to_bytes(32, 'little')
-        T2_g = Ed25519Point.scalarmult(t2_scalar, PedersenGenerators.get_G())
-        T2_h = Ed25519Point.scalarmult(tau_2, PedersenGenerators.get_H())
-        T2 = Ed25519Point.point_add(T2_g, T2_h)
-        
-        # Challenge x
-        x = Ed25519Point.hash_to_scalar(DOMAIN_BULLETPROOF + A + S + T1 + T2)
-        
-        # Compute tau_x = tau_2 * x^2 + tau_1 * x + z^2 * gamma
-        x_squared = Ed25519Point.scalar_mul(x, x)
-        tau_x = Ed25519Point.scalar_mul(tau_2, x_squared)
-        tau_x = Ed25519Point.scalar_add(tau_x, Ed25519Point.scalar_mul(tau_1, x))
-        z_squared = Ed25519Point.scalar_mul(z, z)
-        tau_x = Ed25519Point.scalar_add(tau_x, Ed25519Point.scalar_mul(z_squared, blinding))
-        
-        # mu = alpha + rho * x
-        mu = Ed25519Point.scalar_add(alpha, Ed25519Point.scalar_mul(rho, x))
-        
-        # t_hat evaluation (simplified)
-        t_hat = Ed25519Point.scalar_random()  # Should be computed from t(x)
-        
-        # Inner product proof (simplified - would need full IPA implementation)
-        # For production, this should be a proper logarithmic-size proof
-        num_rounds = 6  # log2(64) = 6
-        L = [Ed25519Point.scalar_random()[:32] for _ in range(num_rounds)]
-        R = [Ed25519Point.scalar_random()[:32] for _ in range(num_rounds)]
-        
-        # Final values
-        a = Ed25519Point.scalar_random()
-        b = Ed25519Point.scalar_random()
-        
-        return RangeProof(
-            A=A, S=S, T1=T1, T2=T2,
-            tau_x=tau_x, mu=mu, t_hat=t_hat,
-            L=L, R=R, a=a, b=b
-        )
-    
-    @staticmethod
-    def verify(commitment: bytes, proof: RangeProof) -> bool:
-        """
-        Verify Bulletproof range proof.
-        
-        This implementation performs:
-        1. Complete structural validation
-        2. Point validity checks for all curve points
-        3. Fiat-Shamir challenge recomputation
-        4. Basic consistency checks
-        
-        For full mathematical verification of the Inner Product Argument,
-        a production system should integrate with an audited library like
-        bulletproofs-rs via FFI.
-        
-        Args:
-            commitment: Pedersen commitment to value (V)
-            proof: Range proof to verify
-        
-        Returns:
-            True if proof passes all validation checks
-        
-        Security Note:
-            This verification catches malformed and structurally invalid proofs.
-            For cryptographic soundness against sophisticated attacks, 
-            consider using an audited Bulletproofs implementation.
-        """
-        try:
-            n = Bulletproof.BIT_LENGTH  # 64
-            
-            # ================================================================
-            # Step 1: Validate proof structure
-            # ================================================================
-            if len(proof.A) != 32 or len(proof.S) != 32:
-                logger.debug("Invalid A or S length")
-                return False
-            if len(proof.T1) != 32 or len(proof.T2) != 32:
-                logger.debug("Invalid T1 or T2 length")
-                return False
-            if len(proof.tau_x) != 32 or len(proof.mu) != 32 or len(proof.t_hat) != 32:
-                logger.debug("Invalid tau_x, mu, or t_hat length")
-                return False
-            if len(proof.L) != len(proof.R):
-                logger.debug("L and R length mismatch")
-                return False
-            if len(proof.a) != 32 or len(proof.b) != 32:
-                logger.debug("Invalid a or b length")
-                return False
-            
-            # Expected number of inner product rounds: log2(n) = log2(64) = 6
-            expected_rounds = 6
-            if len(proof.L) != expected_rounds:
-                logger.debug(f"Invalid number of IPA rounds: {len(proof.L)} != {expected_rounds}")
-                return False
-            
-            # ================================================================
-            # Step 2: Validate all points are on curve
-            # This catches random/garbage data and many attack vectors
-            # ================================================================
-            if not Ed25519Point.is_valid_point(proof.A):
-                logger.debug("A is not a valid point")
-                return False
-            if not Ed25519Point.is_valid_point(proof.S):
-                logger.debug("S is not a valid point")
-                return False
-            if not Ed25519Point.is_valid_point(proof.T1):
-                logger.debug("T1 is not a valid point")
-                return False
-            if not Ed25519Point.is_valid_point(proof.T2):
-                logger.debug("T2 is not a valid point")
-                return False
-            if not Ed25519Point.is_valid_point(commitment):
-                logger.debug("Commitment is not a valid point")
-                return False
-            
-            # Validate IPA proof points
-            for i, (L_i, R_i) in enumerate(zip(proof.L, proof.R)):
-                if len(L_i) != 32 or len(R_i) != 32:
-                    logger.debug(f"L[{i}] or R[{i}] wrong length")
-                    return False
-            
-            # ================================================================
-            # Step 3: Recompute Fiat-Shamir challenges for binding
-            # ================================================================
-            y = Ed25519Point.hash_to_scalar(DOMAIN_BULLETPROOF + proof.A + proof.S)
-            z = Ed25519Point.hash_to_scalar(DOMAIN_BULLETPROOF + proof.A + proof.S + y)
-            x = Ed25519Point.hash_to_scalar(DOMAIN_BULLETPROOF + proof.A + proof.S + proof.T1 + proof.T2)
-            
-            # Challenges must be non-zero for security
-            if y == b'\x00' * 32 or z == b'\x00' * 32 or x == b'\x00' * 32:
-                logger.debug("Zero challenge - potential attack")
-                return False
-            
-            # ================================================================
-            # Step 4: Verify scalar bounds
-            # ================================================================
-            a_int = int.from_bytes(proof.a, 'little')
-            b_int = int.from_bytes(proof.b, 'little')
-            
-            # Scalars should be reduced mod L (curve order)
-            if a_int >= CURVE_ORDER or b_int >= CURVE_ORDER:
-                logger.debug("Final scalars exceed curve order")
-                return False
-            
-            # Non-zero check (zero would indicate degenerate proof)
-            if a_int == 0 or b_int == 0:
-                logger.debug("Final scalars are zero")
-                return False
-            
-            # ================================================================
-            # Step 5: Verify IPA challenges consistency
-            # ================================================================
-            transcript = DOMAIN_BULLETPROOF + proof.A + proof.S + proof.T1 + proof.T2 + x
-            
-            for i in range(len(proof.L)):
-                challenge_input = transcript + proof.L[i] + proof.R[i]
-                x_i = Ed25519Point.hash_to_scalar(challenge_input)
-                if x_i == b'\x00' * 32:
-                    logger.debug(f"Zero IPA challenge at round {i}")
-                    return False
-                transcript = challenge_input + x_i
-            
-            # ================================================================
-            # All validation checks passed
-            # ================================================================
-            logger.debug("Bulletproof range proof validation passed")
-            return True
-            
-        except Exception as e:
-            logger.warning(f"Range proof verification error: {e}")
-            return False
-    
-    @staticmethod
-    def batch_verify(
-        commitments: List[bytes],
-        proofs: List[RangeProof]
-    ) -> Tuple[bool, List[bool]]:
-        """
-        Batch verify multiple range proofs.
-        
-        Uses randomized batching to combine verification equations,
-        reducing the number of expensive group operations.
-        
-        The technique:
-        1. Generate random weights w_i for each proof
-        2. Combine all verification equations: Σ w_i * (equation_i) = 0
-        3. If combined equation holds, all proofs are valid (with overwhelming probability)
-        
-        Args:
-            commitments: List of Pedersen commitments
-            proofs: List of corresponding range proofs
-        
-        Returns:
-            (all_valid, individual_results) tuple
-        """
-        if len(commitments) != len(proofs):
-            return False, [False] * len(proofs)
-        
-        if not commitments:
-            return True, []
-        
-        results = []
-        all_valid = True
-        
-        # For small batches, individual verification is fine
-        if len(commitments) <= 4:
-            for c, p in zip(commitments, proofs):
-                valid = Bulletproof.verify(c, p)
-                results.append(valid)
-                if not valid:
-                    all_valid = False
-            return all_valid, results
-        
-        # Large batch: use randomized batching
-        # First, verify structure of all proofs
-        valid_structure = []
-        for p in proofs:
-            try:
-                struct_valid = (
-                    len(p.A) == 32 and len(p.S) == 32 and
-                    len(p.T1) == 32 and len(p.T2) == 32 and
-                    len(p.tau_x) == 32 and len(p.mu) == 32 and
-                    len(p.L) == len(p.R) and
-                    Ed25519Point.is_valid_point(p.A) and
-                    Ed25519Point.is_valid_point(p.S) and
-                    Ed25519Point.is_valid_point(p.T1) and
-                    Ed25519Point.is_valid_point(p.T2)
-                )
-                valid_structure.append(struct_valid)
-            except Exception:
-                valid_structure.append(False)
-        
-        # If any structure is invalid, verify individually
-        if not all(valid_structure):
-            for c, p in zip(commitments, proofs):
-                valid = Bulletproof.verify(c, p)
-                results.append(valid)
-                if not valid:
-                    all_valid = False
-            return all_valid, results
-        
-        # All structures valid - for production, would combine equations
-        # For now, verify individually but with structural pre-check done
-        for c, p in zip(commitments, proofs):
-            valid = Bulletproof.verify(c, p)
-            results.append(valid)
-            if not valid:
-                all_valid = False
-        
-        return all_valid, results
-    
-    @staticmethod
-    def verify_aggregated(
-        commitments: List[bytes],
-        proof: RangeProof
-    ) -> bool:
-        """
-        Verify an aggregated range proof for multiple commitments.
-        
-        Aggregated proofs prove multiple values in [0, 2^64) with
-        proof size O(log(n*m)) instead of O(m*log(n)).
-        """
-        if not commitments:
-            return False
-        
-        # Validate proof structure
-        try:
-            if len(proof.A) != 32 or len(proof.S) != 32:
-                return False
-            if len(proof.T1) != 32 or len(proof.T2) != 32:
-                return False
-                
-            # For aggregated proofs, L and R should have log2(64*m) elements
-            expected_rounds = 6 + (len(commitments) - 1).bit_length()
-            if len(proof.L) < 6:  # At minimum, log2(64)
-                return False
-                
-            return True
-            
-        except Exception as e:
-            logger.warning(f"Aggregated proof verification error: {e}")
-            return False
-    
-    @staticmethod
-    def aggregate_prove(
-        values: List[int],
-        blindings: List[bytes]
-    ) -> RangeProof:
-        """
-        Generate aggregated range proof for multiple values.
-        
-        Proof size is O(log(n*m)) where n is bit length, m is number of values.
-        """
-        if not values:
-            raise RangeProofError("No values to prove")
-        
-        # For now, just prove first value
-        # Full implementation would aggregate all proofs
-        return Bulletproof.prove(values[0], blindings[0])
-
-
-# ============================================================================
-# RINGCT STRUCTURES
-# ============================================================================
-
-@dataclass
-class RingCTInput:
-    """RingCT transaction input."""
-    ring: List[bytes]  # Ring of output public keys (decoys + real)
-    key_image: bytes  # Key image for double-spend detection
-    ring_signature: LSAGSignature  # Ring signature proving ownership
-    pseudo_commitment: bytes  # Pseudo output commitment for this input
-    
-    def serialize(self) -> bytes:
-        data = bytearray()
-        data.extend(struct.pack('<H', len(self.ring)))
-        for pk in self.ring:
-            data.extend(pk)
-        data.extend(self.key_image)
-        sig_bytes = self.ring_signature.serialize()
-        data.extend(struct.pack('<I', len(sig_bytes)))
-        data.extend(sig_bytes)
-        data.extend(self.pseudo_commitment)
-        return bytes(data)
-    
-    @classmethod
-    def deserialize(cls, data: bytes, offset: int = 0) -> Tuple['RingCTInput', int]:
-        ring_size = struct.unpack_from('<H', data, offset)[0]; offset += 2
-        ring = []
-        for _ in range(ring_size):
-            ring.append(data[offset:offset + 32])
-            offset += 32
-        key_image = data[offset:offset + 32]; offset += 32
-        sig_len = struct.unpack_from('<I', data, offset)[0]; offset += 4
-        ring_signature = LSAGSignature.deserialize(data[offset:offset + sig_len])
-        offset += sig_len
-        pseudo_commitment = data[offset:offset + 32]; offset += 32
-        
-        return cls(ring=ring, key_image=key_image, ring_signature=ring_signature,
-                   pseudo_commitment=pseudo_commitment), offset
-
-
-@dataclass
-class RingCTOutput:
-    """RingCT transaction output."""
-    stealth_output: StealthOutput  # Stealth address output
-    commitment: bytes  # Pedersen commitment to amount
-    range_proof: RangeProof  # Range proof proving amount in valid range
-    encrypted_amount: bytes  # Amount encrypted for recipient
-    
-    def serialize(self) -> bytes:
-        data = bytearray()
-        stealth_bytes = self.stealth_output.serialize()
-        data.extend(struct.pack('<I', len(stealth_bytes)))
-        data.extend(stealth_bytes)
-        data.extend(self.commitment)
-        range_bytes = self.range_proof.serialize()
-        data.extend(struct.pack('<I', len(range_bytes)))
-        data.extend(range_bytes)
-        data.extend(struct.pack('<H', len(self.encrypted_amount)))
-        data.extend(self.encrypted_amount)
-        return bytes(data)
-    
-    @classmethod
-    def deserialize(cls, data: bytes, offset: int = 0) -> Tuple['RingCTOutput', int]:
-        stealth_len = struct.unpack_from('<I', data, offset)[0]; offset += 4
-        stealth_output, _ = StealthOutput.deserialize(data[offset:])
-        offset += stealth_len
-        commitment = data[offset:offset + 32]; offset += 32
-        range_len = struct.unpack_from('<I', data, offset)[0]; offset += 4
-        range_proof = RangeProof.deserialize(data[offset:offset + range_len])
-        offset += range_len
-        enc_len = struct.unpack_from('<H', data, offset)[0]; offset += 2
-        encrypted_amount = data[offset:offset + enc_len]; offset += enc_len
-        
-        return cls(stealth_output=stealth_output, commitment=commitment,
-                   range_proof=range_proof, encrypted_amount=encrypted_amount), offset
-
-
-# ============================================================================
-# RINGCT TRANSACTIONS
-# ============================================================================
-
-class RingCT:
-    """
-    Ring Confidential Transactions.
-    
-    Combines:
-    - Ring signatures for sender anonymity
-    - Stealth addresses for receiver anonymity
-    - Pedersen commitments for amount hiding
-    - Range proofs for amount validity
-    
-    Transaction conservation:
-    Σ C_in = Σ C_out + fee*H
-    
-    This ensures no coins are created from nothing while
-    hiding actual amounts.
-    """
-    
-    @staticmethod
-    def create_input(
-        secret_key: bytes,
-        amount: int,
-        output_public_key: bytes,
-        ring: List[bytes],
-        real_index: int,
-        message: bytes
-    ) -> Tuple[RingCTInput, bytes]:
-        """
-        Create RingCT input.
-        
-        Returns (input, blinding_factor)
-        """
-        if not getattr(__import__("tiered_privacy"), "EXPERIMENTAL_PRIVACY_ENABLED", False):
-            raise PrivacyError("RingCT creation is disabled: set POT_ENABLE_EXPERIMENTAL_PRIVACY=1 to enable (unsafe).")
-
-        if len(ring) < 2:
-            raise PrivacyError("Ring must have at least 2 members")
-        if real_index < 0 or real_index >= len(ring):
-            raise PrivacyError("Invalid real index")
-        if ring[real_index] != output_public_key:
-            raise PrivacyError("Output public key not at real_index in ring")
-        
-        # Generate blinding for pseudo output commitment
-        blinding = Ed25519Point.scalar_random()
-        
-        # Create pseudo output commitment
-        pseudo_commit = Pedersen.commit(amount, blinding)
-        
-        # Create key image
-        key_image = generate_key_image(secret_key, output_public_key)
-        
-        # Create ring signature
-        ring_sig = LSAG.sign(message, ring, real_index, secret_key)
-        
-        ringct_input = RingCTInput(
-            ring=ring,
-            key_image=key_image,
-            ring_signature=ring_sig,
-            pseudo_commitment=pseudo_commit.commitment
-        )
-        
-        return ringct_input, blinding
-    
-    @staticmethod
-    def create_output(
-        recipient_view_public: bytes,
-        recipient_spend_public: bytes,
-        amount: int,
-        output_index: int = 0
-    ) -> Tuple[RingCTOutput, bytes]:
-        """
-        Create RingCT output.
-        
-        Returns (output, blinding_factor)
-        """
-        if not getattr(__import__("tiered_privacy"), "EXPERIMENTAL_PRIVACY_ENABLED", False):
-            raise PrivacyError("RingCT creation is disabled: set POT_ENABLE_EXPERIMENTAL_PRIVACY=1 to enable (unsafe).")
-
-        # Create stealth output
-        stealth_out, tx_secret = StealthAddress.create_output(
-            recipient_view_public,
-            recipient_spend_public,
-            output_index
-        )
-        
-        # Generate blinding
-        blinding = Ed25519Point.scalar_random()
-        
-        # Create commitment
-        commit = Pedersen.commit(amount, blinding)
-        
-        # Create range proof
-        range_proof = Bulletproof.prove(amount, blinding)
-        
-        # Compute shared secret for amount encryption
-        shared_point = Ed25519Point.scalarmult(tx_secret, recipient_view_public)
-        encrypted_amount = StealthAddress.encrypt_amount(amount, shared_point)
-        
-        stealth_out.encrypted_amount = encrypted_amount
-        
-        ringct_output = RingCTOutput(
-            stealth_output=stealth_out,
-            commitment=commit.commitment,
-            range_proof=range_proof,
-            encrypted_amount=encrypted_amount
-        )
-        
-        return ringct_output, blinding
-    
-    @staticmethod
-    def verify_transaction(
-        inputs: List[RingCTInput],
-        outputs: List[RingCTOutput],
-        fee: int,
-        tx_hash: bytes
-    ) -> bool:
-        """
-        Verify RingCT transaction.
-        
-        Checks:
-        1. All ring signatures are valid
-        2. All range proofs are valid
-        3. Commitments balance (inputs = outputs + fee)
-        4. No duplicate key images
-        
-        Args:
-            inputs: Transaction inputs
-            outputs: Transaction outputs
-            fee: Transaction fee in base units
-            tx_hash: Transaction hash for signature message
-        
-        Returns:
-            True if transaction is valid
-        """
-        try:
-            if not inputs:
-                logger.debug("No inputs")
-                return False
-            
-            # Check for duplicate key images
-            key_images = set()
-            for inp in inputs:
-                if inp.key_image in key_images:
-                    logger.debug("Duplicate key image")
-                    return False
-                key_images.add(inp.key_image)
-            
-            # Verify ring signatures
-            for inp in inputs:
-                if not LSAG.verify(tx_hash, inp.ring, inp.ring_signature):
-                    logger.debug("Ring signature verification failed")
-                    return False
-            
-            # Verify range proofs
-            for out in outputs:
-                if not Bulletproof.verify(out.commitment, out.range_proof):
-                    logger.debug("Range proof verification failed")
-                    return False
-            
-            # Verify commitment balance
-            # Σ pseudo_commit_in = Σ commit_out + fee*H
-            
-            # Sum input pseudo commitments
-            input_sum = inputs[0].pseudo_commitment
-            for inp in inputs[1:]:
-                input_sum = Ed25519Point.point_add(input_sum, inp.pseudo_commitment)
-            
-            # Sum output commitments
-            if outputs:
-                output_sum = outputs[0].commitment
-                for out in outputs[1:]:
-                    output_sum = Ed25519Point.point_add(output_sum, out.commitment)
-            else:
-                output_sum = Ed25519Point.scalarmult_base(b'\x00' * 32)
-            
-            # Add fee commitment (fee * H)
-            fee_scalar = fee.to_bytes(32, 'little')
-            fee_commit = Ed25519Point.scalarmult(fee_scalar, PedersenGenerators.get_H())
-            output_sum = Ed25519Point.point_add(output_sum, fee_commit)
-            
-            if not hmac.compare_digest(input_sum, output_sum):
-                logger.debug("Commitment balance failed")
-                return False
-            
-            return True
-            
-        except Exception as e:
-            logger.warning(f"RingCT verification error: {e}")
-            return False
-
 
 # ============================================================================
 # SELF-TEST
@@ -1990,114 +1166,76 @@ class RingCT:
 def _self_test():
     """Run privacy module self-tests."""
     logger.info("Running privacy module self-tests...")
-    
+
     # Test Ed25519Point operations
     s1 = Ed25519Point.scalar_random()
     s2 = Ed25519Point.scalar_random()
-    
+
     # Scalar arithmetic
     s_sum = Ed25519Point.scalar_add(s1, s2)
     s_diff = Ed25519Point.scalar_sub(s_sum, s2)
     assert s_diff == s1, "Scalar add/sub failed"
     logger.info("✓ Scalar arithmetic")
-    
+
     # Point operations
     p1 = Ed25519Point.scalarmult_base(s1)
     p2 = Ed25519Point.scalarmult_base(s2)
     assert Ed25519Point.is_valid_point(p1)
     assert Ed25519Point.is_valid_point(p2)
-    
+
     p_sum = Ed25519Point.point_add(p1, p2)
     assert Ed25519Point.is_valid_point(p_sum)
     logger.info("✓ Point operations")
-    
+
     # Hash to point
     hp = Ed25519Point.hash_to_point(b"test data")
     assert Ed25519Point.is_valid_point(hp)
     logger.info("✓ Hash to point")
-    
+
     # Key image generation
     sk = Ed25519Point.scalar_random()
     pk = Ed25519Point.derive_public_key(sk)
     ki = generate_key_image(sk, pk)
     assert verify_key_image_structure(ki)
     logger.info("✓ Key image generation")
-    
+
     # LSAG signatures
     ring_size = PROTOCOL.RING_SIZE
     ring = [Ed25519Point.scalarmult_base(Ed25519Point.scalar_random()) for _ in range(ring_size)]
     secret_idx = 3
     ring[secret_idx] = pk
-    
+
     message = b"test message for ring signature"
     sig = LSAG.sign(message, ring, secret_idx, sk)
-    
+
     assert len(sig.responses) == ring_size
     assert verify_key_image_structure(sig.key_image)
     assert LSAG.verify(message, ring, sig)
     assert not LSAG.verify(b"wrong message", ring, sig)
     logger.info("✓ LSAG ring signatures")
-    
+
     # Stealth addresses
     keys = StealthKeys.generate()
     assert len(keys.get_address()) == 64
-    
+
     stealth_out, _ = StealthAddress.create_output(keys.view_public, keys.spend_public)
     assert StealthAddress.scan_output(stealth_out, keys.view_secret, keys.spend_public)
-    
+
     spend_key = StealthAddress.derive_spend_key(stealth_out, keys.view_secret, keys.spend_secret)
     assert len(spend_key) == 32
     logger.info("✓ Stealth addresses")
-    
+
     # Pedersen commitments
     value = 1000
     commit = Pedersen.commit(value)
     assert len(commit.commitment) == 32
     assert Ed25519Point.is_valid_point(commit.commitment)
-    
+
     # Test zero commitment
     zero_commit = Pedersen.commit(0)
     assert Ed25519Point.is_valid_point(zero_commit.commitment)
     logger.info("✓ Pedersen commitments")
-    
-    # Range proofs
-    rp = Bulletproof.prove(value, commit.blinding)
-    assert Bulletproof.verify(commit.commitment, rp)
-    logger.info("✓ Bulletproof range proofs")
-    
-    # RingCT
-    input_amount = 1000
-    output_amount = 900
-    fee = 100
-    
-    # Create keys for recipient
-    recipient_keys = StealthKeys.generate()
-    
-    # Create output
-    ringct_out, out_blinding = RingCT.create_output(
-        recipient_keys.view_public,
-        recipient_keys.spend_public,
-        output_amount
-    )
-    
-    # Create ring for input (using generated public keys as decoys)
-    input_ring = ring.copy()
-    input_secret = sk
-    input_pubkey = pk
-    
-    tx_hash = hashlib.sha256(b"transaction data").digest()
-    
-    ringct_in, in_blinding = RingCT.create_input(
-        input_secret,
-        input_amount,
-        input_pubkey,
-        input_ring,
-        secret_idx,
-        tx_hash
-    )
-    
-    logger.info("✓ RingCT structures")
-    
+
     logger.info("All privacy module self-tests passed!")
 
 
