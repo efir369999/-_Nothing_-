@@ -87,12 +87,6 @@ PANTHEON = {
         domain="Cryptography",
         modules=["pantheon.prometheus.crypto"]
     ),
-    "mnemosyne": God(
-        name="Mnemosyne",
-        symbol="📋",
-        domain="Mempool",
-        modules=[]  # Integrated in node
-    ),
     "plutus": God(
         name="Plutus",
         symbol="💰",
@@ -116,12 +110,6 @@ PANTHEON = {
         symbol="🌈",
         domain="RPC",
         modules=["pantheon.iris.rpc"]
-    ),
-    "ananke": God(
-        name="Ananke",
-        symbol="🏛",
-        domain="Governance",
-        modules=[]  # Stub
     ),
 }
 
@@ -318,14 +306,6 @@ class Metatron:
                 "ring_size": 16,
             }
 
-            # MNEMOSYNE - Mempool
-            if hasattr(self.node, 'mempool') and self.node.mempool:
-                self.gods["mnemosyne"].metrics = {
-                    "tx_count": self.node.mempool.get_count(),
-                    "size_kb": self.node.mempool.get_size() // 1024,
-                }
-                self.gods["mnemosyne"].status = GodStatus.ONLINE
-
             # PLUTUS - Wallet
             if self.wallet:
                 try:
@@ -366,11 +346,6 @@ class Metatron:
             self.gods["iris"].metrics = {
                 "port": 8332,
                 "status": "ready",
-            }
-
-            # ANANKE - Governance (stub)
-            self.gods["ananke"].metrics = {
-                "status": "stub",
             }
 
         except Exception as e:
@@ -457,14 +432,6 @@ class Metatron:
 
         print(col("  ⚖ ATHENA ", M) + col("──────────────────────────────────────────────────", D))
         print(f"    State: {col(state, state_col)}  │  Sync: {at.get('sync', 'N/A')}")
-        print()
-
-        # Mnemosyne - Mempool
-        mn = self.gods["mnemosyne"].metrics
-        tx_count = mn.get("tx_count", 0)
-
-        print(col("  📋 MNEMOSYNE ", M) + col("────────────────────────────────────────────────", D))
-        print(f"    Pending TX: {col(tx_count, W)}  │  Size: {mn.get('size_kb', 0)} KB")
         print()
 
         # Plutus - Wallet (larger section)

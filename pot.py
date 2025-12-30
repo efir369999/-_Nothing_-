@@ -143,24 +143,6 @@ def get_prometheus_metrics():
         f"status=ACTIVE",
     ]
 
-def get_mnemosyne_metrics():
-    """MNEMOSYNE: Mempool/Cache metrics."""
-    mem = _get_mempool_stats()
-    return [
-        f"pending={mem['pending']}",
-        f"size={mem['size']}",
-        f"tps={mem['tps']:.1f}",
-        f"confirmed={mem['confirmed']}",
-        f"rejected={mem['rejected']}",
-        f"orphans={mem['orphans']}",
-        f"fee_min=0.001",
-        f"fee_avg=0.003",
-        f"cache_hit={mem['cache_hit']}%",
-        f"gc=ok",
-        f"evicted={mem['evicted']}",
-        f"status=ACTIVE",
-    ]
-
 def get_plutus_metrics():
     """PLUTUS: Wallet metrics."""
     wallet = _get_wallet_stats()
@@ -235,22 +217,21 @@ def get_iris_metrics():
         f"status=ACTIVE",
     ]
 
-def get_ananke_metrics():
-    """ANANKE: Governance metrics."""
-    gov = _get_governance_stats()
+def get_apostles_metrics():
+    """APOSTLES: Trust network metrics (12 Apostles)."""
     return [
-        f"proposals={gov['proposals']}",
-        f"votes={gov['votes']}",
-        f"participation={gov['participation']}%",
-        f"passed={gov['passed']}",
-        f"rejected={gov['rejected']}",
-        f"deposits={gov['deposits']}POT",
-        f"next_vote={gov['next_vote']}",
-        f"quorum=67%",
+        f"total=12",
+        f"active=12",
+        f"bonds=144",
+        f"slashed=0",
+        f"pending=0",
+        f"tier1=3",
+        f"tier2=6",
+        f"tier3=12",
+        f"collective=on",
         f"threshold=67%",
-        f"veto=0",
-        f"upgrades=0",
-        f"status=PLANNED",
+        f"recovery=7d",
+        f"status=ACTIVE",
     ]
 
 # =============================================================================
@@ -338,13 +319,6 @@ def _get_storage_stats():
         'pruned': 0, 'cache': '256MB', 'writes': 0, 'reads': 0, 'wal': '0MB',
     }
 
-def _get_mempool_stats():
-    """Get mempool stats."""
-    return {
-        'pending': 0, 'size': '0KB', 'tps': 0.0, 'confirmed': 0,
-        'rejected': 0, 'orphans': 0, 'cache_hit': 0, 'evicted': 0,
-    }
-
 def _get_wallet_stats():
     """Get wallet stats."""
     return {
@@ -364,15 +338,8 @@ def _get_api_stats():
         'requests': 0, 'ws_conns': 0, 'rate': 0, 'errors': 0, 'latency': 0,
     }
 
-def _get_governance_stats():
-    """Get governance stats."""
-    return {
-        'proposals': 0, 'votes': 0, 'participation': 0, 'passed': 0,
-        'rejected': 0, 'deposits': 0, 'next_vote': 'n/a',
-    }
-
 # =============================================================================
-# PANTHEON (12 gods, 12 params each)
+# PANTHEON (11 gods, 12 params each)
 # =============================================================================
 
 GODS = {
@@ -382,16 +349,15 @@ GODS = {
     4:  {"name": "HADES",      "get": get_hades_metrics},
     5:  {"name": "ATHENA",     "get": get_athena_metrics},
     6:  {"name": "PROMETHEUS", "get": get_prometheus_metrics},
-    7:  {"name": "MNEMOSYNE",  "get": get_mnemosyne_metrics},
-    8:  {"name": "PLUTUS",     "get": get_plutus_metrics},
-    9:  {"name": "NYX",        "get": get_nyx_metrics},
-    10: {"name": "THEMIS",     "get": get_themis_metrics},
-    11: {"name": "IRIS",       "get": get_iris_metrics},
-    12: {"name": "ANANKE",     "get": get_ananke_metrics},
+    7:  {"name": "PLUTUS",     "get": get_plutus_metrics},
+    8:  {"name": "NYX",        "get": get_nyx_metrics},
+    9:  {"name": "THEMIS",     "get": get_themis_metrics},
+    10: {"name": "IRIS",       "get": get_iris_metrics},
+    11: {"name": "APOSTLES",   "get": get_apostles_metrics},
 }
 
 def get_all_params():
-    """Get all 12 params from all 12 gods."""
+    """Get all 12 params from all 11 gods."""
     result = {}
     for num, god in GODS.items():
         result[num] = {
@@ -407,7 +373,7 @@ def get_all_params():
 def carousel():
     """
     Carousel synced to genesis timestamp.
-    god# = (unix_time - genesis) % 12
+    god# = (unix_time - genesis) % 11
     Each second shows 1 god with all 12 params.
     """
     print("PROOF OF TIME CAROUSEL (synced to genesis)")
@@ -417,7 +383,7 @@ def carousel():
     try:
         while True:
             now = int(time.time())
-            god_num = (now - GENESIS_TIMESTAMP) % 12 + 1  # 1-12
+            god_num = (now - GENESIS_TIMESTAMP) % 11 + 1  # 1-11
             ts = datetime.now().strftime("%H:%M:%S")
 
             # Get metrics for current god
