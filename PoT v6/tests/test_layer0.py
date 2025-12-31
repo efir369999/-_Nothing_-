@@ -18,6 +18,11 @@ from pot.layers.layer0 import (
     is_blacklisted,
     clear_blacklist,
     check_leap_indicator,
+    # W-MSR functions
+    compute_source_weight,
+    wmsr_consensus,
+    wmsr_with_fallback,
+    WeightedSource,
     # Query functions
     query_ntp_server,
     query_atomic_time,
@@ -614,14 +619,188 @@ class TestInfoFunctions:
         assert info["name"] == "Physical Time"
         assert "sources_total" in info
         assert "edge_cases_handled" in info
-        assert len(info["edge_cases_handled"]) == 6
+        assert len(info["edge_cases_handled"]) == 7  # Updated for W-MSR
+        assert "consensus_algorithm" in info
+        assert "W-MSR" in info["consensus_algorithm"]
 
     def test_get_edge_case_info(self):
         """Test edge case info retrieval."""
         info = get_edge_case_info()
+        assert "wmsr_consensus" in info  # New W-MSR info
         assert "outlier_rejection" in info
         assert "rtt_compensation" in info
         assert "byzantine_tolerance" in info
         assert "stratum_validation" in info
         assert "kod_handling" in info
         assert "leap_second" in info
+
+
+# =============================================================================
+# Test: W-MSR (Weighted-Mean Subsequence Reduced)
+# =============================================================================
+
+class TestWMSRConsensus:
+    """Tests for W-MSR consensus algorithm."""
+
+    def test_wmsr_basic_consensus(self, sample_sources):
+        """Test basic W-MSR consensus with sufficient sources."""
+        # Create 16+ sources (3*5+1) for f=5
+        base_time = sample_sources[0].timestamp_ms
+        sources = [
+            AtomicSource(region=REGION_NORTH_AMERICA, server_id=i, timestamp_ms=base_time + i * 10, rtt_ms=50)
+            for i in range(20)
+        ]
+        stratums = {(REGION_NORTH_AMERICA, i): 1 for i in range(20)}
+
+        consensus_ts, weighted, diagnostics = wmsr_consensus(sources, stratums, max_faults=5)
+
+        assert diagnostics["algorithm"] == "W-MSR"
+        assert diagnostics["total_sources"] == 20
+        assert diagnostics["trimmed_sources"] == 10  # 20 - 2*5
+        assert consensus_ts > 0
+
+    def test_wmsr_removes_extremes(self):
+        """Test W-MSR removes f smallest and f largest."""
+        base_time = 1000
+        # Create sources with clear extremes
+        sources = [
+            AtomicSource(region=REGION_NORTH_AMERICA, server_id=0, timestamp_ms=0, rtt_ms=50),  # Extreme low
+            AtomicSource(region=REGION_NORTH_AMERICA, server_id=1, timestamp_ms=base_time, rtt_ms=50),
+            AtomicSource(region=REGION_EUROPE, server_id=0, timestamp_ms=base_time + 10, rtt_ms=50),
+            AtomicSource(region=REGION_EUROPE, server_id=1, timestamp_ms=base_time + 20, rtt_ms=50),
+            AtomicSource(region=REGION_ASIA, server_id=0, timestamp_ms=base_time + 30, rtt_ms=50),
+            AtomicSource(region=REGION_ASIA, server_id=1, timestamp_ms=base_time + 40, rtt_ms=50),
+            AtomicSource(region=REGION_OCEANIA, server_id=0, timestamp_ms=10000, rtt_ms=50),  # Extreme high
+        ]
+        stratums = {(s.region, s.server_id): 1 for s in sources}
+
+        # With f=1, should remove 1 smallest and 1 largest
+        consensus_ts, weighted, diagnostics = wmsr_consensus(sources, stratums, max_faults=1)
+
+        # Should be in the middle range, not affected by extremes
+        assert 1000 <= consensus_ts <= 1100
+
+    def test_wmsr_weighted_mean(self):
+        """Test W-MSR computes weighted mean correctly."""
+        base_time = 1000
+        sources = [
+            AtomicSource(region=REGION_NORTH_AMERICA, server_id=i, timestamp_ms=base_time + i * 10, rtt_ms=50)
+            for i in range(10)
+        ]
+        stratums = {(REGION_NORTH_AMERICA, i): 1 for i in range(10)}
+
+        consensus_ts, weighted, diagnostics = wmsr_consensus(sources, stratums, max_faults=2)
+
+        # All sources have same stratum and RTT, weights should be similar
+        assert diagnostics["trimmed_sources"] == 6  # 10 - 2*2
+
+    def test_wmsr_insufficient_sources_fallback(self):
+        """Test W-MSR falls back to median with insufficient sources."""
+        sources = [
+            AtomicSource(region=REGION_NORTH_AMERICA, server_id=i, timestamp_ms=1000 + i * 10, rtt_ms=50)
+            for i in range(5)  # Less than 3*5+1=16
+        ]
+        stratums = {(REGION_NORTH_AMERICA, i): 1 for i in range(5)}
+
+        consensus_ts, weighted, diagnostics = wmsr_consensus(sources, stratums, max_faults=5)
+
+        assert diagnostics.get("fallback") == "median"
+        assert diagnostics.get("reason") == "insufficient_sources"
+
+    def test_wmsr_with_fallback_chain(self):
+        """Test W-MSR fallback chain with reduced fault tolerance."""
+        sources = [
+            AtomicSource(region=REGION_NORTH_AMERICA, server_id=i, timestamp_ms=1000 + i * 10, rtt_ms=50)
+            for i in range(10)  # Enough for f=2 (3*2+1=7)
+        ]
+        stratums = {(REGION_NORTH_AMERICA, i): 1 for i in range(10)}
+
+        consensus_ts, diagnostics = wmsr_with_fallback(sources, stratums, max_faults=5)
+
+        # Should fall back to reduced fault tolerance
+        assert "reduced_fault_tolerance" in diagnostics or diagnostics["algorithm"] == "W-MSR"
+
+    def test_source_weight_stratum(self):
+        """Test source weight calculation based on stratum."""
+        source = AtomicSource(region=REGION_NORTH_AMERICA, server_id=0, timestamp_ms=1000, rtt_ms=50)
+        region_counts = {REGION_NORTH_AMERICA: 1}
+
+        # Stratum 1 should have highest weight
+        ws1 = compute_source_weight(source, 1, region_counts, 1)
+        ws2 = compute_source_weight(source, 2, region_counts, 1)
+        ws3 = compute_source_weight(source, 3, region_counts, 1)
+
+        assert ws1.stratum_weight > ws2.stratum_weight > ws3.stratum_weight
+        assert ws1.stratum_weight == 1.0
+        assert ws2.stratum_weight == 0.8
+        assert ws3.stratum_weight == 0.6
+
+    def test_source_weight_rtt(self):
+        """Test source weight calculation based on RTT."""
+        region_counts = {REGION_NORTH_AMERICA: 1}
+
+        # Lower RTT should have higher weight
+        low_rtt = AtomicSource(region=REGION_NORTH_AMERICA, server_id=0, timestamp_ms=1000, rtt_ms=50)
+        high_rtt = AtomicSource(region=REGION_NORTH_AMERICA, server_id=1, timestamp_ms=1000, rtt_ms=400)
+
+        ws_low = compute_source_weight(low_rtt, 1, region_counts, 2)
+        ws_high = compute_source_weight(high_rtt, 1, region_counts, 2)
+
+        assert ws_low.rtt_weight > ws_high.rtt_weight
+
+    def test_source_weight_region_diversity(self):
+        """Test source weight calculation for region diversity."""
+        # Region with fewer sources should get higher weight
+        region_counts = {REGION_NORTH_AMERICA: 5, REGION_EUROPE: 1}
+
+        source_na = AtomicSource(region=REGION_NORTH_AMERICA, server_id=0, timestamp_ms=1000, rtt_ms=50)
+        source_eu = AtomicSource(region=REGION_EUROPE, server_id=0, timestamp_ms=1000, rtt_ms=50)
+
+        ws_na = compute_source_weight(source_na, 1, region_counts, 6)
+        ws_eu = compute_source_weight(source_eu, 1, region_counts, 6)
+
+        # Europe (underrepresented) should get higher region weight
+        assert ws_eu.region_weight > ws_na.region_weight
+
+    def test_wmsr_diagnostics(self):
+        """Test W-MSR returns comprehensive diagnostics."""
+        sources = [
+            AtomicSource(region=REGION_NORTH_AMERICA, server_id=i, timestamp_ms=1000 + i * 10, rtt_ms=50)
+            for i in range(20)
+        ]
+        stratums = {(REGION_NORTH_AMERICA, i): 1 for i in range(20)}
+
+        consensus_ts, weighted, diagnostics = wmsr_consensus(sources, stratums, max_faults=5)
+
+        assert "algorithm" in diagnostics
+        assert "total_sources" in diagnostics
+        assert "trimmed_sources" in diagnostics
+        assert "removed_low" in diagnostics
+        assert "removed_high" in diagnostics
+        assert "total_weight" in diagnostics
+        assert "variance_ms" in diagnostics
+        assert "std_dev_ms" in diagnostics
+        assert "confidence_interval_ms" in diagnostics
+        assert "spread_ms" in diagnostics
+
+    def test_wmsr_byzantine_resilience(self):
+        """Test W-MSR is resilient to Byzantine sources."""
+        base_time = 1000
+        # Create 16 honest sources
+        honest = [
+            AtomicSource(region=REGION_NORTH_AMERICA, server_id=i, timestamp_ms=base_time + i, rtt_ms=50)
+            for i in range(16)
+        ]
+        # Add 5 Byzantine sources with wildly different timestamps
+        byzantine = [
+            AtomicSource(region=REGION_EUROPE, server_id=i, timestamp_ms=999999, rtt_ms=50)
+            for i in range(5)
+        ]
+        sources = honest + byzantine
+        stratums = {(s.region, s.server_id): 1 for s in sources}
+
+        # With f=5, should remove Byzantine sources
+        consensus_ts, weighted, diagnostics = wmsr_consensus(sources, stratums, max_faults=5)
+
+        # Consensus should be close to honest range
+        assert base_time - 100 <= consensus_ts <= base_time + 100

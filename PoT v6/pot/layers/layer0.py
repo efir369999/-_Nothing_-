@@ -8,13 +8,21 @@ CONCEPT: Layer 0 requires NO cryptographic proof. Atomic time is physical realit
 The key insight: time from cesium-133 atomic transitions at national metrology
 laboratories is not a claim to be verified—it is a measurement to be observed.
 
+CONSENSUS ALGORITHM: W-MSR (Weighted-Mean Subsequence Reduced)
+The W-MSR algorithm provides Byzantine fault-tolerant time synchronization:
+1. Sort all timestamp values
+2. Remove f largest and f smallest values (f = max Byzantine faults)
+3. Compute weighted mean of remaining 2f+1 values
+4. Weights based on: RTT quality, stratum level, region diversity
+
 EDGE CASES HANDLED:
 1. Outlier Rejection (MAD-based)
 2. RTT Compensation
-3. Byzantine Fault Tolerance
+3. Byzantine Fault Tolerance (W-MSR)
 4. Stratum Validation
 5. Kiss-of-Death (KoD) Handling
 6. Leap Second Detection
+7. Weighted Consensus (stratum + RTT + region weights)
 """
 
 from __future__ import annotations
@@ -265,7 +273,253 @@ def check_byzantine_agreement(
 
 
 # =============================================================================
-# Edge Case #4: Stratum Validation
+# Edge Case #4: W-MSR (Weighted-Mean Subsequence Reduced)
+# =============================================================================
+
+@dataclass
+class WeightedSource:
+    """Source with computed weight for W-MSR algorithm."""
+    source: AtomicSource
+    weight: float
+    stratum_weight: float
+    rtt_weight: float
+    region_weight: float
+
+
+def compute_source_weight(
+    source: AtomicSource,
+    stratum: int,
+    region_counts: Dict[int, int],
+    total_sources: int
+) -> WeightedSource:
+    """
+    Compute weight for a source based on quality metrics.
+
+    Weight factors:
+    1. Stratum weight: stratum 1 = 1.0, stratum 2 = 0.8, stratum 3 = 0.6
+    2. RTT weight: lower RTT = higher weight (1.0 - normalized RTT)
+    3. Region weight: underrepresented regions get higher weight
+
+    Args:
+        source: Atomic source
+        stratum: NTP stratum level
+        region_counts: Count of sources per region
+        total_sources: Total number of sources
+
+    Returns:
+        WeightedSource with computed weights
+    """
+    # Stratum weight: favor lower stratum (closer to atomic clock)
+    stratum_weights = {1: 1.0, 2: 0.8, 3: 0.6}
+    stratum_weight = stratum_weights.get(stratum, 0.4)
+
+    # RTT weight: inverse of RTT (lower RTT = higher weight)
+    # Normalize to [0.5, 1.0] range
+    max_rtt = MAX_RTT_FOR_COMPENSATION_MS
+    rtt_normalized = min(source.rtt_ms, max_rtt) / max_rtt
+    rtt_weight = 1.0 - (rtt_normalized * 0.5)  # Range: [0.5, 1.0]
+
+    # Region diversity weight: underrepresented regions get bonus
+    region_count = region_counts.get(source.region, 1)
+    expected_per_region = total_sources / len(region_counts) if region_counts else 1
+    region_weight = expected_per_region / region_count if region_count > 0 else 1.0
+    region_weight = min(region_weight, 2.0)  # Cap at 2x
+
+    # Combined weight (geometric mean for balance)
+    combined_weight = (stratum_weight * rtt_weight * region_weight) ** (1/3)
+
+    return WeightedSource(
+        source=source,
+        weight=combined_weight,
+        stratum_weight=stratum_weight,
+        rtt_weight=rtt_weight,
+        region_weight=region_weight
+    )
+
+
+def wmsr_consensus(
+    sources: List[AtomicSource],
+    stratums: Dict[Tuple[int, int], int],  # (region, server_id) -> stratum
+    max_faults: int = BYZANTINE_FAULT_TOLERANCE
+) -> Tuple[int, List[WeightedSource], Dict[str, any]]:
+    """
+    Weighted-Mean Subsequence Reduced (W-MSR) consensus algorithm.
+
+    The W-MSR algorithm is the gold standard for Byzantine fault-tolerant
+    clock synchronization. It provides optimal resilience against Byzantine
+    faults while maintaining high precision.
+
+    Algorithm:
+    1. Sort sources by timestamp
+    2. Remove f largest and f smallest values
+    3. Compute weighted mean of remaining n-2f values
+    4. Weights based on source quality (stratum, RTT, region diversity)
+
+    Mathematical foundation:
+    - With n sources and f Byzantine faults, W-MSR requires n ≥ 3f + 1
+    - After removing 2f extreme values, at least f+1 honest sources remain
+    - Weighted mean of honest sources provides accurate consensus
+
+    Args:
+        sources: List of atomic sources
+        stratums: Mapping of (region, server_id) to stratum level
+        max_faults: Maximum Byzantine faults to tolerate
+
+    Returns:
+        Tuple of (consensus_timestamp_ms, weighted_sources, diagnostics)
+    """
+    n = len(sources)
+    min_required = 3 * max_faults + 1
+
+    if n < min_required:
+        logger.warning(
+            f"W-MSR: Insufficient sources {n} < {min_required} for f={max_faults}"
+        )
+        # Fall back to simple median
+        timestamps = sorted(s.timestamp_ms for s in sources)
+        mid = len(timestamps) // 2
+        median_ts = timestamps[mid] if len(timestamps) % 2 == 1 else \
+                   (timestamps[mid-1] + timestamps[mid]) // 2
+        return median_ts, [], {"fallback": "median", "reason": "insufficient_sources"}
+
+    # Step 1: Compute region counts for diversity weighting
+    region_counts: Dict[int, int] = {}
+    for source in sources:
+        region_counts[source.region] = region_counts.get(source.region, 0) + 1
+
+    # Step 2: Compute weights for each source
+    weighted_sources = []
+    for source in sources:
+        key = (source.region, source.server_id)
+        stratum = stratums.get(key, 2)  # Default stratum 2 if unknown
+        ws = compute_source_weight(source, stratum, region_counts, n)
+        weighted_sources.append(ws)
+
+    # Step 3: Sort by timestamp
+    weighted_sources.sort(key=lambda ws: ws.source.timestamp_ms)
+
+    # Step 4: Remove f smallest and f largest (W-MSR core step)
+    if max_faults > 0 and len(weighted_sources) > 2 * max_faults:
+        trimmed = weighted_sources[max_faults:-max_faults]
+    else:
+        trimmed = weighted_sources
+
+    logger.debug(
+        f"W-MSR: {len(sources)} sources → {len(trimmed)} after removing "
+        f"{max_faults} smallest and {max_faults} largest"
+    )
+
+    # Step 5: Compute weighted mean
+    total_weight = sum(ws.weight for ws in trimmed)
+    if total_weight == 0:
+        total_weight = len(trimmed)  # Fallback to equal weights
+
+    weighted_sum = sum(
+        ws.source.timestamp_ms * ws.weight
+        for ws in trimmed
+    )
+    consensus_ts = int(weighted_sum / total_weight)
+
+    # Step 6: Compute diagnostics
+    timestamps = [ws.source.timestamp_ms for ws in trimmed]
+    variance = statistics.variance(timestamps) if len(timestamps) > 1 else 0
+    std_dev = variance ** 0.5
+
+    # Compute confidence interval (95%)
+    confidence_interval = 1.96 * std_dev / (len(trimmed) ** 0.5) if trimmed else 0
+
+    diagnostics = {
+        "algorithm": "W-MSR",
+        "total_sources": n,
+        "trimmed_sources": len(trimmed),
+        "removed_low": max_faults,
+        "removed_high": max_faults,
+        "total_weight": total_weight,
+        "variance_ms": variance,
+        "std_dev_ms": std_dev,
+        "confidence_interval_ms": confidence_interval,
+        "min_timestamp_ms": min(timestamps) if timestamps else 0,
+        "max_timestamp_ms": max(timestamps) if timestamps else 0,
+        "spread_ms": (max(timestamps) - min(timestamps)) if timestamps else 0,
+    }
+
+    logger.info(
+        f"W-MSR consensus: {consensus_ts}ms "
+        f"(σ={std_dev:.1f}ms, CI±{confidence_interval:.1f}ms, "
+        f"n={len(trimmed)}/{n})"
+    )
+
+    return consensus_ts, trimmed, diagnostics
+
+
+def wmsr_with_fallback(
+    sources: List[AtomicSource],
+    stratums: Dict[Tuple[int, int], int],
+    max_faults: int = BYZANTINE_FAULT_TOLERANCE
+) -> Tuple[int, Dict[str, any]]:
+    """
+    W-MSR with automatic fallback strategies.
+
+    Fallback chain:
+    1. Full W-MSR (if n ≥ 3f+1)
+    2. Reduced W-MSR with f-1 fault tolerance
+    3. MAD-filtered median
+    4. Simple median
+
+    Args:
+        sources: List of atomic sources
+        stratums: Stratum mapping
+        max_faults: Target fault tolerance
+
+    Returns:
+        Tuple of (consensus_timestamp_ms, diagnostics)
+    """
+    n = len(sources)
+
+    # Try full W-MSR
+    if n >= 3 * max_faults + 1:
+        ts, _, diag = wmsr_consensus(sources, stratums, max_faults)
+        return ts, diag
+
+    # Try reduced fault tolerance
+    for f in range(max_faults - 1, 0, -1):
+        if n >= 3 * f + 1:
+            logger.warning(
+                f"W-MSR: Reduced fault tolerance to f={f} (have {n} sources)"
+            )
+            ts, _, diag = wmsr_consensus(sources, stratums, f)
+            diag["reduced_fault_tolerance"] = f
+            return ts, diag
+
+    # Fallback to MAD-filtered median
+    logger.warning("W-MSR: Falling back to MAD-filtered median")
+    valid, _ = reject_outliers_mad(sources)
+
+    if valid:
+        timestamps = sorted(s.timestamp_ms for s in valid)
+        mid = len(timestamps) // 2
+        median_ts = timestamps[mid] if len(timestamps) % 2 == 1 else \
+                   (timestamps[mid-1] + timestamps[mid]) // 2
+        return median_ts, {
+            "algorithm": "MAD-median",
+            "fallback": True,
+            "sources_used": len(valid)
+        }
+
+    # Last resort: simple median
+    timestamps = sorted(s.timestamp_ms for s in sources)
+    mid = len(timestamps) // 2
+    median_ts = timestamps[mid] if len(timestamps) % 2 == 1 else \
+               (timestamps[mid-1] + timestamps[mid]) // 2
+    return median_ts, {
+        "algorithm": "simple-median",
+        "fallback": True,
+        "sources_used": len(sources)
+    }
+
+
+# =============================================================================
+# Edge Case #5: Stratum Validation
 # =============================================================================
 
 def filter_by_stratum(responses: List[NTPResponse]) -> List[NTPResponse]:
@@ -628,28 +882,33 @@ async def query_atomic_time() -> AtomicTimeProof:
                 f"(minimum: {NTP_MIN_SOURCES_CONTINENT})"
             )
 
-    # Step 9: Compute median timestamp
-    timestamps = sorted(s.timestamp_ms for s in sources)
-    mid = len(timestamps) // 2
-    if len(timestamps) % 2 == 0:
-        median_time = (timestamps[mid - 1] + timestamps[mid]) // 2
-    else:
-        median_time = timestamps[mid]
+    # Step 9: W-MSR Consensus (replaces simple median)
+    # Build stratum mapping from valid responses
+    stratums: Dict[Tuple[int, int], int] = {}
+    for r in valid_responses:
+        key = (r.server.region, r.server.server_id)
+        stratums[key] = r.stratum
 
-    # Compute median drift
-    drifts = [s.timestamp_ms - median_time for s in sources]
+    # Apply W-MSR algorithm
+    consensus_time, wmsr_diagnostics = wmsr_with_fallback(
+        sources, stratums, BYZANTINE_FAULT_TOLERANCE
+    )
+
+    # Compute drift relative to consensus
+    drifts = [s.timestamp_ms - consensus_time for s in sources]
     median_drift = int(statistics.median(drifts))
 
     if abs(median_drift) > NTP_MAX_DRIFT_MS:
         raise ExcessiveTimeDriftError(median_drift, NTP_MAX_DRIFT_MS)
 
+    algorithm = wmsr_diagnostics.get("algorithm", "W-MSR")
     logger.info(
-        f"Atomic time consensus: {len(sources)} sources, "
+        f"Atomic time consensus ({algorithm}): {len(sources)} sources, "
         f"{regions_present} regions, drift={median_drift}ms"
     )
 
     return AtomicTimeProof(
-        timestamp_ms=median_time,
+        timestamp_ms=consensus_time,
         source_count=len(sources),
         sources=sources,
         median_drift_ms=median_drift,
@@ -816,17 +1075,21 @@ def get_layer0_info() -> dict:
         "layer": 0,
         "name": "Physical Time",
         "description": "Global Atomic Time from 34 NTP sources",
+        "consensus_algorithm": "W-MSR (Weighted-Mean Subsequence Reduced)",
         "sources_total": NTP_TOTAL_SOURCES,
         "sources_required": NTP_MIN_SOURCES_CONSENSUS,
         "regions_required": NTP_MIN_REGIONS_TOTAL,
         "max_drift_ms": NTP_MAX_DRIFT_MS,
+        "byzantine_fault_tolerance": BYZANTINE_FAULT_TOLERANCE,
+        "wmsr_requirement": f"n ≥ 3f+1 = {3 * BYZANTINE_FAULT_TOLERANCE + 1} sources",
         "edge_cases_handled": [
             "Outlier rejection (MAD-based)",
             "RTT compensation",
-            "Byzantine fault tolerance (f=5)",
+            "Byzantine fault tolerance (W-MSR, f=5)",
             "Stratum validation (1-3)",
             "Kiss-of-Death handling",
             "Leap second detection",
+            "Weighted consensus (stratum + RTT + region)",
         ],
         "ntplib_available": _NTPLIB_AVAILABLE,
     }
@@ -835,6 +1098,29 @@ def get_layer0_info() -> dict:
 def get_edge_case_info() -> dict:
     """Get detailed information about edge case handling."""
     return {
+        "wmsr_consensus": {
+            "name": "W-MSR (Weighted-Mean Subsequence Reduced)",
+            "algorithm": [
+                "1. Sort all n timestamps",
+                "2. Remove f smallest and f largest (trimming)",
+                "3. Compute weighted mean of remaining n-2f values",
+                "4. Weights: stratum × RTT × region_diversity"
+            ],
+            "requirement": f"n ≥ 3f+1 = {3 * BYZANTINE_FAULT_TOLERANCE + 1}",
+            "max_faults": BYZANTINE_FAULT_TOLERANCE,
+            "fallback_chain": [
+                "Full W-MSR (f=5)",
+                "Reduced W-MSR (f=4,3,2,1)",
+                "MAD-filtered median",
+                "Simple median"
+            ],
+            "weight_factors": {
+                "stratum": "1.0 (stratum 1), 0.8 (stratum 2), 0.6 (stratum 3)",
+                "rtt": "1.0 - (RTT/500ms × 0.5)",
+                "region": "boost for underrepresented regions"
+            },
+            "description": "Byzantine fault-tolerant weighted consensus"
+        },
         "outlier_rejection": {
             "method": "MAD (Median Absolute Deviation)",
             "threshold": f"{OUTLIER_MAD_THRESHOLD} × MAD × 1.4826",

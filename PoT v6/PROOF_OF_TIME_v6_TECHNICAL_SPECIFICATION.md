@@ -679,6 +679,150 @@ fn validate_atomic_time(proof: AtomicTimeProof) -> bool {
     return true
 }
 
+W-MSR CONSENSUS ALGORITHM
+-------------------------
+
+The Weighted-Mean Subsequence Reduced (W-MSR) algorithm is the primary consensus
+mechanism for Layer 0. It provides optimal Byzantine fault tolerance while
+maintaining high precision through weighted averaging.
+
+ALGORITHM OVERVIEW:
+
+1. Sort all n timestamps
+2. Remove f smallest and f largest values (Byzantine trimming)
+3. Compute weighted mean of remaining n-2f values
+4. Weights based on source quality metrics
+
+MATHEMATICAL FOUNDATION:
+
+For Byzantine fault tolerance with f faulty sources:
+- Require: n ≥ 3f + 1 total sources
+- After removing 2f extreme values: n - 2f ≥ f + 1 honest sources remain
+- Weighted mean of honest sources provides accurate consensus
+
+With 34 sources and f=5: 34 ≥ 16 ✓ (3×5+1)
+
+fn wmsr_consensus(
+    sources: Vec<AtomicSource>,
+    stratums: HashMap<(u8, u8), u8>,
+    max_faults: u8 = 5
+) -> (i64, WMSRDiagnostics) {
+
+    n = len(sources)
+    min_required = 3 * max_faults + 1
+
+    if n < min_required:
+        return fallback_to_median(sources)
+
+    # Step 1: Compute weights for each source
+    weighted_sources = []
+    for source in sources:
+        weight = compute_weight(source, stratums[source.key])
+        weighted_sources.push((source, weight))
+
+    # Step 2: Sort by timestamp
+    weighted_sources.sort_by(|a, b| a.0.timestamp_ms.cmp(b.0.timestamp_ms))
+
+    # Step 3: Remove f smallest and f largest (W-MSR core step)
+    trimmed = weighted_sources[max_faults..(n - max_faults)]
+
+    # Step 4: Compute weighted mean
+    total_weight = sum(ws.1 for ws in trimmed)
+    weighted_sum = sum(ws.0.timestamp_ms * ws.1 for ws in trimmed)
+    consensus_ts = weighted_sum / total_weight
+
+    return (consensus_ts, diagnostics)
+}
+
+WEIGHT COMPUTATION:
+
+fn compute_weight(source: AtomicSource, stratum: u8) -> f64 {
+    # Stratum weight: favor atomic clocks (stratum 1)
+    stratum_weight = match stratum {
+        1 => 1.0,    # Primary reference (atomic clock)
+        2 => 0.8,    # Secondary reference
+        3 => 0.6,    # Tertiary reference
+        _ => 0.4     # Lower quality
+    }
+
+    # RTT weight: lower latency = higher weight
+    rtt_normalized = min(source.rtt_ms, 500) / 500
+    rtt_weight = 1.0 - (rtt_normalized * 0.5)  # Range: [0.5, 1.0]
+
+    # Region weight: boost underrepresented regions
+    region_weight = expected_per_region / actual_count_in_region
+    region_weight = min(region_weight, 2.0)  # Cap at 2x
+
+    # Combined weight (geometric mean)
+    return (stratum_weight * rtt_weight * region_weight) ** (1/3)
+}
+
+FALLBACK CHAIN:
+
+If W-MSR requirements cannot be met, the system falls back gracefully:
+
+1. Full W-MSR (f=5): n ≥ 16 sources required
+2. Reduced W-MSR (f=4): n ≥ 13 sources required
+3. Reduced W-MSR (f=3): n ≥ 10 sources required
+4. Reduced W-MSR (f=2): n ≥ 7 sources required
+5. Reduced W-MSR (f=1): n ≥ 4 sources required
+6. MAD-filtered median: Reject outliers > 3σ, then median
+7. Simple median: Last resort
+
+EDGE CASE HANDLING
+------------------
+
+1. OUTLIER REJECTION (MAD-based)
+   Method: Median Absolute Deviation
+   Formula: MAD = median(|Xi - median(X)|)
+   Outlier if: |Xi - median| > 3.0 × MAD × 1.4826
+   Note: 1.4826 is consistency constant for normal distribution
+
+2. RTT COMPENSATION
+   Method: timestamp + RTT/2
+   Assumption: Symmetric network latency
+   Threshold: Skip compensation if RTT > 500ms (asymmetry likely)
+
+3. BYZANTINE FAULT TOLERANCE
+   Algorithm: W-MSR (Weighted-Mean Subsequence Reduced)
+   Requirement: n ≥ 3f+1 sources
+   Default: f=5 (tolerates 5 Byzantine sources)
+   Fallback: Graceful degradation to lower f values
+
+4. STRATUM VALIDATION
+   Accept: Stratum 1 (atomic clock), 2, 3
+   Reject: Stratum 0 (KoD), 4+ (too far from atomic)
+
+5. KISS-OF-DEATH (KoD) HANDLING
+   Codes: DENY (permanent ban), RSTR (restricted), RATE (rate limited)
+   Action: Add to blacklist, skip in future queries
+   Recovery: Blacklist cleared on node restart
+
+6. LEAP SECOND DETECTION
+   Indicators: LI=0 (none), LI=1 (+1s), LI=2 (-1s), LI=3 (unsync)
+   Alarm: >33% sources with LI=3 triggers warning
+   Action: Consensus on leap indicator if >50% agree
+
+7. WEIGHTED CONSENSUS
+   Factors: stratum (quality), RTT (latency), region (diversity)
+   Method: Geometric mean of factor weights
+   Purpose: Higher quality sources have more influence
+
+DIAGNOSTICS OUTPUT:
+
+WMSRDiagnostics {
+    algorithm: "W-MSR" | "MAD-median" | "simple-median",
+    total_sources: u32,
+    trimmed_sources: u32,
+    removed_low: u32,
+    removed_high: u32,
+    total_weight: f64,
+    variance_ms: f64,
+    std_dev_ms: f64,
+    confidence_interval_ms: f64,  # 95% CI
+    spread_ms: i64,               # max - min
+}
+
 ================================================================================
 PART V: LAYER 1 — TEMPORAL PROOF (PoT Network Nodes)
 ================================================================================
