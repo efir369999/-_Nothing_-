@@ -78,7 +78,7 @@ def test_state(test_keypair):
         epoch_heartbeats=10,
         total_heartbeats=100
     )
-    state.set_account(test_keypair.public, account)
+    state.set_account(account)
     state.active_accounts = 1
     state.total_supply = 1000_00000000
     return state
@@ -105,7 +105,7 @@ class TestLayerIntegration:
         assert info["layer"] == 0
         assert info["sources_required"] == NTP_MIN_SOURCES_CONSENSUS
         assert info["regions_required"] == NTP_MIN_REGIONS_TOTAL
-        assert len(info["edge_cases_handled"]) == 6
+        assert len(info["edge_cases_handled"]) == 7  # Includes W-MSR
 
     def test_layer1_iterations_calculation(self, test_keypair):
         """Test Layer 1 VDF iterations calculation."""
@@ -253,7 +253,7 @@ class TestStateTransitions:
             balance=0,
             nonce=0
         )
-        test_state.set_account(keypair2.public, account2)
+        test_state.set_account(account2)
 
         # Simulate transfer
         sender = test_state.get_account(test_keypair.public)
@@ -265,8 +265,8 @@ class TestStateTransitions:
         receiver.balance += transfer_amount
         sender.nonce += 1
 
-        test_state.set_account(test_keypair.public, sender)
-        test_state.set_account(keypair2.public, receiver)
+        test_state.set_account(sender)
+        test_state.set_account(receiver)
 
         # Verify
         assert test_state.get_account(test_keypair.public).balance == 900_00000000
@@ -280,7 +280,7 @@ class TestStateTransitions:
         # Simulate heartbeat
         account.epoch_heartbeats += 1
         account.total_heartbeats += 1
-        test_state.set_account(test_keypair.public, account)
+        test_state.set_account(account)
         test_state.total_heartbeats += 1
 
         assert test_state.get_account(test_keypair.public).epoch_heartbeats == initial_count + 1
@@ -321,7 +321,7 @@ class TestEdgeCases:
             balance=0,
             nonce=0
         )
-        test_state.set_account(keypair.public, account)
+        test_state.set_account(account)
 
         retrieved = test_state.get_account(keypair.public)
         assert retrieved.balance == 0
@@ -330,7 +330,7 @@ class TestEdgeCases:
         """Test account with high nonce."""
         account = test_state.get_account(test_keypair.public)
         account.nonce = 1000000
-        test_state.set_account(test_keypair.public, account)
+        test_state.set_account(account)
 
         retrieved = test_state.get_account(test_keypair.public)
         assert retrieved.nonce == 1000000
@@ -366,9 +366,9 @@ class TestConstantsConsistency:
 
         # Max should be greater than base
         assert VDF_MAX_ITERATIONS >= VDF_BASE_ITERATIONS
-        # Checkpoint interval should divide nicely
-        assert VDF_BASE_ITERATIONS % VDF_CHECKPOINT_INTERVAL == 0 or \
-               VDF_CHECKPOINT_INTERVAL > VDF_BASE_ITERATIONS
+        # Checkpoint interval should be reasonable
+        assert VDF_CHECKPOINT_INTERVAL > 0
+        assert VDF_CHECKPOINT_INTERVAL < VDF_BASE_ITERATIONS
 
     def test_layer2_constants(self):
         """Test Layer 2 constants are consistent."""

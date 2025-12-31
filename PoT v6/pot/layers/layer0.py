@@ -1028,17 +1028,21 @@ class MockAtomicTimeOracle:
         return self.base_time_ms + self._offset_ms
 
     def create_proof(self, source_count: int = 20) -> AtomicTimeProof:
-        """Create a mock atomic time proof."""
+        """Create a mock atomic time proof with specified number of sources."""
         current_time = self.get_time_ms()
         sources: List[AtomicSource] = []
         region_bitmap = 0
 
         regions_used = list(ALL_REGIONS)
-        sources_per_region = max(1, source_count // len(regions_used))
+        # Distribute sources evenly across regions, with extras going to first regions
+        base_per_region = source_count // len(regions_used)
+        extra_sources = source_count % len(regions_used)
 
-        for region in regions_used:
-            region_sources = ATOMIC_SOURCES.get(region, [])
-            for i, server in enumerate(region_sources[:sources_per_region]):
+        for region_idx, region in enumerate(regions_used):
+            # Calculate how many sources for this region
+            region_source_count = base_per_region + (1 if region_idx < extra_sources else 0)
+
+            for i in range(region_source_count):
                 if len(sources) >= source_count:
                     break
 
@@ -1047,7 +1051,7 @@ class MockAtomicTimeOracle:
 
                 sources.append(AtomicSource(
                     region=region,
-                    server_id=server.server_id,
+                    server_id=i,  # Mock server ID
                     timestamp_ms=current_time + drift,
                     rtt_ms=50 + i * 5
                 ))

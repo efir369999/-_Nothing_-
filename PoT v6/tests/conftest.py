@@ -22,25 +22,27 @@ def event_loop():
 @pytest.fixture
 def mock_keypair() -> KeyPair:
     """Create a mock keypair for testing."""
-    # Use deterministic values for testing
-    secret_data = bytes([i % 256 for i in range(64)])
-    public_data = bytes([33] + [(i + 100) % 256 for i in range(32)])
+    # Use deterministic values for testing (32 bytes for public, 64 bytes for secret)
+    from pot.constants import SPHINCS_PUBLIC_KEY_SIZE, SPHINCS_SECRET_KEY_SIZE
+    secret_data = bytes([i % 256 for i in range(SPHINCS_SECRET_KEY_SIZE)])
+    public_data = bytes([(i + 100) % 256 for i in range(SPHINCS_PUBLIC_KEY_SIZE)])
 
     return KeyPair(
-        public=PublicKey(public_data),
-        secret=SecretKey(secret_data),
+        public=PublicKey(data=public_data),
+        secret=SecretKey(data=secret_data),
     )
 
 
 @pytest.fixture
 def mock_keypair_2() -> KeyPair:
     """Create a second mock keypair for testing."""
-    secret_data = bytes([(i + 50) % 256 for i in range(64)])
-    public_data = bytes([33] + [(i + 150) % 256 for i in range(32)])
+    from pot.constants import SPHINCS_PUBLIC_KEY_SIZE, SPHINCS_SECRET_KEY_SIZE
+    secret_data = bytes([(i + 50) % 256 for i in range(SPHINCS_SECRET_KEY_SIZE)])
+    public_data = bytes([(i + 150) % 256 for i in range(SPHINCS_PUBLIC_KEY_SIZE)])
 
     return KeyPair(
-        public=PublicKey(public_data),
-        secret=SecretKey(secret_data),
+        public=PublicKey(data=public_data),
+        secret=SecretKey(data=secret_data),
     )
 
 
@@ -76,7 +78,7 @@ def state_with_accounts(mock_keypair, mock_keypair_2) -> GlobalState:
         epoch_heartbeats=10,
         total_heartbeats=100,
     )
-    state.set_account(mock_keypair.public, account1)
+    state.set_account(account1)
 
     # Add second account with smaller balance
     account2 = AccountState(
@@ -86,7 +88,7 @@ def state_with_accounts(mock_keypair, mock_keypair_2) -> GlobalState:
         epoch_heartbeats=5,
         total_heartbeats=50,
     )
-    state.set_account(mock_keypair_2.public, account2)
+    state.set_account(account2)
 
     state.active_accounts = 2
     state.total_supply = 1100_00000000

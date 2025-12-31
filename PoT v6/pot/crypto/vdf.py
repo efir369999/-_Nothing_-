@@ -201,7 +201,10 @@ def get_vdf_iterations(epoch_heartbeats: int) -> int:
         return VDF_BASE_ITERATIONS
 
     # Difficulty doubles every VDF_DIFFICULTY_SCALE heartbeats
-    multiplier = 2.0 ** (epoch_heartbeats / VDF_DIFFICULTY_SCALE)
+    # Cap exponent to prevent overflow (max ~32 doublings before hitting max)
+    max_exponent = 32  # 2^32 * base would exceed any reasonable max
+    exponent = min(epoch_heartbeats / VDF_DIFFICULTY_SCALE, max_exponent)
+    multiplier = 2.0 ** exponent
     iterations = int(VDF_BASE_ITERATIONS * multiplier)
 
     return min(iterations, VDF_MAX_ITERATIONS)

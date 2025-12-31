@@ -4,6 +4,12 @@ PoT Protocol v6 Type Tests
 
 import pytest
 from pot.core.types import Hash, PublicKey, SecretKey, Signature, KeyPair
+from pot.constants import (
+    SPHINCS_PUBLIC_KEY_SIZE,
+    SPHINCS_SECRET_KEY_SIZE,
+    SPHINCS_SIGNATURE_SIZE,
+    ALGORITHM_SPHINCS_PLUS,
+)
 
 
 class TestHash:
@@ -60,17 +66,51 @@ class TestPublicKey:
 
     def test_pubkey_creation(self):
         """Test public key creation."""
-        data = bytes([0x21] + list(range(32)))
-        pk = PublicKey(data)
+        data = bytes(range(SPHINCS_PUBLIC_KEY_SIZE))
+        pk = PublicKey(data=data)
         assert pk.data == data
-        assert len(pk.data) == 33
+        assert len(pk.data) == SPHINCS_PUBLIC_KEY_SIZE
+        assert pk.algorithm == ALGORITHM_SPHINCS_PLUS
+
+    def test_pubkey_with_algorithm(self):
+        """Test public key with explicit algorithm."""
+        data = bytes(range(SPHINCS_PUBLIC_KEY_SIZE))
+        pk = PublicKey(algorithm=0x01, data=data)
+        assert pk.algorithm == 0x01
+        assert pk.data == data
 
     def test_pubkey_serialization(self):
         """Test public key serialization."""
-        data = bytes([0x21] + list(range(32)))
-        pk = PublicKey(data)
+        data = bytes(range(SPHINCS_PUBLIC_KEY_SIZE))
+        pk = PublicKey(data=data)
         serialized = pk.serialize()
-        assert serialized == data
+        # Serialized = algorithm (1 byte) + data
+        assert len(serialized) == 1 + SPHINCS_PUBLIC_KEY_SIZE
+        assert serialized[0] == ALGORITHM_SPHINCS_PLUS
+        assert serialized[1:] == data
+
+    def test_pubkey_deserialization(self):
+        """Test public key deserialization."""
+        data = bytes(range(SPHINCS_PUBLIC_KEY_SIZE))
+        pk = PublicKey(data=data)
+        serialized = pk.serialize()
+        pk2, consumed = PublicKey.deserialize(serialized)
+        assert pk == pk2
+        assert consumed == 1 + SPHINCS_PUBLIC_KEY_SIZE
+
+    def test_pubkey_equality(self):
+        """Test public key equality."""
+        data = bytes(range(SPHINCS_PUBLIC_KEY_SIZE))
+        pk1 = PublicKey(data=data)
+        pk2 = PublicKey(data=data)
+        assert pk1 == pk2
+
+    def test_pubkey_to_address(self):
+        """Test address derivation from public key."""
+        data = bytes(range(SPHINCS_PUBLIC_KEY_SIZE))
+        pk = PublicKey(data=data)
+        address = pk.to_address()
+        assert len(address.data) == 32
 
 
 class TestSecretKey:
@@ -78,10 +118,27 @@ class TestSecretKey:
 
     def test_secret_key_creation(self):
         """Test secret key creation."""
-        data = bytes(range(64))
-        sk = SecretKey(data)
+        data = bytes(range(SPHINCS_SECRET_KEY_SIZE))
+        sk = SecretKey(data=data)
         assert sk.data == data
-        assert len(sk.data) == 64
+        assert len(sk.data) == SPHINCS_SECRET_KEY_SIZE
+        assert sk.algorithm == ALGORITHM_SPHINCS_PLUS
+
+    def test_secret_key_with_algorithm(self):
+        """Test secret key with explicit algorithm."""
+        data = bytes(range(SPHINCS_SECRET_KEY_SIZE))
+        sk = SecretKey(algorithm=0x01, data=data)
+        assert sk.algorithm == 0x01
+        assert sk.data == data
+
+    def test_secret_key_repr_redacted(self):
+        """Test secret key representation is redacted."""
+        data = bytes(range(SPHINCS_SECRET_KEY_SIZE))
+        sk = SecretKey(data=data)
+        repr_str = repr(sk)
+        assert "<redacted>" in repr_str
+        # Should NOT expose the actual data
+        assert data.hex() not in repr_str
 
 
 class TestSignature:
@@ -89,17 +146,58 @@ class TestSignature:
 
     def test_signature_creation(self):
         """Test signature creation."""
-        data = bytes(range(100))
-        sig = Signature(data)
+        data = bytes(range(256)) * (SPHINCS_SIGNATURE_SIZE // 256 + 1)
+        data = data[:SPHINCS_SIGNATURE_SIZE]
+        sig = Signature(data=data)
         assert sig.data == data
+        assert len(sig.data) == SPHINCS_SIGNATURE_SIZE
+
+    def test_signature_empty(self):
+        """Test empty signature creation."""
+        sig = Signature.empty()
+        assert len(sig.data) == SPHINCS_SIGNATURE_SIZE
+        assert sig.data == bytes(SPHINCS_SIGNATURE_SIZE)
+
+    def test_signature_serialization(self):
+        """Test signature serialization."""
+        data = bytes([0xAB] * SPHINCS_SIGNATURE_SIZE)
+        sig = Signature(data=data)
+        serialized = sig.serialize()
+        # Serialized = algorithm (1 byte) + data
+        assert len(serialized) == 1 + SPHINCS_SIGNATURE_SIZE
+        assert serialized[0] == ALGORITHM_SPHINCS_PLUS
+        assert serialized[1:] == data
 
 
 class TestKeyPair:
     """Tests for KeyPair type."""
 
-    def test_keypair_creation(self, mock_keypair):
+    def test_keypair_creation(self):
         """Test keypair creation."""
-        assert mock_keypair.public is not None
-        assert mock_keypair.secret is not None
-        assert len(mock_keypair.public.data) == 33
-        assert len(mock_keypair.secret.data) == 64
+        pk_data = bytes(range(SPHINCS_PUBLIC_KEY_SIZE))
+        sk_data = bytes(range(SPHINCS_SECRET_KEY_SIZE))
+        pk = PublicKey(data=pk_data)
+        sk = SecretKey(data=sk_data)
+        kp = KeyPair(public=pk, secret=sk)
+
+        assert kp.public == pk
+        assert kp.secret == sk
+        assert len(kp.public.data) == SPHINCS_PUBLIC_KEY_SIZE
+        assert len(kp.secret.data) == SPHINCS_SECRET_KEY_SIZE
+
+    def test_keypair_algorithm_consistency(self):
+        """Test keypair requires consistent algorithms."""
+        pk = PublicKey(algorithm=0x01, data=bytes(SPHINCS_PUBLIC_KEY_SIZE))
+        sk = SecretKey(algorithm=0x02, data=bytes(SPHINCS_SECRET_KEY_SIZE))
+
+        with pytest.raises(ValueError):
+            KeyPair(public=pk, secret=sk)
+
+    def test_keypair_to_address(self):
+        """Test keypair address derivation."""
+        pk = PublicKey(data=bytes(range(SPHINCS_PUBLIC_KEY_SIZE)))
+        sk = SecretKey(data=bytes(range(SPHINCS_SECRET_KEY_SIZE)))
+        kp = KeyPair(public=pk, secret=sk)
+
+        address = kp.to_address()
+        assert address == pk.to_address()

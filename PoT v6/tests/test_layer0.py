@@ -97,9 +97,12 @@ def sources_with_outlier(sample_sources):
 def mock_server():
     """Create a mock NTP server config."""
     return AtomicTimeSource(
-        host="time.example.com",
         region=REGION_NORTH_AMERICA,
-        server_id=0
+        server_id=0,
+        lab="TEST",
+        host="time.example.com",
+        country="USA",
+        city="Boulder"
     )
 
 

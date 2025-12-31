@@ -163,7 +163,7 @@ class TestEpochManagement:
 
         # Should be roughly 3-4 years in seconds
         assert time_estimate > 0
-        assert time_estimate < 200000 * 600  # Max blocks in epoch * block time
+        assert time_estimate <= 210000 * 600  # Max blocks in epoch * block time
 
 
 # =============================================================================

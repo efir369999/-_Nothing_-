@@ -51,11 +51,12 @@ def mock_btc_anchor():
     """Create a mock Bitcoin anchor."""
     return BitcoinAnchor(
         height=800000,
-        hash=Hash(data=bytes.fromhex("00" * 32)),
-        timestamp_ms=1704067200000,
-        merkle_root=Hash(data=bytes.fromhex("11" * 32)),
-        difficulty=0,
-        nonce=0
+        block_hash=bytes.fromhex("00" * 32),
+        merkle_root=bytes.fromhex("11" * 32),
+        timestamp=1704067200,  # Unix seconds
+        difficulty=50000000000000,
+        epoch=3,  # Post third halving
+        confirmations=6
     )
 
 
@@ -143,11 +144,12 @@ class TestVDFSeed:
 
         other_anchor = BitcoinAnchor(
             height=800001,  # Different height
-            hash=Hash(data=bytes.fromhex("22" * 32)),
-            timestamp_ms=1704067200000,
-            merkle_root=Hash(data=bytes.fromhex("11" * 32)),
-            difficulty=0,
-            nonce=0
+            block_hash=bytes.fromhex("22" * 32),
+            merkle_root=bytes.fromhex("11" * 32),
+            timestamp=1704067200,
+            difficulty=50000000000000,
+            epoch=3,
+            confirmations=6
         )
         seed2 = generate_vdf_seed(mock_pubkey, other_anchor)
 

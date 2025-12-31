@@ -65,7 +65,7 @@ class TestGlobalState:
             pubkey=mock_keypair.public,
             balance=100,
         )
-        empty_state.set_account(mock_keypair.public, account)
+        empty_state.set_account(account)
 
         retrieved = empty_state.get_account(mock_keypair.public)
         assert retrieved is not None
@@ -82,7 +82,8 @@ class TestGlobalState:
         copy.chain_height = 999
         assert state_with_accounts.chain_height != 999
 
-    def test_get_all_pubkeys(self, state_with_accounts):
-        """Test getting all public keys."""
-        pubkeys = state_with_accounts.get_all_pubkeys()
-        assert len(pubkeys) == 2
+    def test_iter_accounts(self, state_with_accounts):
+        """Test iterating over all accounts."""
+        accounts = list(state_with_accounts.iter_accounts())
+        assert len(accounts) == 2
+        assert state_with_accounts.account_count() == 2
