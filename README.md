@@ -22,10 +22,11 @@
            "We approach, we never claim to arrive."
 ```
 
-[![Layer -1](https://img.shields.io/badge/Layer%20--1-v2.1-blue)](ATC%20v8/Layer%20-1/layer_minus_1.md)
-[![Layer 0](https://img.shields.io/badge/Layer%200-v1.0-blue)](ATC%20v8/Layer%200/layer_0.md)
-[![Rating](https://img.shields.io/badge/rating-10%2F10-brightgreen)](ATC%20v8/Layer%20-1/HYPERCRITICISM_PROOF.md)
-[![Physics](https://img.shields.io/badge/foundation-physics-orange)](ATC%20v8/Layer%20-1/layer_minus_1.md)
+[![Layer -1](https://img.shields.io/badge/Layer%20--1-v2.1-blue)](ATC%20v8.1/Layer%20-1/layer_minus_1.md)
+[![Layer 0](https://img.shields.io/badge/Layer%200-v1.0-blue)](ATC%20v8.1/Layer%200/layer_0.md)
+[![Layer 1](https://img.shields.io/badge/Layer%201-v1.0-blue)](ATC%20v8.1/Layer%201/layer_1.md)
+[![Rating](https://img.shields.io/badge/rating-10%2F10-brightgreen)](ATC%20v8.1/Layer%20-1/HYPERCRITICISM_PROOF.md)
+[![Physics](https://img.shields.io/badge/foundation-physics-orange)](ATC%20v8.1/Layer%20-1/layer_minus_1.md)
 
 ---
 
@@ -61,9 +62,16 @@ Traditional Cryptography:          ATC Architecture:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Layer 1+: Protocol Design                          [Future]   │
+│  Layer 2+: Protocols (Montana, etc.)               [Future]    │
 │  ─────────────────────────────────────────────────────────────  │
-│  Consensus mechanisms, network models, security definitions    │
+│  Consensus mechanisms, network models, cryptocurrencies        │
+└─────────────────────────────────────────────────────────────────┘
+                              ↑ builds on
+┌─────────────────────────────────────────────────────────────────┐
+│  Layer 1: Protocol Primitives                        v1.0      │
+│  ─────────────────────────────────────────────────────────────  │
+│  What is BUILDABLE: VDF, VRF, Commitment, Timestamp, Ordering  │
+│  Types: A/B/C/P (inherited) + S (composition) + I (impl)       │
 └─────────────────────────────────────────────────────────────────┘
                               ↑ builds on
 ┌─────────────────────────────────────────────────────────────────┐
@@ -118,7 +126,7 @@ An adversary unconstrained by physics could:
 | L-1.7 | Thermal Noise | Confirmed since 1928 |
 | L-1.8 | Decoherence | Many scales confirmed |
 
-**→ [Full specification](ATC%20v8/Layer%20-1/layer_minus_1.md)**
+**→ [Full specification](ATC%20v8.1/Layer%20-1/layer_minus_1.md)**
 
 ---
 
@@ -135,7 +143,25 @@ An adversary unconstrained by physics could:
 
 **Post-Quantum Ready:** NIST FIPS 203/204/205 from day one.
 
-**→ [Full specification](ATC%20v8/Layer%200/layer_0.md)**
+**→ [Full specification](ATC%20v8.1/Layer%200/layer_0.md)**
+
+---
+
+## Layer 1: Protocol Primitives
+
+*What is BUILDABLE — cryptographic building blocks*
+
+| Primitive | Description | PQ Status |
+|-----------|-------------|-----------|
+| VDF | Verifiable Delay Functions | Hash-based: Secure |
+| VRF | Verifiable Random Functions | Lattice: Secure |
+| Commitment | Hide-then-reveal schemes | Hash-based: Secure |
+| Timestamp | Temporal existence proofs | Hash-based: Secure |
+| Ordering | Event sequencing | Logical: N/A |
+
+**Types:** A/B/C/P (inherited) + S (composition) + I (implementation)
+
+**→ [Full specification](ATC%20v8.1/Layer%201/layer_1.md)**
 
 ---
 
@@ -166,8 +192,14 @@ ATC v8.1/
 │   ├── EVALUATION_QUICK_REFERENCE.md  Assessment card
 │   └── RELEASE_v2.1.md                Release notes
 │
-└── Layer 0/                       Computational Constraints (v1.0)
-    ├── layer_0.md                     Specification
+├── Layer 0/                       Computational Constraints (v1.0)
+│   ├── layer_0.md                     Specification
+│   ├── HYPERCRITICISM_PROOF.md        Certification
+│   ├── EVALUATION_QUICK_REFERENCE.md  Assessment card
+│   └── RELEASE_v1.0.md                Release notes
+│
+└── Layer 1/                       Protocol Primitives (v1.0)
+    ├── layer_1.md                     Specification
     ├── HYPERCRITICISM_PROOF.md        Certification
     ├── EVALUATION_QUICK_REFERENCE.md  Assessment card
     └── RELEASE_v1.0.md                Release notes
@@ -181,10 +213,12 @@ CLAUDE.md                          AI Architect role definition
 
 | Document | Layer | Description |
 |----------|-------|-------------|
-| [Layer -1 Spec](ATC%20v8/Layer%20-1/layer_minus_1.md) | -1 | Physical constraints |
-| [Layer 0 Spec](ATC%20v8/Layer%200/layer_0.md) | 0 | Computational constraints |
-| [L-1 Certification](ATC%20v8/Layer%20-1/HYPERCRITICISM_PROOF.md) | -1 | Why 10/10 |
-| [L0 Certification](ATC%20v8/Layer%200/HYPERCRITICISM_PROOF.md) | 0 | Why 10/10 |
+| [Layer -1 Spec](ATC%20v8.1/Layer%20-1/layer_minus_1.md) | -1 | Physical constraints |
+| [Layer 0 Spec](ATC%20v8.1/Layer%200/layer_0.md) | 0 | Computational constraints |
+| [Layer 1 Spec](ATC%20v8.1/Layer%201/layer_1.md) | 1 | Protocol primitives |
+| [L-1 Certification](ATC%20v8.1/Layer%20-1/HYPERCRITICISM_PROOF.md) | -1 | Why 10/10 |
+| [L0 Certification](ATC%20v8.1/Layer%200/HYPERCRITICISM_PROOF.md) | 0 | Why 10/10 |
+| [L1 Certification](ATC%20v8.1/Layer%201/HYPERCRITICISM_PROOF.md) | 1 | Why 10/10 |
 
 ---
 
@@ -220,6 +254,7 @@ C O N S E N S U S
 |-------|---------|-----|--------|
 | -1 | v2.1.0 | [layer-1-v2.1.0](https://github.com/afgrouptime/atc/releases/tag/layer-1-v2.1.0) | 10/10 |
 | 0 | v1.0.0 | [layer-0-v1.0.0](https://github.com/afgrouptime/atc/releases/tag/layer-0-v1.0.0) | 10/10 |
+| 1 | v1.0.0 | [layer-1-v1.0.0](https://github.com/afgrouptime/atc/releases/tag/layer-1-v1.0.0) | 10/10 |
 
 ---
 
@@ -235,6 +270,11 @@ C O N S E N S U S
 - Shannon (1948) — Information theory
 - NIST FIPS 203/204/205 (2024) — Post-quantum standards
 - Regev (2005) — Lattice cryptography
+
+**Protocol Primitives (Layer 1):**
+- Boneh et al. (2018) — Verifiable Delay Functions
+- Micali et al. (1999) — Verifiable Random Functions
+- Lamport (1978) — Time, Clocks, and Ordering
 
 ---
 

@@ -1,7 +1,7 @@
 # ATC Architect — Asymptotic Trust Consensus
 
-**Role Version:** 4.1.0
-**Scope:** Full ATC Stack (Layers -1, 0, and future layers)
+**Role Version:** 4.2.0
+**Scope:** Full ATC Stack (Layers -1, 0, 1, and future layers)
 **Language:** English
 
 ---
@@ -14,8 +14,14 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Layer 1+: Protocol Design                          [Future]   │
-│  Consensus mechanisms, network models, security definitions    │
+│  Layer 2+: Protocols (Montana, etc.)               [Future]    │
+│  Consensus mechanisms, network models, cryptocurrencies        │
+└─────────────────────────────────────────────────────────────────┘
+                              ↑ builds on
+┌─────────────────────────────────────────────────────────────────┐
+│  Layer 1: Protocol Primitives                        v1.0      │
+│  What is BUILDABLE: VDF, VRF, Commitment, Timestamp, Ordering  │
+│  Types: A/B/C/P (inherited) + S (composition) + I (impl)       │
 └─────────────────────────────────────────────────────────────────┘
                               ↑ builds on
 ┌─────────────────────────────────────────────────────────────────┐
@@ -47,7 +53,8 @@ This role covers the entire ATC architecture:
 |-------|------|--------|-------|
 | -1 | Physical Constraints | v2.1 ✓ | What is IMPOSSIBLE |
 | 0 | Computational Constraints | v1.0 ✓ | What is HARD |
-| 1+ | Protocol Design | Future | How to build securely |
+| 1 | Protocol Primitives | v1.0 ✓ | What is BUILDABLE |
+| 2+ | Protocols | Future | How to build securely |
 
 ---
 
@@ -119,6 +126,7 @@ I never assume the user is right or that I am right — instead, I treat every c
 |----------|----------|---------|
 | **Layer -1 Specification** | `./ATC v8.1/Layer -1/layer_minus_1.md` | v2.1 |
 | **Layer 0 Specification** | `./ATC v8.1/Layer 0/layer_0.md` | v1.0 |
+| **Layer 1 Specification** | `./ATC v8.1/Layer 1/layer_1.md` | v1.0 |
 
 These are the authoritative documents for all ATC claims.
 
@@ -196,6 +204,31 @@ These are our best empirically-verified models of physical reality and computati
 
 ---
 
+## Layer 1: Protocol Primitives
+
+**What is BUILDABLE — cryptographic building blocks**
+
+| Primitive | Description | Type | PQ Status |
+|-----------|-------------|------|-----------|
+| VDF | Verifiable Delay Functions | P + C | Hash-based: Secure |
+| VRF | Verifiable Random Functions | B | Lattice: Secure |
+| Commitment | Hide-then-reveal schemes | A/B | Hash-based: Secure |
+| Timestamp | Temporal existence proofs | P + C | Hash-based: Secure |
+| Ordering | Event sequencing | A | N/A (logical) |
+
+### Epistemic Classification (Layer 1)
+
+Inherits from Layer 0, adds:
+
+| Type | Name | Confidence | Example |
+|------|------|------------|---------|
+| S | Secure Composition | Proven combination | Hybrid KEM |
+| I | Implementation-dependent | Varies | Concrete parameters |
+
+**Key principle:** Each primitive has explicit Layer -1 and Layer 0 dependencies documented.
+
+---
+
 ## Adversary Model
 
 **The adversary has arbitrarily large but finite physical resources.**
@@ -222,20 +255,23 @@ The adversary **may or may not be able to** (Layer 0):
 1. CLASSIFY the claim layer:
    → Physical law → verify against Layer -1
    → Computational bound → verify against Layer 0
-   → Protocol design → Layer 1+ (future scope)
+   → Protocol primitive → verify against Layer 1
+   → Complete protocol → Layer 2+ (future scope)
 
 2. CLASSIFY the claim type:
    Layer -1: Type 1/2/3/4
    Layer 0:  Type A/B/C/D/P
+   Layer 1:  Type A/B/C/P/S/I
 
 3. CHECK consistency:
-   → Does it violate any L-1.x or L-0.x constraint?
+   → Does it violate any L-1.x, L-0.x, or L-1.x constraint?
    → Is the epistemic type correctly stated?
    → Are sources cited?
 
 4. CHECK layer dependencies:
    → Layer 0 claims must not contradict Layer -1
-   → Layer 1+ claims must not contradict Layer 0 or -1
+   → Layer 1 claims must not contradict Layer 0 or -1
+   → Layer 2+ claims must not contradict Layer 1, 0, or -1
 
 5. RESPOND:
    → Confident → assert with stated basis and type
@@ -295,14 +331,20 @@ The adversary **may or may not be able to** (Layer 0):
    - Bekenstein bound → maximum information per volume
    - Speed of light → maximum communication speed
 
-2. **Layer 0 → Layer 1+:** Computational bounds constrain protocols
+2. **Layer 0 → Layer 1:** Computational bounds constrain primitives
    - Birthday bound → hash output size requirements
    - Hardness assumptions → cryptographic primitive choices
    - Quantum bounds → post-quantum security levels
 
-3. **Upward only:** Lower layers constrain higher layers, never reverse
+3. **Layer 1 → Layer 2+:** Primitives constrain protocols
+   - VDF sequentiality → time-based consensus possible
+   - VRF randomness → fair leader election
+   - Commitment schemes → hidden then revealed values
+
+4. **Upward only:** Lower layers constrain higher layers, never reverse
    - Layer 0 cannot assume weaker physics than Layer -1 provides
-   - Layer 1+ cannot assume weaker computation than Layer 0 provides
+   - Layer 1 cannot assume weaker computation than Layer 0 provides
+   - Layer 2+ cannot assume weaker primitives than Layer 1 provides
 
 ---
 
@@ -320,6 +362,12 @@ The adversary **may or may not be able to** (Layer 0):
 - Regev (2005) — Lattice cryptography
 - Bennett et al. (1997) — Grover optimality
 
+**Layer 1 (Primitives):**
+- Boneh et al. (2018) — Verifiable Delay Functions
+- Micali et al. (1999) — Verifiable Random Functions
+- Lamport (1978) — Time, Clocks, and Ordering
+- Pedersen (1991) — Commitment schemes
+
 **Standards:**
 - BIPM SI Brochure, 9th edition (2019)
 - NIST CODATA (2018)
@@ -333,8 +381,10 @@ The adversary **may or may not be able to** (Layer 0):
 
 > *Layer 0 represents the computational constraints imposed by mathematics and physics on any cryptographic protocol.*
 
-> *Protocols may assume weaker physics or harder computation;*
-> *they cannot assume stronger physics or easier computation*
+> *Layer 1 represents the protocol primitives that can be built from physical and computational constraints.*
+
+> *Protocols may assume weaker physics, harder computation, or weaker primitives;*
+> *they cannot assume stronger physics, easier computation, or stronger primitives*
 > *without leaving the domain of known science.*
 
 ---
