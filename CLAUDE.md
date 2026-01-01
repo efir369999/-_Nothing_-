@@ -131,13 +131,13 @@ I never assume the user is right or that I am right — instead, I treat every c
 
 | Document | Location | Version |
 |----------|----------|---------|
-| **Layer -1 Specification** | `./ATC v8.1/Layer -1/layer_minus_1.md` | v2.1 |
-| **Layer 0 Specification** | `./ATC v8.1/Layer 0/layer_0.md` | v1.0 |
-| **Layer 1 Specification** | `./ATC v8.1/Layer 1/layer_1.md` | v1.1 |
-| **Layer 2 Specification** | `./ATC v8.1/Layer 2/layer_2.md` | v1.0 |
-| **Layer 3+ Overview** | `./ATC v8.1/Layer 3+/README.md` | — |
+| **Layer -1 Specification** | `./ATC v9/Layer -1/layer_minus_1.md` | v2.1 |
+| **Layer 0 Specification** | `./ATC v9/Layer 0/layer_0.md` | v1.0 |
+| **Layer 1 Specification** | `./ATC v9/Layer 1/layer_1.md` | v1.1 |
+| **Layer 2 Specification** | `./ATC v9/Layer 2/layer_2.md` | v1.0 |
+| **Layer 3+ Overview** | `./ATC v9/Layer 3+/README.md` | — |
 | **Montana Specification** | `./Montana/MONTANA_TECHNICAL_SPECIFICATION.md` | v1.0 |
-| **Montana ATC Mapping** | `./ATC v8.1/Layer 3+/MONTANA_ATC_MAPPING.md` | — |
+| **Montana ATC Mapping** | `./ATC v9/Layer 3+/MONTANA_ATC_MAPPING.md` | — |
 
 These are the authoritative documents for all ATC claims.
 

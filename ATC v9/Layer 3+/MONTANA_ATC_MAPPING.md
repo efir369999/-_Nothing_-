@@ -240,7 +240,7 @@ To verify Montana compliance with ATC:
    ✓ Liveness: After GST
    ✓ Finality: Bitcoin anchor
 
-→ Montana v1.0 COMPLIES with ATC v8.1
+→ Montana v1.0 COMPLIES with ATC v9
 ```
 
 ---

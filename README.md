@@ -22,13 +22,13 @@
            "We approach, we never claim to arrive."
 ```
 
-[![Layer -1](https://img.shields.io/badge/Layer%20--1-v2.1-blue)](ATC%20v8.1/Layer%20-1/layer_minus_1.md)
-[![Layer 0](https://img.shields.io/badge/Layer%200-v1.0-blue)](ATC%20v8.1/Layer%200/layer_0.md)
-[![Layer 1](https://img.shields.io/badge/Layer%201-v1.1-blue)](ATC%20v8.1/Layer%201/layer_1.md)
-[![Layer 2](https://img.shields.io/badge/Layer%202-v1.0-blue)](ATC%20v8.1/Layer%202/layer_2.md)
+[![Layer -1](https://img.shields.io/badge/Layer%20--1-v2.1-blue)](ATC%20v9/Layer%20-1/layer_minus_1.md)
+[![Layer 0](https://img.shields.io/badge/Layer%200-v1.0-blue)](ATC%20v9/Layer%200/layer_0.md)
+[![Layer 1](https://img.shields.io/badge/Layer%201-v1.1-blue)](ATC%20v9/Layer%201/layer_1.md)
+[![Layer 2](https://img.shields.io/badge/Layer%202-v1.0-blue)](ATC%20v9/Layer%202/layer_2.md)
 [![Layer 3+](https://img.shields.io/badge/Layer%203%2B-Montana%20v1.0-purple)](Montana/MONTANA_TECHNICAL_SPECIFICATION.md)
-[![Rating](https://img.shields.io/badge/rating-10%2F10-brightgreen)](ATC%20v8.1/Layer%20-1/HYPERCRITICISM_PROOF.md)
-[![Physics](https://img.shields.io/badge/foundation-physics-orange)](ATC%20v8.1/Layer%20-1/layer_minus_1.md)
+[![Rating](https://img.shields.io/badge/rating-10%2F10-brightgreen)](ATC%20v9/Layer%20-1/HYPERCRITICISM_PROOF.md)
+[![Physics](https://img.shields.io/badge/foundation-physics-orange)](ATC%20v9/Layer%20-1/layer_minus_1.md)
 
 ---
 
@@ -137,7 +137,7 @@ An adversary unconstrained by physics could:
 | L-1.7 | Thermal Noise | Confirmed since 1928 |
 | L-1.8 | Decoherence | Many scales confirmed |
 
-**→ [Full specification](ATC%20v8.1/Layer%20-1/layer_minus_1.md)**
+**→ [Full specification](ATC%20v9/Layer%20-1/layer_minus_1.md)**
 
 ---
 
@@ -154,7 +154,7 @@ An adversary unconstrained by physics could:
 
 **Post-Quantum Ready:** NIST FIPS 203/204/205 from day one.
 
-**→ [Full specification](ATC%20v8.1/Layer%200/layer_0.md)**
+**→ [Full specification](ATC%20v9/Layer%200/layer_0.md)**
 
 ---
 
@@ -172,7 +172,7 @@ An adversary unconstrained by physics could:
 
 **Types:** A/B/C/P (inherited) + S (composition) + I (implementation)
 
-**→ [Full specification](ATC%20v8.1/Layer%201/layer_1.md)**
+**→ [Full specification](ATC%20v9/Layer%201/layer_1.md)**
 
 ---
 
@@ -192,7 +192,7 @@ An adversary unconstrained by physics could:
 
 **Types:** A/B/C/P/S/I (inherited) + N (network-dependent)
 
-**→ [Full specification](ATC%20v8.1/Layer%202/layer_2.md)**
+**→ [Full specification](ATC%20v9/Layer%202/layer_2.md)**
 
 ---
 
@@ -213,9 +213,9 @@ An adversary unconstrained by physics could:
 | Time Source | 34 NTP servers, 8 geographic regions |
 | Token | Ɉ (seconds), 1.26B supply, fair launch |
 
-**→ [Layer 3+ Overview](ATC%20v8.1/Layer%203%2B/README.md)**
+**→ [Layer 3+ Overview](ATC%20v9/Layer%203%2B/README.md)**
 **→ [Montana Specification](Montana/MONTANA_TECHNICAL_SPECIFICATION.md)**
-**→ [ATC Mapping](ATC%20v8.1/Layer%203%2B/MONTANA_ATC_MAPPING.md)**
+**→ [ATC Mapping](ATC%20v9/Layer%203%2B/MONTANA_ATC_MAPPING.md)**
 
 ---
 
@@ -239,7 +239,7 @@ An adversary unconstrained by physics could:
 ## Repository Structure
 
 ```
-ATC v8.1/
+ATC v9/
 ├── Layer -1/                      Physical Constraints (v2.1)
 │   ├── layer_minus_1.md               Specification
 │   ├── HYPERCRITICISM_PROOF.md        Certification
@@ -280,13 +280,13 @@ CLAUDE.md                          AI Architect role definition
 
 | Document | Layer | Description |
 |----------|-------|-------------|
-| [Layer -1 Spec](ATC%20v8.1/Layer%20-1/layer_minus_1.md) | -1 | Physical constraints |
-| [Layer 0 Spec](ATC%20v8.1/Layer%200/layer_0.md) | 0 | Computational constraints |
-| [Layer 1 Spec](ATC%20v8.1/Layer%201/layer_1.md) | 1 | Protocol primitives |
-| [Layer 2 Spec](ATC%20v8.1/Layer%202/layer_2.md) | 2 | Consensus protocols |
-| [Layer 3+ Overview](ATC%20v8.1/Layer%203%2B/README.md) | 3+ | Implementations |
+| [Layer -1 Spec](ATC%20v9/Layer%20-1/layer_minus_1.md) | -1 | Physical constraints |
+| [Layer 0 Spec](ATC%20v9/Layer%200/layer_0.md) | 0 | Computational constraints |
+| [Layer 1 Spec](ATC%20v9/Layer%201/layer_1.md) | 1 | Protocol primitives |
+| [Layer 2 Spec](ATC%20v9/Layer%202/layer_2.md) | 2 | Consensus protocols |
+| [Layer 3+ Overview](ATC%20v9/Layer%203%2B/README.md) | 3+ | Implementations |
 | [Montana Spec](Montana/MONTANA_TECHNICAL_SPECIFICATION.md) | 3+ | Reference implementation |
-| [Montana Mapping](ATC%20v8.1/Layer%203%2B/MONTANA_ATC_MAPPING.md) | 3+ | ATC layer mapping |
+| [Montana Mapping](ATC%20v9/Layer%203%2B/MONTANA_ATC_MAPPING.md) | 3+ | ATC layer mapping |
 
 ---
 

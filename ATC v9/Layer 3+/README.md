@@ -141,7 +141,7 @@ Layer 3+ implementations have their own version numbers independent of ATC layer
 
 | Implementation | Version | ATC Compatibility |
 |----------------|---------|-------------------|
-| Montana | v1.0 | ATC v8.1 (L-1 v2.1, L0 v1.0, L1 v1.1, L2 v1.0) |
+| Montana | v1.0 | ATC v9 (L-1 v2.1, L0 v1.0, L1 v1.1, L2 v1.0) |
 
 ---
 
