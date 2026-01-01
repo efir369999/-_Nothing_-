@@ -1,13 +1,13 @@
 # Montana ↔ ATC Layer Mapping
 
-**Montana Version:** 1.0
+**Montana Version:** 1.1
 **ATC Version:** 9.0 (L-1 v2.1, L0 v1.0, L1 v1.1, L2 v1.0)
 
 ---
 
 ## Overview
 
-This document maps Montana protocol components to their foundational ATC layers, showing exactly which constraints and primitives Montana relies upon.
+This document maps Montana temporal consensus protocol components to their foundational ATC layers, showing exactly which constraints and primitives Montana relies upon.
 
 ---
 
@@ -245,14 +245,14 @@ To verify Montana compliance with ATC:
    ✓ Liveness: After GST
    ✓ Finality: Bitcoin anchor
 
-→ Montana v1.0 COMPLIES with ATC v9
+→ Montana v1.1 COMPLIES with ATC v9
 ```
 
 ---
 
 ## References
 
-- Montana Technical Specification v1.0
+- Montana Technical Specification v1.1
 - ATC Layer -1 v2.1
 - ATC Layer 0 v1.0
 - ATC Layer 1 v1.1

@@ -1,19 +1,20 @@
-# Ɉ Montana Technical Specification v1.0
+# Ɉ Montana Technical Specification v1.1
 
 **Protocol Version:** 7
-**Document Version:** 1.0
+**Document Version:** 1.1
 **Date:** January 2026
 **ATC Compatibility:** v9.0 (L-1 v2.1, L0 v1.0, L1 v1.1, L2 v1.0)
 
-> Montana is a Layer 3+ implementation of the Asymptotic Trust Consensus (ATC) architecture.
-> All security claims inherit from lower ATC layers. See [MONTANA_ATC_MAPPING.md](MONTANA_ATC_MAPPING.md) for complete layer mapping.
+> Montana is a temporal consensus protocol for asymptotic trust in time value.
+> Built on ATC Layer 3+. All security claims inherit from lower ATC layers.
+> See [MONTANA_ATC_MAPPING.md](MONTANA_ATC_MAPPING.md) for complete layer mapping.
 
 ---
 
 ## Table of Contents
 
 1. [Overview](#1-overview)
-2. [Token Specification](#2-token-specification)
+2. [Time Unit Specification](#2-time-unit-specification)
 3. [Asymptotic Trust Consensus (ATC)](#3-asymptotic-trust-consensus-atc)
 4. [Layer 0: Atomic Time](#4-layer-0-atomic-time)
 5. [Layer 1: Temporal Proof](#5-layer-1-temporal-proof)
@@ -94,15 +95,15 @@ ATC Foundation:
 
 ---
 
-## 2. Token Specification
+## 2. Time Unit Specification
 
 ### 2.1 Identity
 
 ```python
-TOKEN_NAME: str = "Montana"
-TOKEN_SYMBOL: str = "Ɉ"
-TOKEN_TICKER: str = "MONT"
-UNIT: str = "seconds"
+PROTOCOL_NAME: str = "Montana"
+TIME_SYMBOL: str = "Ɉ"
+TICKER: str = "MONT"
+UNIT: str = "seconds"  # 1 Ɉ = 1 second
 ```
 
 ### 2.2 Supply Parameters
@@ -1417,11 +1418,11 @@ def signal_mip_support(heartbeat: Heartbeat, mip_number: int) -> None:
 
 ```python
 # ==============================================================================
-# TOKEN
+# TIME UNIT
 # ==============================================================================
-TOKEN_NAME = "Montana"
-TOKEN_SYMBOL = "Ɉ"
-TOKEN_TICKER = "MONT"
+PROTOCOL_NAME = "Montana"
+TIME_SYMBOL = "Ɉ"
+TICKER = "MONT"
 TOTAL_SUPPLY = 1_260_000_000
 INITIAL_REWARD = 3000
 HALVING_INTERVAL = 210_000
@@ -2338,11 +2339,11 @@ def create_genesis_state() -> GlobalState:
 
 ```python
 # ==============================================================================
-# TOKEN
+# TIME UNIT
 # ==============================================================================
-TOKEN_NAME = "Montana"
-TOKEN_SYMBOL = "Ɉ"
-TOKEN_TICKER = "MONT"
+PROTOCOL_NAME = "Montana"
+TIME_SYMBOL = "Ɉ"
+TICKER = "MONT"
 TOTAL_SUPPLY = 1_260_000_000
 INITIAL_REWARD = 3000
 HALVING_INTERVAL = 210_000
@@ -2481,5 +2482,5 @@ GENESIS_BTC_HASH = bytes(32)         # Set at launch
 
 ---
 
-*Ɉ Montana Technical Specification v1.0*
-*December 2025*
+*Ɉ Montana Technical Specification v1.1*
+*January 2026*

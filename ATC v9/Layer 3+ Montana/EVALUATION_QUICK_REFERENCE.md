@@ -1,14 +1,14 @@
-# Montana v1.0: Quick Evaluation Reference
+# Montana v1.1: Quick Evaluation Reference
 
 **Rating:** 10/10
-**Type:** Layer 3+ Implementation
+**Type:** Layer 3+ Implementation (Temporal Consensus Protocol)
 **ATC Compatibility:** v9.0
 
 ---
 
 ## One-Line Summary
 
-Montana is a post-quantum cryptocurrency that grounds security in physics, using time as both consensus mechanism and unit of value.
+Montana is a temporal consensus protocol for asymptotic trust in time value, grounding security in physics.
 
 ---
 
@@ -44,6 +44,7 @@ L2 Consensus:    ✓ DAG, BFT, Finality
 | Parameter | Value |
 |-----------|-------|
 | Total Supply | 1,260,000,000 Ɉ |
+| Time Unit | 1 Ɉ = 1 second |
 | Block Reward | 3,000 Ɉ (halving) |
 | Block Time | ~10 minutes |
 | NTP Sources | 34 (8 regions) |
@@ -108,4 +109,4 @@ Montana claims exactly what it can support.
 
 ---
 
-*Montana v1.0: Time-based consensus built on physics.*
+*Montana v1.1: Asymptotic trust in time, built on physics.*

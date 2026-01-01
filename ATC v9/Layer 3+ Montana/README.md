@@ -1,17 +1,26 @@
-# Layer 3+: Montana Implementation
+# Layer 3+: Montana — Asymptotic Trust in Time Value
 
-**Status:** v1.0 Reference Implementation
+**Status:** v1.1 Reference Implementation
 **ATC Compatibility:** v9.0 (L-1 v2.1, L0 v1.0, L1 v1.1, L2 v1.0)
 
 ---
 
-> *"Time-based consensus built on physics."*
+> *"An intermediate solution for building trust in time as the universal unit of value."*
 
 ---
 
-## Overview
+## What Montana Is
 
-Montana is the reference implementation of the ATC (Asymptotic Trust Consensus) architecture. It demonstrates how Layers -1 through 2 combine into a deployable cryptocurrency protocol.
+**Montana is a temporal consensus protocol** — a mechanism for establishing asymptotic trust that **1 Ɉ = 1 second** of human time.
+
+```
+lim(evidence → ∞) Trust = 1
+∀t: Trust(t) < 1
+
+"We approach certainty; we never claim to reach it."
+```
+
+Montana is the mechanism. Time provides the evidence.
 
 ---
 
@@ -22,6 +31,8 @@ Montana is the reference implementation of the ATC (Asymptotic Trust Consensus) 
 | [WHITEPAPER.md](WHITEPAPER.md) | Conceptual overview and design rationale |
 | [MONTANA_TECHNICAL_SPECIFICATION.md](MONTANA_TECHNICAL_SPECIFICATION.md) | Complete implementation specification |
 | [MONTANA_ATC_MAPPING.md](MONTANA_ATC_MAPPING.md) | Layer-by-layer mapping to ATC |
+| [HYPERCRITICISM_PROOF.md](HYPERCRITICISM_PROOF.md) | 10/10 certification methodology |
+| [EVALUATION_QUICK_REFERENCE.md](EVALUATION_QUICK_REFERENCE.md) | Quick assessment card |
 
 ---
 
@@ -30,7 +41,7 @@ Montana is the reference implementation of the ATC (Asymptotic Trust Consensus) 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  Layer 3+: Montana                                              │
-│  Time-based cryptocurrency with Bitcoin anchoring               │
+│  Temporal consensus protocol with Bitcoin anchoring             │
 └─────────────────────────────────────────────────────────────────┘
                               ↑ builds on
 ┌─────────────────────────────────────────────────────────────────┐
@@ -60,7 +71,7 @@ Montana is the reference implementation of the ATC (Asymptotic Trust Consensus) 
 
 | Feature | Montana Choice | ATC Layer |
 |---------|----------------|-----------|
-| **Token** | Ɉ (1 second), 1.26B supply | Implementation |
+| **Time Unit** | 1 Ɉ = 1 second, 1.26B supply | Implementation |
 | **Consensus** | DAG-PHANTOM + VDF + Bitcoin | L-2.5, L-2.6, L-2.7 |
 | **Signatures** | SPHINCS+-SHAKE-128f | L-0.4.4 (PQ-secure) |
 | **Encryption** | ML-KEM-768 | L-0.4.2 (PQ-secure) |
@@ -125,7 +136,7 @@ Montana complies with ATC v9:
 ## Quick Parameters
 
 ```python
-# Token
+# Time Unit
 TOTAL_SUPPLY = 1_260_000_000        # 21 million minutes in seconds
 INITIAL_REWARD = 3_000              # 50 minutes per block
 HALVING_INTERVAL = 210_000          # Same as Bitcoin

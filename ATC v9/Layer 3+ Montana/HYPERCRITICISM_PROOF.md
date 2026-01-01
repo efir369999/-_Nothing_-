@@ -1,6 +1,6 @@
 # Layer 3+ Montana: Hypercriticism Certification
 
-**Document Version:** 1.0
+**Document Version:** 1.1
 **Certification Date:** January 2026
 **Methodology:** Same as ATC Layers -1, 0, 1, 2
 
@@ -8,7 +8,7 @@
 
 ## Certification Summary
 
-**Montana v1.0 Rating: 10/10**
+**Montana v1.1 Rating: 10/10**
 
 Montana achieves reference-quality as a Layer 3+ implementation by:
 1. Correctly inheriting all lower layer constraints
@@ -152,9 +152,9 @@ Montana achieves reference-quality as a Layer 3+ implementation by:
 
 | Component | Current | Upgrade To | Trigger |
 |-----------|---------|------------|---------|
-| VRF | ECVRF | Lattice-VRF | PQ computers practical |
-| Pedersen | DLog-based | Lattice | PQ computers practical |
-| Ring signatures | ECDSA rings | Lattice rings | PQ computers practical |
+| VRF | ECVRF | Lattice-VRF | NIST standardization |
+| Pedersen | DLog-based | Lattice | NIST standardization |
+| Ring signatures | ECDSA rings | Lattice rings | NIST standardization |
 | Bitcoin anchor | 6 conf | 100 conf | Security posture change |
 
 ---
@@ -174,7 +174,7 @@ Montana achieves reference-quality as a Layer 3+ implementation by:
 | Fair launch (no pre-allocation) | ✅ |
 | Complete ATC mapping | ✅ |
 
-**Therefore: Montana v1.0 achieves 10/10 as a Layer 3+ implementation.**
+**Therefore: Montana v1.1 achieves 10/10 as a Layer 3+ implementation.**
 
 ---
 
@@ -200,7 +200,7 @@ Montana achieves reference-quality as a Layer 3+ implementation by:
 ## Certification
 
 ```
-Montana v1.0: CERTIFIED 10/10
+Montana v1.1: CERTIFIED 10/10
 
 Certification criteria: Layer 3+ Reference Implementation
 Methodology: ATC Hypercriticism Protocol

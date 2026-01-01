@@ -1,18 +1,20 @@
-# Ɉ Montana: Time-Based Consensus Built on Physics
+# Ɉ Montana: Asymptotic Trust in Time Value
 
-**Version:** 1.0
+**Version:** 1.1
 **Date:** January 2026
 **Status:** Reference Implementation of ATC v9
 
 ---
 
-> *"Security that begins with physics, not faith in algorithms."*
+> *"An intermediate solution for building trust in time as the universal unit of value."*
 
 ---
 
 ## Abstract
 
-Montana is a cryptocurrency protocol that grounds its security in physical law rather than computational assumptions alone. Built on the Asymptotic Trust Consensus (ATC) architecture, Montana inherits guarantees from four foundational layers:
+Montana is a temporal consensus protocol that establishes asymptotic trust in the value of time — a mechanism for accumulating evidence that 1 Ɉ reliably represents 1 second of human time.
+
+Built on the Asymptotic Trust Consensus (ATC) architecture, Montana inherits guarantees from four foundational layers:
 
 - **Layer -1:** Physical constraints (thermodynamics, light speed, atomic time)
 - **Layer 0:** Computational hardness (post-quantum cryptography)
@@ -21,7 +23,15 @@ Montana is a cryptocurrency protocol that grounds its security in physical law r
 
 The result is a protocol where security degrades gracefully: even if cryptographic assumptions break, physical bounds remain. Even if P = NP, Landauer's limit still constrains computation.
 
-**Key innovations:**
+**Core principle:**
+```
+lim(evidence → ∞) Trust = 1
+∀t: Trust(t) < 1
+
+"We approach certainty; we never claim to reach it."
+```
+
+**Key features:**
 - Three-layer finality: VDF (seconds) → DAG (minutes) → Bitcoin anchor (hours)
 - Post-quantum cryptography from day one (SPHINCS+, ML-KEM)
 - Time-based unit: 1 Ɉ = 1 second of human time
@@ -29,11 +39,51 @@ The result is a protocol where security degrades gracefully: even if cryptograph
 
 ---
 
-## 1. The Problem with Traditional Cryptography
+## 1. Montana: Asymptotic Trust in Time
 
-### 1.1 The Assumption Stack
+### 1.1 The Core Concept
 
-Traditional cryptocurrency security rests on unproven assumptions:
+**Montana is a temporal consensus protocol** — a mechanism for establishing asymptotic trust that **1 Ɉ = 1 second** of human time.
+
+```
+1 Ɉ = 1 second
+60 Ɉ = 1 minute
+3600 Ɉ = 1 hour
+86400 Ɉ = 1 day
+```
+
+Time is the one universal constant that all humans share equally. Montana provides a framework for building trust in time as a unit of value.
+
+### 1.2 Why "Intermediate Solution"?
+
+Perfect trust is impossible. Montana provides a mechanism for trust to accumulate over time:
+
+```
+At t=0 (genesis):
+├─ Trust based on: ATC framework + physics + cryptography
+├─ Trust(0) < 1
+└─ Evidence: specification only
+
+At t=n (after n years):
+├─ Trust based on: all above + operational history
+├─ Trust(n) > Trust(0)
+├─ Still: Trust(n) < 1
+└─ Evidence: n years of network operation
+
+As t→∞:
+├─ Trust(t) → 1
+└─ But never Trust(t) = 1
+```
+
+**Montana is the mechanism. Time provides the evidence.**
+
+---
+
+## 2. The Problem with Traditional Approaches
+
+### 2.1 The Assumption Stack
+
+Traditional digital value systems rest on unproven assumptions:
 
 ```
 "Secure if P ≠ NP"
@@ -47,7 +97,7 @@ Traditional cryptocurrency security rests on unproven assumptions:
 
 Each layer adds uncertainty. No one has proven P ≠ NP. Quantum computers threaten factoring and discrete log. The entire edifice could collapse.
 
-### 1.2 What If We Started With Physics?
+### 2.2 What If We Started With Physics?
 
 Montana inverts the traditional approach:
 
@@ -67,11 +117,11 @@ Layer 3+: MONTANA          ← What is DEPLOYABLE (given consensus)
 
 ---
 
-## 2. Physical Foundation (Layer -1)
+## 3. Physical Foundation (Layer -1)
 
-Montana's security ultimately rests on physical law—constraints tested for over 150 years with no macroscopic violation.
+Montana's security ultimately rests on physical law — constraints tested for over 150 years with no macroscopic violation.
 
-### 2.1 Constraints Montana Relies Upon
+### 3.1 Constraints Montana Relies Upon
 
 | Constraint | What It Means for Montana | Precision |
 |------------|---------------------------|-----------|
@@ -81,7 +131,7 @@ Montana's security ultimately rests on physical law—constraints tested for ove
 | **Speed of Light** | Messages have minimum propagation delay | 10⁻¹⁷ isotropy |
 | **Time Uniformity** | Earth-based clocks agree | < 10⁻¹¹ |
 
-### 2.2 What This Means
+### 3.2 What This Means
 
 An adversary constrained by physics **cannot**:
 - Reverse entropy to undo VDF computation
@@ -93,11 +143,11 @@ An adversary constrained by physics **cannot**:
 
 ---
 
-## 3. Computational Security (Layer 0)
+## 4. Computational Security (Layer 0)
 
 Given that physics holds, Montana uses post-quantum cryptography standardized by NIST.
 
-### 3.1 Cryptographic Choices
+### 4.1 Cryptographic Choices
 
 | Function | Primitive | Standard | Quantum Status |
 |----------|-----------|----------|----------------|
@@ -106,7 +156,7 @@ Given that physics holds, Montana uses post-quantum cryptography standardized by
 | Hashing | SHA3-256, SHAKE256 | NIST FIPS 202 | **Secure** |
 | VDF | SHAKE256 hash chain | — | **Secure** |
 
-### 3.2 Post-Quantum from Day One
+### 4.2 Post-Quantum from Day One
 
 Montana does not wait for quantum computers to become a threat. All long-term secrets are protected by lattice-based or hash-based cryptography that resists known quantum attacks.
 
@@ -114,11 +164,11 @@ Montana does not wait for quantum computers to become a threat. All long-term se
 
 ---
 
-## 4. Protocol Primitives (Layer 1)
+## 5. Protocol Primitives (Layer 1)
 
 Montana combines Layer 1 primitives into its consensus mechanism.
 
-### 4.1 Verifiable Delay Function (VDF)
+### 5.1 Verifiable Delay Function (VDF)
 
 **Purpose:** Prove elapsed time without trust.
 
@@ -130,9 +180,9 @@ VDF(x, T) = SHAKE256^T(x)
 - **Verification:** STARK proofs with checkpoints
 - **Security:** Physical (cannot parallelize) + Cryptographic (hash security)
 
-The VDF creates Montana's "heartbeat"—a proof that time has passed.
+The VDF creates Montana's "heartbeat" — a proof that time has passed.
 
-### 4.2 Verifiable Random Function (VRF)
+### 5.2 Verifiable Random Function (VRF)
 
 **Purpose:** Determine block eligibility without leader election.
 
@@ -143,7 +193,7 @@ eligible = output < threshold(score)
 
 Every node independently determines its own eligibility. No leader selection means no leader-based attacks.
 
-### 4.3 Commitments
+### 5.3 Commitments
 
 **Purpose:** Hide-then-reveal for privacy transactions.
 
@@ -152,18 +202,18 @@ Every node independently determines its own eligibility. No leader selection mea
 
 ---
 
-## 5. Consensus Mechanism (Layer 2)
+## 6. Consensus Mechanism (Layer 2)
 
 Montana implements a three-layer finality model using Layer 2 consensus patterns.
 
-### 5.1 Network Model
+### 6.1 Network Model
 
 Montana operates in **partial synchrony**:
 - Before GST: Safety guaranteed, liveness may stall
 - After GST: Both safety and liveness guaranteed
 - GST is unknown but finite
 
-### 5.2 Fault Tolerance
+### 6.2 Fault Tolerance
 
 Montana tolerates Byzantine faults under the standard threshold:
 
@@ -173,7 +223,7 @@ n ≥ 3f + 1
 
 With score weighting, Montana achieves economic Byzantine fault tolerance: the cost of attack exceeds the benefit.
 
-### 5.3 Three-Layer Finality
+### 6.3 Three-Layer Finality
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -205,24 +255,27 @@ With score weighting, Montana achieves economic Byzantine fault tolerance: the c
 
 ---
 
-## 6. Montana Implementation
+## 7. Time as Value
 
-### 6.1 Time-Based Token
+### 7.1 The Universal Constant
 
-Montana's native token represents **time itself**:
+Why time? Because it is:
+- **Universal:** Every human has 24 hours per day
+- **Irreversible:** Cannot be created or destroyed (L-1.1)
+- **Measurable:** Atomic precision to 10⁻¹⁸ (L-1.2)
+- **Fair:** No one can accumulate more time than others
+
+### 7.2 Time Unit
 
 ```
 1 Ɉ = 1 second
-60 Ɉ = 1 minute
-3600 Ɉ = 1 hour
-86400 Ɉ = 1 day
 ```
 
 **Total supply:** 1,260,000,000 Ɉ (21 million minutes)
 
-This is not arbitrary—it creates an intuitive relationship between value and the universal constant: time.
+This is not arbitrary — it creates an intuitive relationship between value and the universal constant: time.
 
-### 6.2 Fair Launch
+### 7.3 Fair Launch
 
 ```python
 PRE_MINE = 0
@@ -231,11 +284,9 @@ ICO_ALLOCATION = 0
 TEAM_ALLOCATION = 0
 ```
 
-All tokens are distributed through block rewards. No one starts with an advantage.
+All time units are distributed through participation. No one starts with an advantage.
 
-### 6.3 Emission Schedule
-
-Montana follows Bitcoin's proven emission model:
+### 7.4 Emission Schedule
 
 | Era | Block Reward | Cumulative Supply |
 |-----|--------------|-------------------|
@@ -245,7 +296,7 @@ Montana follows Bitcoin's proven emission model:
 | ... | ... | ... |
 | 33 | 1 Ɉ | 1,260,000,000 Ɉ |
 
-### 6.4 Participant Tiers
+### 7.5 Participant Tiers
 
 | Tier | Type | Score Weight | Requirements |
 |------|------|--------------|--------------|
@@ -257,13 +308,13 @@ This creates accessibility: participate fully (Tier 0) or casually (Tier 2).
 
 ---
 
-## 7. Atomic Time Consensus
+## 8. Atomic Time Consensus
 
-### 7.1 The Problem
+### 8.1 The Problem
 
 Distributed systems need synchronized time. Traditional solutions trust a single source, creating a point of failure.
 
-### 7.2 Montana's Solution
+### 8.2 Montana's Solution
 
 Montana uses **34 NTP servers across 8 geographic regions**:
 
@@ -278,7 +329,7 @@ NTP_MAX_DRIFT_MS = 1000           # 1 second tolerance
 - Geographic distribution prevents regional manipulation
 - Consensus requires supermajority
 
-### 7.3 Time Derivation
+### 8.3 Time Derivation
 
 ```python
 def get_consensus_time(ntp_responses):
@@ -296,9 +347,9 @@ def get_consensus_time(ntp_responses):
 
 ---
 
-## 8. DAG-PHANTOM Ordering
+## 9. DAG-PHANTOM Ordering
 
-### 8.1 Why DAG?
+### 9.1 Why DAG?
 
 Linear blockchains waste concurrent work. If two valid blocks are produced simultaneously, one is orphaned.
 
@@ -312,7 +363,7 @@ DAG (Directed Acyclic Graph) structure includes all valid blocks:
     └─[B3]─┘
 ```
 
-### 8.2 PHANTOM Ordering
+### 9.2 PHANTOM Ordering
 
 PHANTOM provides deterministic linearization:
 
@@ -322,7 +373,7 @@ PHANTOM provides deterministic linearization:
 
 **Result:** All nodes agree on transaction order.
 
-### 8.3 Block Production
+### 9.3 Block Production
 
 ```python
 def produce_block(state):
@@ -347,7 +398,7 @@ def produce_block(state):
 
 ---
 
-## 9. Privacy Tiers
+## 10. Privacy Tiers
 
 Montana offers three privacy levels:
 
@@ -380,7 +431,7 @@ Sender → Amount → [One-time Address]
 
 ---
 
-## 10. Epistemic Classification
+## 11. Epistemic Classification
 
 Following ATC methodology, all Montana claims are typed:
 
@@ -397,22 +448,22 @@ Following ATC methodology, all Montana claims are typed:
 
 ---
 
-## 11. Why Montana?
+## 12. Comparison with Traditional Approaches
 
-### 11.1 vs Bitcoin
+### 12.1 vs Bitcoin
 - ✅ Post-quantum cryptography
 - ✅ DAG structure (no orphans)
 - ✅ Faster soft finality (seconds)
 - ✅ Privacy tiers
 - ≈ Same emission model, fair launch
 
-### 11.2 vs Ethereum
+### 12.2 vs Ethereum
 - ✅ Physics-grounded security
 - ✅ Post-quantum from day one
 - ✅ No pre-mine
 - ✅ Simpler architecture
 
-### 11.3 vs Privacy Coins
+### 12.3 vs Privacy Protocols
 - ✅ Physics-grounded time
 - ✅ Bitcoin anchor finality
 - ✅ Tiered privacy (choice)
@@ -420,7 +471,7 @@ Following ATC methodology, all Montana claims are typed:
 
 ---
 
-## 12. The Asymptotic Principle
+## 13. The Asymptotic Principle
 
 Montana embodies the asymptotic principle:
 
@@ -437,13 +488,13 @@ We don't claim perfect security. We claim:
 - Explicit assumptions at each layer
 - Graceful degradation if assumptions break
 
-**This is honest security.**
+**This is honest trust accumulation.**
 
 ---
 
-## 13. Conclusion
+## 14. Conclusion
 
-Montana is not just another cryptocurrency. It is a reference implementation of a new paradigm: security grounded in physics.
+Montana is not another digital asset for speculation. It is a reference implementation of a new paradigm: **asymptotic trust in time value**.
 
 **The ATC stack provides:**
 - Layer -1: Physical bounds no adversary can exceed
@@ -452,7 +503,7 @@ Montana is not just another cryptocurrency. It is a reference implementation of 
 - Layer 2: Consensus with formal guarantees
 
 **Montana adds:**
-- Time-based token (intuitive value)
+- Time-based unit (1 Ɉ = 1 second)
 - Fair launch (no pre-allocation)
 - Three-layer finality (speed + security)
 - Privacy tiers (choice)
@@ -497,7 +548,7 @@ Montana is not just another cryptocurrency. It is a reference implementation of 
 ## Appendix B: Quick Parameters
 
 ```python
-# Token
+# Time Unit
 TOTAL_SUPPLY = 1_260_000_000      # 21 million minutes
 INITIAL_REWARD = 3000              # 50 minutes per block
 HALVING_INTERVAL = 210_000         # Same as Bitcoin
@@ -524,6 +575,6 @@ BTC_CONFIRMATIONS_MAX = 100
 
 <div align="center">
 
-**Ɉ Montana: Where time becomes value, and security begins with physics.**
+**Ɉ Montana: Asymptotic trust in time, built on physics.**
 
 </div>
