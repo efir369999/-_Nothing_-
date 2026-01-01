@@ -132,7 +132,7 @@ Is "issue" in "NOT failures" list?
 | VRF (Verifiable Random Function) | L-1.2 | Lattice: SECURE |
 | Commitment Schemes | L-1.3 | Hash-based: SECURE |
 | Time-stamping | L-1.4 | Hash-based: SECURE |
-| Ordering Primitives | L-1.5 | N/A (logical) |
+| Ordering Primitives | L-1.5 | Math only (no crypto) |
 | Security Definitions | L-1.6 | N/A (definitions) |
 
 ---

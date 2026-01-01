@@ -22,7 +22,7 @@ Layer 1 defines protocol primitives — the cryptographic building blocks that e
 | **VRF** | Verifiable Random Functions | Lattice-based: Secure |
 | **Commitment** | Hide-then-reveal schemes | Hash-based: Secure |
 | **Timestamp** | Temporal proofs | Hash-based: Secure |
-| **Ordering** | Event sequencing | Logical: N/A |
+| **Ordering** | Event sequencing (Lamport, DAG) | Math only (no crypto) |
 
 ### Type Classification
 
