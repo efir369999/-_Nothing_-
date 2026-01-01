@@ -157,7 +157,7 @@ An adversary unconstrained by physics could:
 | VRF | Verifiable Random Functions | Lattice: Secure |
 | Commitment | Hide-then-reveal schemes | Hash-based: Secure |
 | Timestamp | Temporal existence proofs | Hash-based: Secure |
-| Ordering | Event sequencing | Logical: N/A |
+| Ordering | Event sequencing (Lamport, DAG) | Math only (no crypto) |
 
 **Types:** A/B/C/P (inherited) + S (composition) + I (implementation)
 

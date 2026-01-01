@@ -214,7 +214,7 @@ These are our best empirically-verified models of physical reality and computati
 | VRF | Verifiable Random Functions | B | Lattice: Secure |
 | Commitment | Hide-then-reveal schemes | A/B | Hash-based: Secure |
 | Timestamp | Temporal existence proofs | P + C | Hash-based: Secure |
-| Ordering | Event sequencing | A | N/A (logical) |
+| Ordering | Event sequencing (Lamport, DAG) | A | Math only (no crypto) |
 
 ### Epistemic Classification (Layer 1)
 
