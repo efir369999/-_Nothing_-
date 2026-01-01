@@ -2,8 +2,11 @@
 
 **Protocol Version:** 7
 **Document Version:** 1.0
-**Date:** December 31, 2025
-**Author:** Alejandro Montana
+**Date:** January 2026
+**ATC Compatibility:** v9.0 (L-1 v2.1, L0 v1.0, L1 v1.1, L2 v1.0)
+
+> Montana is a Layer 3+ implementation of the Asymptotic Trust Consensus (ATC) architecture.
+> All security claims inherit from lower ATC layers. See [MONTANA_ATC_MAPPING.md](MONTANA_ATC_MAPPING.md) for complete layer mapping.
 
 ---
 
@@ -54,6 +57,7 @@ This document provides the complete technical specification for implementing the
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      Ɉ MONTANA ARCHITECTURE                      │
+│                     (ATC Layer 3+ Implementation)                │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
@@ -65,18 +69,26 @@ This document provides the complete technical specification for implementing the
 │         └────────────────┼──────────────────────┘                │
 │                          │                                       │
 │  ┌───────────────────────▼───────────────────────────────────┐  │
-│  │                    ATC CONSENSUS                           │  │
-│  │  Layer 2: Bitcoin Anchor (Finalization)                    │  │
-│  │  Layer 1: VDF Temporal Proof (Heartbeats)                  │  │
-│  │  Layer 0: Atomic Time (34 sources, 8 regions)              │  │
+│  │           MONTANA CONSENSUS (ATC L2 Patterns)              │  │
+│  │  Bitcoin Anchor → ATC L-2.6.4 (Anchor Finality)           │  │
+│  │  VDF Temporal  → ATC L-1.1 (VDF Primitive)                │  │
+│  │  Atomic Time   → ATC L-1.2, L-1.5 (Physical Constraints)  │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │                                                                  │
 │  ┌───────────────────────────────────────────────────────────┐  │
-│  │                    DAG-PHANTOM                             │  │
+│  │              DAG-PHANTOM (ATC L-2.5.2)                     │  │
 │  │  Block ordering without leader selection                   │  │
-│  │  ECVRF eligibility, not selection                          │  │
+│  │  ECVRF eligibility (ATC L-1.2.3 — quantum-vulnerable)     │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+
+ATC Foundation:
+┌─────────────────────────────────────────────────────────────────┐
+│  ATC L2:  Consensus (Safety, Liveness, Finality, BFT)          │
+│  ATC L1:  Primitives (VDF, VRF, Commitment, Timestamp)         │
+│  ATC L0:  Computation (SHA-3, ML-KEM, SPHINCS+, MLWE)          │
+│  ATC L-1: Physics (Atomic time, Landauer, Light speed)         │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -171,30 +183,51 @@ def get_block_reward(height: int) -> int:
 
 ## 3. Asymptotic Trust Consensus (ATC)
 
+Montana implements the Asymptotic Trust Consensus architecture. For complete specifications, see:
+- [ATC Layer -1: Physical Constraints](../Layer%20-1/layer_minus_1.md)
+- [ATC Layer 0: Computational Constraints](../Layer%200/layer_0.md)
+- [ATC Layer 1: Protocol Primitives](../Layer%201/layer_1.md)
+- [ATC Layer 2: Consensus Protocols](../Layer%202/layer_2.md)
+
 ### 3.1 Core Principle
 
-Trust requirements approach zero asymptotically across three layers:
-
 ```
-T_total = T₀ × T₁ × T₂ → 0
+lim(evidence → ∞) Trust = 1
+∀t: Trust(t) < 1
 
-Where:
-- T₀ = 0 (physical observation, no cryptographic trust)
-- T₁ = 1/√c (c = heartbeat count)
-- T₂ = 2^(-c) (c = Bitcoin confirmations)
+"We approach certainty; we never claim to reach it."
 ```
 
-### 3.2 Layer Summary
+Trust requirements approach certainty asymptotically as evidence accumulates across layers.
 
-| Layer | Name | Trust Model | Data Source |
-|-------|------|-------------|-------------|
-| 0 | Atomic Time | Zero (physical) | 34 NTP servers |
-| 1 | Temporal Proof | Diminishing | VDF heartbeats |
-| 2 | Bitcoin Anchor | Exponential decay | Bitcoin blockchain |
+### 3.2 Montana's Internal Layers → ATC Mapping
+
+| Montana Internal | ATC Layer | Trust Model | Data Source |
+|------------------|-----------|-------------|-------------|
+| Layer 0: Atomic Time | ATC L-1.2, L-1.5 | Physical measurement | 34 NTP servers |
+| Layer 1: VDF Temporal | ATC L-1.1 | Sequential computation | VDF heartbeats |
+| Layer 2: Bitcoin Anchor | ATC L-2.6.4 | Anchor finality | Bitcoin blockchain |
+
+### 3.3 ATC Layer Dependencies
+
+Montana inherits guarantees from all ATC layers:
+
+| ATC Layer | Montana Uses | Constraint |
+|-----------|--------------|------------|
+| L-1 (Physics) | Atomic time, Landauer | Cannot be violated |
+| L0 (Computation) | SHA-3, SPHINCS+, ML-KEM | Post-quantum secure |
+| L1 (Primitives) | VDF, VRF, Commitment | Proven security |
+| L2 (Consensus) | DAG, BFT, Finality | Formal guarantees |
+
+**Closing Principle:** Montana may assume weaker guarantees than ATC provides; it cannot assume stronger guarantees without leaving known science.
 
 ---
 
-## 4. Layer 0: Atomic Time
+## 4. Montana Layer 0: Atomic Time
+
+*Maps to ATC L-1.2 (Atomic Time Reproducibility) and ATC L-1.5 (Terrestrial Time Uniformity)*
+
+Montana's Layer 0 provides the physical time foundation. All atomic clocks of a given isotope exhibit identical transition frequencies (ATC L-1.2), enabling consensus on time without cryptographic trust.
 
 ### 4.1 Time Sources
 
@@ -322,7 +355,14 @@ class AtomicTimeProof:
 
 ---
 
-## 5. Layer 1: Temporal Proof
+## 5. Montana Layer 1: Temporal Proof (VDF)
+
+*Maps to ATC L-1.1 (Verifiable Delay Functions)*
+
+Montana's Layer 1 uses VDF to prove elapsed time. The VDF derives its security from:
+- **Physical bound (ATC L-1.4):** Sequential computation cannot be parallelized
+- **Hash security (ATC L-0.3.3):** SHAKE256 collision resistance
+- **Verification (ATC L-1.D):** STARK proofs for O(log T) verification
 
 ### 5.1 VDF Parameters
 
@@ -384,7 +424,14 @@ def compute_vdf(input_data: bytes, iterations: int) -> VDFProof:
 
 ---
 
-## 6. Layer 2: Bitcoin Anchor
+## 6. Montana Layer 2: Bitcoin Anchor
+
+*Maps to ATC L-2.6.4 (Anchor-Based Finality)*
+
+Montana's Layer 2 anchors to Bitcoin for hard finality. This follows ATC L-2.6.4 patterns:
+- **Anchor security:** Inherits Bitcoin's proof-of-work security
+- **Finality type:** Type C (empirical — Bitcoin's 15+ years)
+- **Confirmation levels:** Configurable based on security requirements
 
 ### 6.1 Bitcoin Parameters
 

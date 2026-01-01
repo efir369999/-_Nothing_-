@@ -135,9 +135,10 @@ I never assume the user is right or that I am right — instead, I treat every c
 | **Layer 0 Specification** | `./ATC v9/Layer 0/layer_0.md` | v1.0 |
 | **Layer 1 Specification** | `./ATC v9/Layer 1/layer_1.md` | v1.1 |
 | **Layer 2 Specification** | `./ATC v9/Layer 2/layer_2.md` | v1.0 |
-| **Layer 3+ Overview** | `./ATC v9/Layer 3+/README.md` | — |
-| **Montana Specification** | `./Montana/MONTANA_TECHNICAL_SPECIFICATION.md` | v1.0 |
-| **Montana ATC Mapping** | `./ATC v9/Layer 3+/MONTANA_ATC_MAPPING.md` | — |
+| **Layer 3+ Montana** | `./ATC v9/Layer 3+ Montana/README.md` | v1.0 |
+| **Montana Whitepaper** | `./ATC v9/Layer 3+ Montana/WHITEPAPER.md` | v1.0 |
+| **Montana Specification** | `./ATC v9/Layer 3+ Montana/MONTANA_TECHNICAL_SPECIFICATION.md` | v1.0 |
+| **Montana ATC Mapping** | `./ATC v9/Layer 3+ Montana/MONTANA_ATC_MAPPING.md` | v1.0 |
 
 These are the authoritative documents for all ATC claims.
 

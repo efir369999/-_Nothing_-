@@ -26,7 +26,7 @@
 [![Layer 0](https://img.shields.io/badge/Layer%200-v1.0-blue)](ATC%20v9/Layer%200/layer_0.md)
 [![Layer 1](https://img.shields.io/badge/Layer%201-v1.1-blue)](ATC%20v9/Layer%201/layer_1.md)
 [![Layer 2](https://img.shields.io/badge/Layer%202-v1.0-blue)](ATC%20v9/Layer%202/layer_2.md)
-[![Layer 3+](https://img.shields.io/badge/Layer%203%2B-Montana%20v1.0-purple)](Montana/MONTANA_TECHNICAL_SPECIFICATION.md)
+[![Layer 3+](https://img.shields.io/badge/Layer%203%2B-Montana%20v1.0-purple)](ATC%20v9/Layer%203%2B%20Montana/README.md)
 [![Rating](https://img.shields.io/badge/rating-10%2F10-brightgreen)](ATC%20v9/Layer%20-1/HYPERCRITICISM_PROOF.md)
 [![Physics](https://img.shields.io/badge/foundation-physics-orange)](ATC%20v9/Layer%20-1/layer_minus_1.md)
 
@@ -213,9 +213,9 @@ An adversary unconstrained by physics could:
 | Time Source | 34 NTP servers, 8 geographic regions |
 | Token | Ɉ (seconds), 1.26B supply, fair launch |
 
-**→ [Layer 3+ Overview](ATC%20v9/Layer%203%2B/README.md)**
-**→ [Montana Specification](Montana/MONTANA_TECHNICAL_SPECIFICATION.md)**
-**→ [ATC Mapping](ATC%20v9/Layer%203%2B/MONTANA_ATC_MAPPING.md)**
+**→ [Layer 3+ Montana](ATC%20v9/Layer%203%2B%20Montana/README.md)**
+**→ [Montana Whitepaper](ATC%20v9/Layer%203%2B%20Montana/WHITEPAPER.md)**
+**→ [Montana Specification](ATC%20v9/Layer%203%2B%20Montana/MONTANA_TECHNICAL_SPECIFICATION.md)**
 
 ---
 
@@ -264,12 +264,13 @@ ATC v9/
 │   ├── EVALUATION_QUICK_REFERENCE.md  Assessment card
 │   └── RELEASE_v1.0.md                Release notes
 │
-└── Layer 3+/                      Protocol Implementations
+└── Layer 3+ Montana/              Reference Implementation (v1.0)
     ├── README.md                      Overview
-    └── MONTANA_ATC_MAPPING.md         Montana ↔ ATC mapping
-
-Montana/                           Reference Implementation
-└── MONTANA_TECHNICAL_SPECIFICATION.md  v1.0 Specification
+    ├── WHITEPAPER.md                  Conceptual design
+    ├── MONTANA_TECHNICAL_SPECIFICATION.md  Complete specification
+    ├── MONTANA_ATC_MAPPING.md         Layer mapping
+    ├── HYPERCRITICISM_PROOF.md        Certification
+    └── EVALUATION_QUICK_REFERENCE.md  Assessment card
 
 CLAUDE.md                          AI Architect role definition
 ```
@@ -284,9 +285,10 @@ CLAUDE.md                          AI Architect role definition
 | [Layer 0 Spec](ATC%20v9/Layer%200/layer_0.md) | 0 | Computational constraints |
 | [Layer 1 Spec](ATC%20v9/Layer%201/layer_1.md) | 1 | Protocol primitives |
 | [Layer 2 Spec](ATC%20v9/Layer%202/layer_2.md) | 2 | Consensus protocols |
-| [Layer 3+ Overview](ATC%20v9/Layer%203%2B/README.md) | 3+ | Implementations |
-| [Montana Spec](Montana/MONTANA_TECHNICAL_SPECIFICATION.md) | 3+ | Reference implementation |
-| [Montana Mapping](ATC%20v9/Layer%203%2B/MONTANA_ATC_MAPPING.md) | 3+ | ATC layer mapping |
+| [Layer 3+ Montana](ATC%20v9/Layer%203%2B%20Montana/README.md) | 3+ | Reference implementation |
+| [Montana Whitepaper](ATC%20v9/Layer%203%2B%20Montana/WHITEPAPER.md) | 3+ | Conceptual design |
+| [Montana Spec](ATC%20v9/Layer%203%2B%20Montana/MONTANA_TECHNICAL_SPECIFICATION.md) | 3+ | Technical specification |
+| [Montana Mapping](ATC%20v9/Layer%203%2B%20Montana/MONTANA_ATC_MAPPING.md) | 3+ | ATC layer mapping |
 
 ---
 
