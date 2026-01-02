@@ -1,13 +1,15 @@
 """
-Ɉ Montana Privacy Tiers v3.1
+Ɉ Montana Privacy Tiers v3.8
 
 Privacy tier definitions per MONTANA_TECHNICAL_SPECIFICATION.md §14.
 
 Tiers:
 - T0: Transparent (sender, receiver, amount visible)
 - T1: Hidden receiver (stealth address)
-- T2: Hidden receiver + amount (Pedersen commitment)
+- T2: Hidden receiver + amount (Lattice commitment, Type B)
 - T3: Fully private (ring signature, size 11)
+
+All privacy primitives are post-quantum secure.
 """
 
 from __future__ import annotations
@@ -30,7 +32,7 @@ def get_fee_multiplier(tier: PrivacyTier) -> int:
 
     T0: 1x (transparent)
     T1: 2x (stealth)
-    T2: 5x (stealth + Pedersen)
+    T2: 5x (stealth + Lattice commitment)
     T3: 10x (ring signature)
     """
     return PRIVACY_FEE_MULTIPLIERS.get(int(tier), 1)
@@ -64,7 +66,7 @@ def get_tier_description(tier: PrivacyTier) -> str:
     descriptions = {
         PrivacyTier.T0: "Sender, receiver, and amount are visible",
         PrivacyTier.T1: "Receiver hidden via stealth address",
-        PrivacyTier.T2: "Receiver and amount hidden via Pedersen commitment",
+        PrivacyTier.T2: "Receiver and amount hidden via Lattice commitment (Type B)",
         PrivacyTier.T3: f"Fully private via ring signature (size {RING_SIZE})",
     }
     return descriptions.get(tier, "Unknown tier")

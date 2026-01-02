@@ -103,42 +103,16 @@ where ε is negligible in security parameter
 | **Wesolowski (Class Group)** | **Class group order problem** | **B** | **Vulnerable (Shor)** |
 | Pietrzak | Groups of unknown order | B | Depends on group |
 
-**Recommendations:**
+**Recommendation:**
 
-1. **For Type B security with UTC finality model:** Class Group VDF (Wesolowski 2019).
-   - Mathematical reduction to class group order problem (40+ years of hardness).
-   - O(log T) verification via Wesolowski proof.
-   - No trusted setup required.
-   - Quantum vulnerability neutralized by UTC finality model (see L-1.1.6).
+**Class Group VDF (Wesolowski 2019):**
+- Mathematical reduction to class group order problem (40+ years of hardness).
+- O(log T) verification via Wesolowski proof.
+- No trusted setup required.
+- Quantum vulnerability neutralized by UTC finality model (see L-1.1.6).
+- Type B security (proven reduction).
 
-2. **For post-quantum security with competitive VDF:** Hash-based VDF (iterated SHAKE256).
-   - Type C security (empirical).
-   - Grover provides √T speedup.
-   - Suitable when VDF speed competition matters.
-
-### L-1.1.4 Hash-Based VDF Specification
-
-**Construction:**
-```
-VDF(x, T):
-  state = x
-  for i in 1..T:
-    state = SHAKE256(state)
-  return state
-```
-
-**Properties:**
-- Sequential: Hash chaining enforces T iterations
-- Type: C (SHA-3 security) + P (physical time bound)
-- Quantum security: T/√T = √T effective delay (Grover)
-- For 2^40 classical security, use T = 2^80 iterations post-quantum
-
-**Verification:**
-- Naive: Re-compute (not efficient)
-- STARK proof: O(log T) verification (Type B: STARK soundness)
-- Trade-off: Proof generation adds overhead
-
-### L-1.1.5 Class Group VDF Specification (Wesolowski 2019)
+### L-1.1.4 Class Group VDF Specification (Wesolowski 2019)
 
 **Construction:**
 ```
@@ -197,7 +171,7 @@ Status: Hard for 40+ years (Buchmann, Williams 1988)
   - Best algorithms: subexponential L[1/2]
 ```
 
-### L-1.1.6 UTC Quantum Neutralization
+### L-1.1.5 UTC Quantum Neutralization
 
 **Problem:** Class Group VDF is vulnerable to Shor's algorithm.
 
@@ -241,7 +215,7 @@ Status: Hard for 40+ years (Buchmann, Williams 1988)
 
 **Type:** P (physical time bound from L-1.2, L-1.5) + B (class group hardness)
 
-### L-1.1.7 Layer Dependencies
+### L-1.1.6 Layer Dependencies
 
 | VDF Property | Depends On | Failure Mode |
 |--------------|------------|--------------|
@@ -271,10 +245,15 @@ A Verifiable Random Function is a keyed function F_sk: X → Y with proof π suc
 |--------------|-------|------|----------------|
 | ECVRF | Elliptic curve DDH | B | BROKEN (Shor) |
 | RSA-VRF | RSA assumption | B | BROKEN (Shor) |
-| Lattice-VRF | MLWE | B | SECURE |
+| **Lattice-VRF** | **MLWE** | **B** | **SECURE** |
 | Hash-based VRF | Signatures + PRF | B + C | SECURE |
 
-**Post-Quantum Recommendation:** Lattice-based or hash-based construction.
+**Default Recommendation:** Lattice-VRF (Type B, MLWE).
+- Post-quantum secure via ML-DSA (NIST FIPS 204)
+- ~2.5 KB proof size, fast verification
+- Type B security: reduction to Module-LWE problem
+
+**Alternative:** Hash-VRF for maximum conservatism (~8-17 KB proofs).
 
 ### L-1.2.3 ECVRF (Classical, Legacy)
 
@@ -334,19 +313,24 @@ A commitment scheme consists of:
 
 ### L-1.3.3 Hash-Based Commitment
 
-**Construction:**
+**Construction (using unkeyed SHA3-256, Type C):**
 ```
 Commit(m, r):
-  return SHA3-256(r || m)
+  return SHA3-256(r || m)    # Unkeyed hash (Type C)
 
 Open(c, m, r):
   return c == SHA3-256(r || m)
 ```
 
 **Properties:**
-- Hiding: Computational (Type B, depends on PRG)
+- Hiding: Computational (Type C, depends on hash preimage resistance)
 - Binding: Computational (Type C, depends on collision resistance)
 - Quantum security: 128-bit with SHA3-256
+
+**Note:** Commitment uses unkeyed SHA3-256 (Type C) because:
+1. No shared secret key exists between committer and verifier
+2. Randomness r provides hiding (not a keyed MAC)
+3. Collision resistance provides binding
 
 ### L-1.3.4 Pedersen Commitment
 
@@ -606,19 +590,19 @@ Hybrid(PQ, Classical):
 
 ### L-1.9.1 Primitive Replacement
 
-**Hash function upgrade:**
+**VDF upgrade:**
 ```
-Old: SHAKE256
-New: [Future hash]
-Transition: Version field in protocol
+Current: Class Group VDF (Wesolowski 2019)
+Future: [If quantum computers break class groups]
+Transition: Version field in protocol, UTC model neutralizes urgency
 ```
 
 ### L-1.9.2 Parameter Update
 
 **VDF parameter increase:**
 ```
-If: Grover speedup realized
-Then: Double T parameter
+If: Faster class group computation discovered
+Then: Increase discriminant bits or iterations
 Effect: Maintain security level
 ```
 
@@ -723,24 +707,23 @@ Effect: Maintain security level
 
 **Default recommendation:** L3 (192-bit) for new deployments.
 
-### L-1.A.2 VDF Parameters
+### L-1.A.2 VDF Parameters (Class Group)
 
-| Security Level | T (iterations) | Hash | Output Size | Approximate Time (10 GHz) |
-|----------------|----------------|------|-------------|---------------------------|
-| L1 | 2⁴⁰ | SHAKE256 | 256 bits | ~110,000 s (~31 hours) |
-| L3 | 2⁴⁸ | SHAKE256 | 384 bits | ~7.9 years |
-| L5 | 2⁶⁴ | SHAKE256 | 512 bits | ~58,000 years |
+| Parameter | Value | Purpose |
+|-----------|-------|---------|
+| Discriminant bits | 2048 | Security parameter |
+| Challenge bits | 128 | Wesolowski proof security |
+| Iterations T | 2²⁴ (16,777,216) | Target delay (~30 seconds) |
 
-**Practical VDF parameters (target delays):**
+**Security Levels:**
 
-| Target Delay | T at 10⁹ hash/s | T at 10⁶ hash/s |
-|--------------|-----------------|-----------------|
-| 1 second | 10⁹ | 10⁶ |
-| 1 minute | 6×10¹⁰ | 6×10⁷ |
-| 1 hour | 3.6×10¹² | 3.6×10⁹ |
-| 1 day | 8.64×10¹³ | 8.64×10¹⁰ |
+| Security Level | Discriminant | Iterations | Verification |
+|----------------|--------------|------------|--------------|
+| L1 (128-bit) | 2048 bits | 2²⁴ | O(log T) |
+| L3 (192-bit) | 3072 bits | 2²⁴ | O(log T) |
+| L5 (256-bit) | 4096 bits | 2²⁴ | O(log T) |
 
-**Post-quantum adjustment:** Grover provides √T speedup. For 128-bit PQ security with T iterations, effective security is T/2 bits.
+**UTC Model:** VDF speed is irrelevant — all participants bounded by UTC minute boundaries. Faster hardware waits longer.
 
 ### L-1.A.3 VRF Parameters
 
@@ -756,7 +739,6 @@ Effect: Maintain security level
 |--------------|----------------|------------|-------------|
 | Hash (SHA3-256) | 128-bit | 256 bits | 256 bits |
 | Hash (SHA3-384) | 192-bit | 384 bits | 384 bits |
-| Hash (SHAKE256) | Configurable | ≥ output | Variable |
 
 **Randomness requirement:** r MUST be generated from CSPRNG with entropy ≥ security level.
 
@@ -778,7 +760,7 @@ VRF_KeyGen(security_level):
     (sk_sign, pk_sign) = ML_DSA_KeyGen(security_level)
 
     // Generate PRF key
-    k_prf = SHAKE256(random(256), 256)
+    k_prf = SHA3_256(random(256))
 
     sk = (sk_sign, k_prf)
     pk = pk_sign
@@ -797,7 +779,7 @@ VRF_Eval(sk, input):
     (sk_sign, k_prf) = sk
 
     // Generate pseudorandom output
-    output = SHAKE256(k_prf || input, output_length)
+    output = SHA3_256(k_prf || input)
 
     // Create proof: sign (input || output)
     proof = ML_DSA_Sign(sk_sign, input || output)
@@ -819,7 +801,7 @@ VRF_Verify(pk, input, output, proof):
 
 **Theorem (Type B):** Lattice-VRF is secure if:
 1. ML-DSA is EUF-CMA secure (Type B, reduces to MLWE)
-2. SHAKE256 is a PRF (Type C)
+2. SHA3-256 is a PRF (Type C)
 
 **Proof sketch:**
 - Pseudorandomness: Without k_prf, output is indistinguishable from random (PRF security)
@@ -844,7 +826,7 @@ HashVRF_KeyGen(security_level):
     (sk_sign, pk_sign) = SLH_DSA_KeyGen(security_level)
 
     // PRF key derived from signing key
-    k_prf = SHAKE256(sk_sign, 256)
+    k_prf = SHA3_256(sk_sign)
 
     sk = (sk_sign, k_prf)
     pk = pk_sign
@@ -869,99 +851,62 @@ Same as Lattice-VRF (L-1.B.3, L-1.B.4), substituting SLH-DSA for ML-DSA.
 
 ---
 
-## L-1.D VDF Verification Protocols
+## L-1.D VDF Verification Protocols (Class Group)
 
-### L-1.D.1 Naive Verification
+### L-1.D.1 Wesolowski Proof Verification
 
 ```
-VDF_Verify_Naive(input, output, T):
-    state = input
+VDF_Verify_Wesolowski(g, y, π, T):
+    // g: input element in class group
+    // y: claimed output y = g^(2^T)
+    // π: Wesolowski proof
+
+    l = HashToPrime(g, y, T)      // Fiat-Shamir challenge
+    r = 2^T mod l
+
+    return π^l * g^r == y         // O(log T) group operations
+```
+
+**Complexity:** O(log T) — exponentially faster than evaluation
+**Use case:** Standard verification for Class Group VDF
+
+### L-1.D.2 Verification Properties
+
+| Property | Class Group VDF |
+|----------|-----------------|
+| Verification time | O(log T) |
+| Proof size | ~256 bytes |
+| Trusted setup | None required |
+| Prover overhead | ~2× evaluation |
+
+### L-1.D.3 Full Verification Protocol
+
+**Prover generates proof during evaluation:**
+```
+VDF_Eval_WithProof(g, T):
+    // Compute y = g^(2^T) while accumulating proof
+    y = g
     for i in 1..T:
-        state = SHAKE256(state, state_size)
-    return state == output
-```
+        y = y * y  // squaring in class group
 
-**Complexity:** O(T) — same as evaluation
-**Use case:** When verification is rare
+    // Generate Wesolowski proof
+    l = HashToPrime(g, y, T)
+    π = g^(floor(2^T / l))  // computed during evaluation
 
-### L-1.D.2 Checkpoint-Based Verification
-
-**Prover generates checkpoints:**
-```
-VDF_Eval_WithCheckpoints(input, T, checkpoint_interval):
-    state = input
-    checkpoints = [(0, input)]
-
-    for i in 1..T:
-        state = SHAKE256(state, state_size)
-        if i % checkpoint_interval == 0:
-            checkpoints.append((i, state))
-
-    return (state, checkpoints)
-```
-
-**Verifier samples checkpoints:**
-```
-VDF_Verify_Checkpoints(input, output, T, checkpoints, num_samples):
-    // Verify random checkpoint segments
-    for _ in 1..num_samples:
-        (start_idx, start_val) = random_choice(checkpoints)
-        (end_idx, end_val) = next_checkpoint(checkpoints, start_idx)
-
-        // Verify segment
-        state = start_val
-        for i in start_idx+1..end_idx:
-            state = SHAKE256(state, state_size)
-
-        if state != end_val:
-            return false
-
-    // Verify first and last
-    if checkpoints[0] != (0, input):
-        return false
-    if checkpoints[-1][1] != output:
-        return false
-
-    return true
-```
-
-**Complexity:** O(T / checkpoint_interval × num_samples)
-
-**Parameters:**
-| Setting | Checkpoint Interval | Samples | Verification Cost |
-|---------|--------------------:|--------:|------------------:|
-| Fast | T / 100 | 10 | ~10% of eval |
-| Balanced | T / 1000 | 20 | ~2% of eval |
-| Paranoid | T / 10000 | 50 | ~0.5% of eval |
-
-### L-1.D.3 STARK-Based Verification (Advanced)
-
-**Overview:** Use STARK proofs for O(log T) verification.
-
-**Prover:**
-```
-VDF_Eval_WithSTARK(input, T):
-    // Evaluate VDF
-    (output, trace) = VDF_Eval_WithTrace(input, T)
-
-    // Generate STARK proof
-    // Constraint: state[i+1] = SHAKE256(state[i])
-    proof = STARK_Prove(trace, vdf_constraint)
-
-    return (output, proof)
+    return (y, π)
 ```
 
 **Verifier:**
 ```
-VDF_Verify_STARK(input, output, T, proof):
-    // Verify STARK proof
-    // Check: trace starts at input, ends at output, length T
-    return STARK_Verify(proof, input, output, T, vdf_constraint)
+VDF_Verify(g, y, π, T):
+    l = HashToPrime(g, y, T)
+    r = 2^T mod l
+
+    // Single verification equation
+    return π^l * g^r == y
 ```
 
-**Complexity:** O(log T) verification, O(T × polylog(T)) proof generation
-
-**Note:** STARK implementation details are complex. See StarkWare documentation for full specification.
+**Complexity:** O(log T) verification, O(T) evaluation with O(1) proof generation overhead
 
 ---
 
@@ -974,28 +919,23 @@ VDF_Verify_STARK(input, output, T, proof):
 - **Strings:** UTF-8 encoded, length-prefixed
 - **Optional fields:** 1-byte presence flag (0x00 = absent, 0x01 = present)
 
-### L-1.E.2 VDF Structures
+### L-1.E.2 VDF Structures (Class Group)
 
 ```
 VDFParams:
-    hash_algorithm: uint8     // 0x01 = SHAKE256
-    state_size: uint16        // 256, 384, or 512
-    iterations: uint64        // T value
+    discriminant_bits: uint16  // 2048, 3072, or 4096
+    iterations: uint64         // T value (e.g., 2^24)
 
 VDFInput:
     params: VDFParams
-    input: bytes[state_size/8]
+    generator: bytes[]         // Class group element (length-prefixed)
 
 VDFOutput:
-    output: bytes[state_size/8]
+    result: bytes[]            // Class group element g^(2^T)
 
 VDFProof:
-    proof_type: uint8         // 0x01 = checkpoints, 0x02 = STARK
-    checkpoints: CheckpointList | StarkProof
-
-CheckpointList:
-    count: uint32
-    checkpoints: [(uint64, bytes[state_size/8])]  // (index, value) pairs
+    proof: bytes[]             // Wesolowski proof π (~256 bytes)
+    challenge: bytes[16]       // Prime challenge l (128 bits)
 ```
 
 ### L-1.E.3 VRF Structures
@@ -1021,7 +961,7 @@ VRFOutput:
 
 ```
 CommitmentParams:
-    hash_algorithm: uint8     // 0x01 = SHA3-256, 0x02 = SHA3-384, 0x03 = SHAKE256
+    hash_algorithm: uint8     // 0x01 = SHA3-256, 0x02 = SHA3-384
     output_size: uint16       // In bits
 
 Commitment:
@@ -1186,35 +1126,34 @@ function timestamp_verify_chain(
 
 ## L-1.G Test Vectors
 
-### L-1.G.1 VDF Test Vectors
+### L-1.G.1 VDF Test Vectors (Class Group)
 
 **Test Vector 1: Minimal**
 ```
-Input:  0x0000000000000000000000000000000000000000000000000000000000000000
-T:      1
-Hash:   SHAKE256
-Output: 0x46b9dd2b0ba88d13233b3feb743eeb243fcd52ea62b81b82b50c27646ed5762f
+Discriminant: -23 (smallest valid)
+Generator:    g = (2, 1, 6)  // Binary quadratic form
+T:            1
+Output:       g^2 = g * g in Cl(-23)
+Proof:        π (Wesolowski proof)
 ```
 
-**Test Vector 2: Small T**
+**Test Vector 2: Standard Parameters**
 ```
-Input:  0x0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20
-T:      100
-Hash:   SHAKE256
-Output: 0x[computed value - 32 bytes]
+Discriminant bits: 2048
+T:                 2^24 (16,777,216)
+Generator:         [derived from seed]
+Output:            g^(2^T) in Cl(Δ)
+Proof size:        ~256 bytes
+Verification:      O(log T) group operations
 ```
 
-**Test Vector 3: With Checkpoints**
+**Test Vector 3: Verification**
 ```
-Input:  0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef
-T:      1000
-Checkpoint Interval: 100
-Checkpoints:
-  [0]:    0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef
-  [100]:  0x[computed]
-  [200]:  0x[computed]
-  ...
-  [1000]: 0x[final output]
+Given: (g, y, π, T)
+Compute: l = HashToPrime(g, y, T)
+         r = 2^T mod l
+Verify:  π^l * g^r == y
+Result:  true
 ```
 
 ### L-1.G.2 VRF Test Vectors (Lattice-VRF)
@@ -1297,11 +1236,12 @@ ProofHash:  0x[32 bytes]
 def generate_test_vectors():
     vectors = []
 
-    # VDF vectors
+    # VDF vectors (Class Group)
     for t in [1, 10, 100, 1000]:
-        for input in [ZERO_32, RANDOM_32, ONES_32]:
-            output = vdf_eval(input, t, SHAKE256)
-            vectors.append(("VDF", input, t, output))
+        for discriminant_bits in [256, 512, 2048]:
+            g = generate_class_group_element(discriminant_bits)
+            y, proof = vdf_eval_with_proof(g, t)
+            vectors.append(("VDF", g, t, y, proof))
 
     # VRF vectors
     for input in ["", "test", "long input..." * 100]:
@@ -1326,8 +1266,8 @@ def generate_test_vectors():
 
 | Requirement | Section | Mandatory |
 |-------------|---------|-----------|
-| SHAKE256 VDF | L-1.1.4 | YES |
-| Checkpoint verification | L-1.D.2 | YES |
+| Class Group VDF (Wesolowski) | L-1.1.4 | YES |
+| Wesolowski proof verification | L-1.D.1 | YES |
 | Lattice-VRF OR Hash-VRF | L-1.B, L-1.C | At least one |
 | Hash commitment (SHA3) | L-1.3.3 | YES |
 | Linked timestamps | L-1.4.2 | YES |
@@ -1338,7 +1278,7 @@ def generate_test_vectors():
 
 | Feature | Section | Notes |
 |---------|---------|-------|
-| STARK proofs for VDF | L-1.D.3 | Efficiency optimization |
+| Pietrzak proof (alternative to Wesolowski) | L-1.1.3 | Smaller proofs, more prover work |
 | Pedersen commitments | L-1.3.4 | Only for homomorphic needs |
 | PHANTOM ordering | L-1.5.4 | For DAG consensus |
 
@@ -1386,7 +1326,7 @@ def generate_test_vectors():
 
 | Primitive | Readiness | Notes |
 |-----------|-----------|-------|
-| VDF (hash-based) | 100% | Full spec + verification |
+| VDF (Class Group) | 100% | Full spec + Wesolowski verification |
 | VRF (Lattice) | 100% | Full construction |
 | VRF (Hash) | 100% | Full construction |
 | Commitment | 100% | Both schemes |

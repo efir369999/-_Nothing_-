@@ -405,10 +405,35 @@ Genesis → B₁ ───────── B₄ → ...
 
 | Algorithm | Ordering Rule | Type | Properties |
 |-----------|---------------|------|------------|
+| **Bullshark** | DAG-BFT with anchor commits | **B** | **Proven safety + liveness, optimal 3 rounds** |
+| Narwhal-Tusk | DAG + consensus | B | Separates availability/ordering |
+| DAG-Rider | Wave-based commits | B | Proven async safety |
 | PHANTOM | k-cluster with highest score | C | Parameterized security |
 | SPECTRE | Pairwise voting | C | Fast confirmation |
-| Narwhal-Tusk | DAG + consensus | B | Separates availability/ordering |
-| IOTA Tangle | Tip selection | C | Feeless structure |
+
+**Recommended: Bullshark (Type B)**
+
+Bullshark provides formally proven security with optimal latency:
+
+```
+Bullshark Properties (Spiegelman et al., CCS 2022):
+
+Safety (Type B):  Proven — no two honest nodes commit conflicting blocks
+Liveness (Type B): Proven — after GST, commits in O(1) rounds
+Latency:          3 rounds (optimal for partial synchrony BFT)
+Throughput:       >100,000 TPS (measured)
+Fault tolerance:  f < n/3 Byzantine
+```
+
+**Security Proof (Type B):**
+```
+Theorem: If ≥2f+1 nodes are honest and network is partially synchronous,
+         then Bullshark satisfies safety always and liveness after GST.
+
+Reduction:
+  Safety violation → quorum intersection violated → >n/3 Byzantine
+  Liveness violation → no anchor committed → network asynchronous
+```
 
 ### L-2.5.4 Block Structure (Abstract)
 
@@ -852,20 +877,39 @@ Prove:
 
 ### L-2.12.4 DAG-Based
 
+**Bullshark (Spiegelman et al., 2022):**
+- Model: Partial synchrony
+- Faults: Byzantine, f < n/3
+- Structure: DAG with anchor commits
+- Latency: 3 rounds (optimal)
+- Type: **B (proven)**
+
+**Narwhal-Tusk (Danezis et al., 2022):**
+- Model: Partial synchrony (async Tusk variant exists)
+- Faults: Byzantine, f < n/3
+- Structure: DAG mempool + consensus
+- Type: B (proven)
+
+**DAG-Rider (Keidar et al., 2021):**
+- Model: Asynchronous
+- Faults: Byzantine, f < n/3
+- Structure: Wave-based DAG
+- Type: B (proven)
+
 **PHANTOM (Sompolinsky-Zohar 2018):**
 - Model: Synchronous (bounded delay)
 - Faults: Byzantine, parameterized
 - Structure: DAG with k-cluster
-- Type: C (analyzed but newer)
+- Type: C (empirical)
 
 ### L-2.12.5 VDF-Integrated
 
-**Montana ATC (2025):**
+**Montana ATC (2026):**
 - Model: Partial synchrony + VDF
 - Faults: Byzantine + computational
-- Finality: Physical (VDF) + Anchor (Bitcoin)
-- Structure: DAG-PHANTOM
-- Type: S (composition of L1 primitives)
+- Finality: Physical (VDF) + UTC checkpoints
+- Structure: **DAG-Bullshark** (Type B)
+- Type: S (composition of L1 primitives with Type B DAG ordering)
 
 ---
 
@@ -903,6 +947,9 @@ Prove:
 - Danezis et al. (2022) — Narwhal and Tusk
 
 **DAG-Based:**
+- Spiegelman et al. (2022) — Bullshark (CCS 2022)
+- Danezis et al. (2022) — Narwhal and Tusk
+- Keidar et al. (2021) — DAG-Rider
 - Sompolinsky, Zohar (2015) — SPECTRE
 - Sompolinsky, Zohar (2018) — PHANTOM
 

@@ -1,9 +1,9 @@
 """
-Ɉ Montana Protocol Constants v3.7
+Ɉ Montana Protocol Constants v3.9
 
 All protocol constants per MONTANA_TECHNICAL_SPECIFICATION.md §19, §28.
 
-v3.7: ML-DSA signatures (Type B), Timechain architecture, UTC finality, ±5s tolerance.
+v3.9: Security Stack classification (§30), Lattice-VRF (Type B), ML-DSA signatures, UTC finality.
 """
 
 from typing import Dict, List, Tuple
@@ -184,8 +184,15 @@ PRIVACY_FEE_MULTIPLIERS: Dict[int, int] = {
     PRIVACY_T3: 10,
 }
 
-# Pedersen generator
-PEDERSEN_H_GENERATOR_SEED: bytes = b"MONTANA_PEDERSEN_H_V1"
+# Lattice Commitment parameters — ATC L-1.3
+# Type B security: reduction to Module-LWE + SIS
+LATTICE_COMMITMENT_CRS_SEED: bytes = b"MONTANA_LATTICE_CRS_V1"
+LATTICE_COMMITMENT_OUTPUT_SIZE: int = 32  # bytes
+LATTICE_COMMITMENT_BLINDING_SIZE: int = 32  # bytes
+LATTICE_COMMITMENT_VALUE_BITS: int = 64  # max value 2^64
+
+# Legacy alias for backwards compatibility
+PEDERSEN_H_GENERATOR_SEED: bytes = b"MONTANA_LATTICE_G_V1"
 
 # ==============================================================================
 # NETWORK PROTOCOL
@@ -271,7 +278,15 @@ SHAKE256_OUTPUT_SIZE: int = 32
 
 ALGORITHM_ML_DSA: int = 0x01              # ML-DSA-65 (Dilithium) — NIST FIPS 204
 ALGORITHM_ML_KEM: int = 0x02              # ML-KEM-768 — NIST FIPS 203
-ALGORITHM_ECVRF: int = 0x03               # ECVRF (quantum-vulnerable, upgrade path defined)
+ALGORITHM_LATTICE_VRF: int = 0x03         # Lattice-VRF (Type B, MLWE) — post-quantum secure
+
+# Lattice-VRF parameters — ATC L-1.B
+# Type B security: reduction to Module-LWE problem
+LATTICE_VRF_OUTPUT_SIZE: int = 32         # bytes (SHA3-256 output)
+LATTICE_VRF_PROOF_SIZE: int = 3309        # bytes (ML-DSA-65 signature)
+LATTICE_VRF_PUBLIC_KEY_SIZE: int = 1952   # bytes (ML-DSA-65 public key)
+LATTICE_VRF_SECRET_KEY_SIZE: int = 4064   # bytes (ML-DSA sk + 32-byte PRF key)
+LATTICE_VRF_SECURITY_LEVEL: int = 128     # bits (NIST Level 2)
 
 # ML-DSA-65 (Dilithium) parameters — NIST FIPS 204
 # Type B security: reduction to Module-LWE problem

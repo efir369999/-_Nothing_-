@@ -1,9 +1,11 @@
 """
-Ɉ Montana Block Eligibility v3.1
+Ɉ Montana Block Eligibility v3.8
 
 Block production eligibility per MONTANA_TECHNICAL_SPECIFICATION.md §10.
 
-Uses VRF-based lottery for fair block producer selection.
+Uses Lattice-VRF lottery for fair block producer selection.
+Type B security: reduction to Module-LWE problem (MLWE).
+Post-quantum secure via ML-DSA (NIST FIPS 204).
 """
 
 from __future__ import annotations

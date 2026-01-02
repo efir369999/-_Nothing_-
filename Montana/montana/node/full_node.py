@@ -26,7 +26,7 @@ from montana.core.heartbeat import (
     create_full_heartbeat,
     sign_heartbeat,
 )
-from montana.core.vdf import SHAKE256VDF as VDFComputer
+from montana.core.vdf import ClassGroupVDF as VDFComputer
 from montana.core.vdf_accumulator import VDFAccumulator, FinalityLevel
 from montana.network.protocol import ServiceFlags, MessageType
 from montana.network.peer import PeerManager

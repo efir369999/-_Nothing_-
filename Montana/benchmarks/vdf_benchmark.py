@@ -1,16 +1,28 @@
 #!/usr/bin/env python3
 """
-Montana VDF Benchmark
+Montana VDF Benchmark v3.7
 
-Measures SHAKE256 hash chain performance for VDF timing analysis.
-Results are used to validate whitepaper claims.
+Measures Class Group VDF performance for timing analysis.
+Results validate whitepaper claims about VDF timing.
+
+VDF: Class Group (Wesolowski 2019), Type B security.
 """
 
 import time
-import hashlib
+import platform
 import statistics
 from dataclasses import dataclass
 from typing import List, Tuple
+
+# Import Montana VDF
+import sys
+sys.path.insert(0, '..')
+
+try:
+    from montana.core.vdf import ClassGroupVDF, VDFOutput
+    MONTANA_AVAILABLE = True
+except ImportError:
+    MONTANA_AVAILABLE = False
 
 
 @dataclass
@@ -21,46 +33,19 @@ class BenchmarkResult:
     iterations_per_sec: float
 
 
-def shake256_32(data: bytes) -> bytes:
-    """Single SHAKE256 iteration producing 32 bytes."""
-    return hashlib.shake_256(data).digest(32)
+def benchmark_class_group_vdf(iterations: int, runs: int = 3) -> BenchmarkResult:
+    """Benchmark Class Group VDF computation."""
+    if not MONTANA_AVAILABLE:
+        raise RuntimeError("Montana VDF not available")
 
-
-def compute_vdf(input_data: bytes, iterations: int) -> Tuple[bytes, float]:
-    """
-    Compute VDF: output = H^T(input) where H = SHAKE256.
-
-    Returns (output, elapsed_seconds).
-    """
-    state = input_data
-    start = time.perf_counter()
-
-    for _ in range(iterations):
-        state = shake256_32(state)
-
-    elapsed = time.perf_counter() - start
-    return state, elapsed
-
-
-def benchmark_single_hash(runs: int = 10000) -> float:
-    """Benchmark single SHAKE256 operation."""
-    data = b'\x00' * 32
-
-    start = time.perf_counter()
-    for _ in range(runs):
-        data = shake256_32(data)
-    elapsed = time.perf_counter() - start
-
-    return (elapsed / runs) * 1e9  # nanoseconds
-
-
-def benchmark_vdf(iterations: int, runs: int = 3) -> BenchmarkResult:
-    """Benchmark VDF computation."""
+    vdf = ClassGroupVDF(iterations=iterations)
     times = []
     input_data = b'\x00' * 32
 
     for _ in range(runs):
-        _, elapsed = compute_vdf(input_data, iterations)
+        start = time.perf_counter()
+        result = vdf.compute(input_data)
+        elapsed = time.perf_counter() - start
         times.append(elapsed)
 
     avg_time = statistics.mean(times)
@@ -75,43 +60,45 @@ def benchmark_vdf(iterations: int, runs: int = 3) -> BenchmarkResult:
 
 def main():
     print("=" * 60)
-    print("Montana VDF Benchmark")
+    print("Montana VDF Benchmark v3.7")
+    print("VDF: Class Group (Wesolowski 2019)")
     print("=" * 60)
 
     # System info
-    import platform
     print(f"\nPlatform: {platform.platform()}")
     print(f"Python: {platform.python_version()}")
     print(f"Processor: {platform.processor() or 'N/A'}")
 
-    # Single hash benchmark
-    print("\n" + "-" * 60)
-    print("Single SHAKE256 (32-byte output)")
-    print("-" * 60)
-
-    ns_per_hash = benchmark_single_hash(100000)
-    print(f"Time per hash: {ns_per_hash:.1f} ns")
-    print(f"Hashes per second: {1e9/ns_per_hash:,.0f}")
+    if not MONTANA_AVAILABLE:
+        print("\nERROR: Montana VDF not available")
+        print("Run from Montana directory or install montana package")
+        return
 
     # VDF benchmarks at various iteration counts
     print("\n" + "-" * 60)
-    print("VDF Hash Chain Benchmark")
+    print("Class Group VDF Benchmark")
     print("-" * 60)
 
+    # Smaller iterations for benchmarking (full 2^24 takes too long)
     test_iterations = [
         1_000,
         10_000,
         100_000,
-        1_000_000,
-        10_000_000,
     ]
 
     results = []
     for iters in test_iterations:
         print(f"\nBenchmarking {iters:,} iterations...", end=" ", flush=True)
-        result = benchmark_vdf(iters, runs=3)
-        results.append(result)
-        print(f"{result.total_time_sec:.3f}s")
+        try:
+            result = benchmark_class_group_vdf(iters, runs=3)
+            results.append(result)
+            print(f"{result.total_time_sec:.3f}s")
+        except Exception as e:
+            print(f"Error: {e}")
+
+    if not results:
+        print("\nNo results collected")
+        return
 
     # Results table
     print("\n" + "=" * 60)
@@ -136,48 +123,27 @@ def main():
     estimated_time = (vdf_iterations * ns_per_iter) / 1e9
 
     print(f"\nVDF_BASE_ITERATIONS = 2^24 = {vdf_iterations:,}")
-    print(f"Estimated time per VDF checkpoint: {estimated_time:.2f} seconds")
+    print(f"Estimated time per VDF: {estimated_time:.2f} seconds")
     print(f"Time per iteration: {ns_per_iter:.1f} ns")
 
-    # Finality estimates
+    # UTC finality model
     print("\n" + "-" * 60)
-    print("Finality Timing Estimates")
+    print("UTC Finality Model")
     print("-" * 60)
-    print(f"Soft finality (1 checkpoint):    {estimated_time:.1f} seconds")
-    print(f"Medium finality (100 checkpoints): {estimated_time * 100 / 60:.1f} minutes")
-    print(f"Hard finality (1000 checkpoints):  {estimated_time * 1000 / 60:.1f} minutes")
+    print("VDF proves participation eligibility, not speed.")
+    print("All nodes bounded by UTC minute boundaries.")
+    print(f"Estimated VDF time: {estimated_time:.2f} seconds")
+    print(f"Waiting time: {60 - estimated_time:.2f} seconds")
+    print("Result: 1 heartbeat per minute (regardless of hardware)")
 
-    # ASIC considerations
+    # Security
     print("\n" + "-" * 60)
-    print("ASIC Speedup Analysis")
+    print("Security Properties")
     print("-" * 60)
-    print(f"Current: {ns_per_iter:.1f} ns/iteration (software, {platform.processor() or 'CPU'})")
-    print(f"ASIC estimate: ~20-50 ns/iteration (Keccak ASIC)")
-    print(f"ASIC speedup factor: ~{ns_per_iter/35:.1f}x")
-    print(f"ASIC VDF time: ~{(vdf_iterations * 35) / 1e9:.2f} seconds")
-
-    # Security margin
-    print("\n" + "-" * 60)
-    print("Security Margin")
-    print("-" * 60)
-    asic_time = (vdf_iterations * 35) / 1e9  # 35ns estimate for ASIC
-    print(f"Whitepaper claims: ~2.5 seconds per checkpoint")
-    print(f"This benchmark: {estimated_time:.2f} seconds (software)")
-    print(f"ASIC estimate: {asic_time:.2f} seconds")
-    print(f"Security margin vs ASIC: {estimated_time/asic_time:.1f}x")
-
-    # Run actual 2^24 if time permits (optional)
-    print("\n" + "-" * 60)
-    print("Full VDF Computation (2^24 iterations)")
-    print("-" * 60)
-
-    if estimated_time < 30:  # Only run if estimated < 30 seconds
-        print(f"Running 2^24 = {vdf_iterations:,} iterations...")
-        result = benchmark_vdf(vdf_iterations, runs=1)
-        print(f"Actual time: {result.total_time_sec:.3f} seconds")
-        print(f"Actual ns/iter: {result.time_per_iteration_ns:.1f}")
-    else:
-        print(f"Skipping (estimated time {estimated_time:.1f}s > 30s threshold)")
+    print("Type: B (reduction to class group order problem)")
+    print("Trusted setup: None required")
+    print("Verification: O(log T) using Wesolowski proof")
+    print("Quantum: Shor applies, but UTC model neutralizes speedup")
 
     print("\n" + "=" * 60)
     print("Benchmark Complete")

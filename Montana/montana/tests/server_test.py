@@ -39,9 +39,9 @@ except Exception as e:
 
 # 3. VDF
 try:
-    from montana.core.vdf import SHAKE256VDF
-    vdf = SHAKE256VDF()
-    tests.append(("VDF", True, "SHAKE256VDF ready"))
+    from montana.core.vdf import ClassGroupVDF
+    vdf = ClassGroupVDF()
+    tests.append(("VDF", True, "ClassGroupVDF ready"))
 except Exception as e:
     tests.append(("VDF", False, str(e)))
 

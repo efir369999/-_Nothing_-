@@ -849,8 +849,9 @@ def verify_vdf_proof(proof: VDFProof) -> bool:
 
 
 # ==============================================================================
-# LEGACY COMPATIBILITY
+# LEGACY ALIAS (deprecated)
 # ==============================================================================
 
-# Alias for backward compatibility with SHAKE256VDF interface
-SHAKE256VDF = ClassGroupVDF
+# Deprecated: Use ClassGroupVDF directly
+# VDF is an alias for ClassGroupVDF
+VDF = ClassGroupVDF

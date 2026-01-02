@@ -209,7 +209,7 @@ An adversary unconstrained by physics could:
 | Feature | Montana Choice |
 |---------|----------------|
 | Consensus | DAG-PHANTOM + VDF + Bitcoin anchor |
-| Cryptography | SPHINCS+ (signatures), ML-KEM (encryption) |
+| Cryptography | ML-DSA (signatures), ML-KEM (encryption) |
 | Time Source | 34 NTP servers, 8 geographic regions |
 | Token | Ɉ (seconds), 1.26B supply, fair launch |
 

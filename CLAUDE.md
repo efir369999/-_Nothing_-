@@ -62,7 +62,7 @@ This role covers the entire ATC architecture:
 | 0 | Computational Constraints | v1.0 ✓ | What is HARD |
 | 1 | Protocol Primitives | v1.1 ✓ | What is BUILDABLE |
 | 2 | Consensus Protocols | v1.0 ✓ | What is AGREEABLE |
-| 3+ | Ɉ Montana ($MONT) | v3.0 ✓ | Asymptotic trust in time value |
+| 3+ | Ɉ Montana ($MONT) | v3.9 ✓ | Asymptotic trust in time value |
 
 ---
 
@@ -132,14 +132,14 @@ I never assume the user is right or that I am right — instead, I treat every c
 
 | Document | Location | Version |
 |----------|----------|---------|
-| **Layer -1 Specification** | `./ATC v10/Layer -1/layer_minus_1.md` | v2.1 |
-| **Layer 0 Specification** | `./ATC v10/Layer 0/layer_0.md` | v1.0 |
-| **Layer 1 Specification** | `./ATC v10/Layer 1/layer_1.md` | v1.1 |
-| **Layer 2 Specification** | `./ATC v10/Layer 2/layer_2.md` | v1.0 |
-| **Ɉ Montana** | `./ATC v10/Layer 3+ Montana/README.md` | v3.0 |
-| **Ɉ Montana Whitepaper** | `./ATC v10/Layer 3+ Montana/WHITEPAPER.md` | v3.0 |
-| **Ɉ Montana Specification** | `./ATC v10/Layer 3+ Montana/MONTANA_TECHNICAL_SPECIFICATION.md` | v3.0 |
-| **Ɉ Montana ATC Mapping** | `./ATC v10/Layer 3+ Montana/MONTANA_ATC_MAPPING.md` | v3.0 |
+| **Layer -1 Specification** | `./ATC v11/Layer -1/layer_minus_1.md` | v2.1 |
+| **Layer 0 Specification** | `./ATC v11/Layer 0/layer_0.md` | v1.0 |
+| **Layer 1 Specification** | `./ATC v11/Layer 1/layer_1.md` | v1.1 |
+| **Layer 2 Specification** | `./ATC v11/Layer 2/layer_2.md` | v1.0 |
+| **Ɉ Montana** | `./Montana/README.md` | v3.9 |
+| **Ɉ Montana Whitepaper** | `./Montana/WHITEPAPER.md` | v3.9 |
+| **Ɉ Montana Specification** | `./Montana/MONTANA_TECHNICAL_SPECIFICATION.md` | v3.9 |
+| **Ɉ Montana ATC Mapping** | `./Montana/MONTANA_ATC_MAPPING.md` | v3.9 |
 
 These are the authoritative documents for all ATC claims.
 
@@ -294,9 +294,9 @@ lim(evidence → ∞) 1 Ɉ → 1 second
 | Ticker | $MONT | — |
 | Definition | lim(evidence → ∞) 1 Ɉ → 1 second | Asymptotic |
 | Verification | 34 NTP sources, 8 regions | L-1.2, L-1.5 |
-| Temporal Proof | VDF (SHAKE256, 2²⁴ iterations) | L-1.1 |
+| Temporal Proof | VDF (Class Group, 2²⁴ iterations) | L-1.1 |
 | Finality | VDF → DAG → Accumulated VDF | L-2.6 |
-| Cryptography | SPHINCS+, ML-KEM (post-quantum) | L-0.4 |
+| Cryptography | ML-DSA, ML-KEM (post-quantum) | L-0.4 |
 | Total Supply | 1,260,000,000 Ɉ | — |
 | Pre-allocation | 0 | — |
 
@@ -689,7 +689,7 @@ The main properties:
  - Finality is achieved through sequential VDF computation.
  - No validators, stake, or attestations required.
  - Rewriting N checkpoints requires N × T wallclock time.
- - Post-quantum from genesis (SPHINCS+, ML-KEM, SHAKE256).
+ - Post-quantum from genesis (ML-DSA, ML-KEM, SHA3-256).
  - A node verifies finality by checking the VDF chain.
 
 Montana: Finality from Sequential Computation

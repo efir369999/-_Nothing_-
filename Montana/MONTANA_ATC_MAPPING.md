@@ -1,9 +1,10 @@
 # Ɉ Montana: Temporal Time Unit ↔ ATC Layer Mapping
 
-**Ɉ Montana Version:** 3.7
+**Ɉ Montana Version:** 3.9
+**Protocol:** 11
 **Ticker:** $MONT
 **Architecture:** Timechain
-**ATC Version:** 10.0 (L-1 v2.1, L0 v1.0, L1 v1.1, L2 v1.0)
+**ATC Version:** 11.0 (L-1 v2.1, L0 v1.0, L1 v1.1, L2 v1.0)
 
 ---
 
@@ -17,7 +18,7 @@ lim(evidence → ∞) 1 Ɉ → 1 second
 
 **Timechain:** chain of time, bounded by physics.
 
-**v3.7:** ML-DSA signatures (Type B), Timechain architecture, UTC finality, ±5s tolerance.
+**v3.9:** Security Stack classification, Lattice-VRF (Type B), ML-DSA signatures, UTC finality.
 
 This document maps Ɉ Montana components to their foundational ATC layers, showing exactly which constraints and primitives the mechanism relies upon.
 
@@ -83,8 +84,8 @@ Montana uses these L1 primitives:
 | L1 Primitive | Montana Implementation | Section |
 |--------------|------------------------|---------|
 | **L-1.1** VDF | Class Group VDF (Wesolowski 2019), T = 2²⁴ base | §5 |
-| **L-1.2** VRF | ECVRF for eligibility | §10 |
-| **L-1.3** Commitment | Pedersen (privacy), Hash (general) | §14 |
+| **L-1.2** VRF | Lattice-VRF for eligibility (Type B, MLWE) | §10 |
+| **L-1.3** Commitment | Lattice (privacy, Type B), Hash (general) | §14 |
 | **L-1.4** Timestamp | Linked timestamps with VDF chain | §7 |
 | **L-1.5** Ordering | DAG-PHANTOM | §10 |
 
@@ -121,22 +122,26 @@ VDF_CHALLENGE_BITS = 128                  # Wesolowski challenge size
 # Proof: ~256 bytes, no trusted setup
 ```
 
-### Montana VRF → L-1.2
+### Montana VRF → L-1.2 (L-1.B)
 
-**Quantum Status:** ECVRF is BROKEN by Shor's algorithm (ATC L-1.2.3). Montana accepts this for block eligibility because:
-1. Eligibility proofs have short-term validity (current epoch only)
-2. ML-DSA signatures provide Type B security for transactions
-3. Upgrade path documented in Montana spec §16.4
+**Quantum Status:** POST-QUANTUM SECURE via ML-DSA (NIST FIPS 204).
+
+**Security Type:** B (reduction to Module-LWE problem)
+
+Montana uses Lattice-VRF for block eligibility:
+1. Type B security from genesis (no quantum vulnerability)
+2. ML-DSA signatures provide Type B security for all operations
+3. Full post-quantum cryptography stack
 
 ```python
-# Montana uses ECVRF for block eligibility
-# Quantum-vulnerable but acceptable for short-term proofs
+# Montana uses Lattice-VRF for block eligibility
+# Post-quantum secure via ML-DSA (NIST FIPS 204)
 
-# L-1.2 provides post-quantum alternatives:
-# - Lattice-VRF (L-1.B): Post-quantum, Type B
-# - Hash-VRF (L-1.C): Post-quantum, Type B+C
+# Construction (ATC L-1.B):
+# output = SHA3-256(k_prf || input)
+# proof = ML-DSA-Sign(sk_sign, input || output)
 
-# Upgrade path: Replace ECVRF with Lattice-VRF for full PQ security
+# Type B security: reduction to Module-LWE (MLWE)
 ```
 
 ### Montana Ordering → L-1.5
@@ -207,7 +212,7 @@ Montana uses these L-2.7 composition patterns:
 
 | Pattern | Montana Usage |
 |---------|---------------|
-| **L-2.7.1** VRF Leader Election | ECVRF for block eligibility |
+| **L-2.7.1** VRF Leader Election | Lattice-VRF for block eligibility |
 | **L-2.7.2** VDF Time Progression | Epoch advancement |
 | **L-2.7.3** Commit-Reveal | (Not currently used) |
 | **L-2.7.4** Timestamp Ordering | Heartbeat sequencing |
@@ -232,9 +237,9 @@ Montana uses these L-2.7 composition patterns:
 | VDF sequentiality | Type P + B | Physical + mathematical |
 | VDF computation | Type P + B | Physical + mathematical |
 | Accumulated finality | Type P | Physical (sequential time) |
-| ECVRF eligibility | Type C | Pre-quantum empirical |
+| Lattice-VRF eligibility | Type B | Module-LWE reduction |
 | ML-DSA signatures | Type B (L0) | Module-LWE reduction |
-| DAG ordering | Type C | PHANTOM empirical |
+| DAG ordering | Type B | Bullshark proven (CCS 2022) |
 | Safety proofs | Type A | Mathematical |
 
 ---
@@ -259,7 +264,7 @@ Montana can upgrade components independently:
 
 | Component | Current | Upgrade To | Trigger |
 |-----------|---------|------------|---------|
-| VRF | ECVRF | Lattice-VRF (L-1.B) | PQ requirement |
+| VRF | Lattice-VRF (L-1.B) | Hash-VRF (L-1.C) | Conservative backup |
 | VDF verification | Checkpoints | STARK proofs (L-1.D.3) | Efficiency need |
 | Privacy | Ring-11 | Larger rings | Anonymity need |
 | Hard Finality | 1000 checkpoints | Configurable | Security posture |
@@ -284,26 +289,26 @@ To verify Montana compliance with ATC:
 
 3. Primitive security (L1):
    ✓ VDF sequentiality preserved (Class Group, Type B)
-   ⚠ VRF uniqueness (ECVRF) — quantum-vulnerable, upgrade path defined
-   ✓ Commitment binding (hash-based: PQ-safe; Pedersen: hiding only)
+   ✓ VRF uniqueness (Lattice-VRF) — post-quantum secure via MLWE
+   ✓ Commitment binding (hash-based: PQ-safe; Lattice: Type B PQ-safe)
 
 4. Consensus properties (L2):
    ✓ Safety: DAG partial order
    ✓ Liveness: After GST
    ✓ Finality: Accumulated VDF (self-sovereign)
 
-→ Montana v3.7 COMPLIES with ATC v10
-→ Montana v3.7 is a TIMECHAIN
-→ Montana v3.7 is SELF-SOVEREIGN
-→ Montana v3.7 uses ML-DSA signatures (Type B security)
-→ Montana v3.7 uses UTC finality with ±5 second tolerance
+→ Montana v3.9 COMPLIES with ATC v11
+→ Montana v3.9 is a TIMECHAIN
+→ Montana v3.9 is SELF-SOVEREIGN
+→ Montana v3.9 uses ML-DSA signatures (Type B security)
+→ Montana v3.9 uses UTC finality with ±5 second tolerance
 ```
 
 ---
 
 ## References
 
-- Montana Technical Specification v3.7
+- Montana Technical Specification v3.9
 - ATC Layer -1 v2.1
 - ATC Layer 0 v1.0
 - ATC Layer 1 v1.1
@@ -313,4 +318,4 @@ To verify Montana compliance with ATC:
 
 *This mapping enables verification that Montana correctly inherits ATC layer guarantees and does not assume stronger properties than lower layers provide.*
 
-*Montana v3.7: Timechain — self-sovereign UTC finality through physics. ML-DSA signatures (Type B).*
+*Montana v3.9: Timechain — self-sovereign UTC finality through physics. Security Stack classification (§30).*

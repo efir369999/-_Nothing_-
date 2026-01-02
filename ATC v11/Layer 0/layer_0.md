@@ -395,12 +395,39 @@ These are MODULAR — replaceable without changing Layer 0 structure.
 
 ### L-0.4.1 Hash Functions
 
-**Recommended:**
+**Classification by Security Type:**
+
+| Category | Function | Security Type | Use Case |
+|----------|----------|---------------|----------|
+| **Unkeyed** | SHA3-256 | Type C | Block hashes, Merkle roots, commitments |
+| **Keyed (MAC)** | HMAC-SHA3-256 | Type B | Message authentication, authenticated channels |
+| **Key Derivation** | HKDF-SHA3-256 | Type B | Session keys, derived keys |
+
+**Security Type Explanation:**
+- **Type C (Empirical):** 10+ years of cryptanalysis without successful attacks
+- **Type B (Proven Reduction):** Security proven relative to assumption (SHA3-256 as PRF)
+
+**Unkeyed Hash Functions (Type C):**
+
 | Primitive | Standard | Output | Status |
 |-----------|----------|--------|--------|
 | SHA-3 (Keccak) | FIPS 202 | 256/384/512 | Primary recommendation |
 | SHAKE128/256 | FIPS 202 | Variable | XOF applications |
 | BLAKE3 | — | 256+ | High performance alternative |
+
+**Keyed Hash / MAC (Type B):**
+
+| Primitive | Security | Use Case |
+|-----------|----------|----------|
+| HMAC-SHA3-256 | Type B (PRF assumption) | Message authentication |
+| HMAC-SHA3-384 | Type B (PRF assumption) | Higher security MAC |
+
+**Key Derivation Functions (Type B):**
+
+| Primitive | Security | Use Case |
+|-----------|----------|----------|
+| HKDF-SHA3-256 | Type B (HMAC as PRF) | Session keys, derived keys |
+| HKDF-SHA3-384 | Type B (HMAC as PRF) | Higher security KDF |
 
 **Secure but legacy:**
 | Primitive | Standard | Status |
@@ -413,6 +440,18 @@ These are MODULAR — replaceable without changing Layer 0 structure.
 |-----------|--------|
 | MD5 | Collisions found (2004) |
 | SHA-1 | Collisions found (2017) |
+
+**Usage Guidelines:**
+
+| Operation | Function | Type | Rationale |
+|-----------|----------|------|-----------|
+| Block hash | SHA3-256 | C | No key, public data |
+| Merkle root | SHA3-256 | C | No key, public data |
+| VDF input | SHA3-256 | C | Public computation |
+| Commitment | SHA3-256(r‖m) | C | Randomness provides hiding |
+| Message MAC | HMAC-SHA3-256 | B | Keyed, proven security |
+| Session key | HKDF-SHA3-256 | B | Key derivation from shared secret |
+| PRF output | HMAC-SHA3-256 | B | Keyed pseudorandomness |
 
 **Quantum security:** All above have n/2 quantum security (Grover). Use ≥384-bit output for 128-bit post-quantum security.
 

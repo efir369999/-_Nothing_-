@@ -1,6 +1,7 @@
 # Ɉ Montana: Temporal Time Unit
 
-**Version:** 3.7
+**Version:** 3.9
+**Protocol:** 11
 **Ticker:** $MONT
 **Architecture:** Timechain
 
@@ -19,10 +20,10 @@ lim(evidence → ∞) 1 Ɉ → 1 second
 Montana builds trust through **Asymptotic Trust Consensus** (ATC):
 - Physical constraints (thermodynamics, sequentiality)
 - Computational hardness (post-quantum cryptography)
-- Protocol primitives (VDF, VRF)
+- Protocol primitives (VDF, Lattice-VRF)
 - Consensus mechanisms (DAG, UTC finality)
 
-**v3.7:** ML-DSA signatures (Type B), Timechain architecture, UTC finality, ±5s tolerance.
+**v3.9:** Security Stack classification, Lattice-VRF (Type B), ML-DSA signatures, UTC finality.
 
 ---
 
@@ -126,9 +127,9 @@ Layer 3+: Ɉ Montana — Timechain (TTU)
        ↑
 Layer 2:  Consensus (DAG, UTC Finality)
        ↑
-Layer 1:  Primitives (VDF, VRF)
+Layer 1:  Primitives (VDF, Lattice-VRF)
        ↑
-Layer 0:  Computation (SHA-3, SPHINCS+)
+Layer 0:  Computation (SHA-3, ML-DSA, ML-KEM)
        ↑
 Layer -1: Physics (Thermodynamics, Sequentiality)
 ```
@@ -247,7 +248,7 @@ mypy montana/
 Montana/
 ├── montana/                 # Python implementation
 │   ├── core/               # VDF, blocks, types
-│   ├── crypto/             # SPHINCS+, VRF, STARK
+│   ├── crypto/             # ML-DSA, ML-KEM, VRF, STARK
 │   ├── consensus/          # DAG, eligibility
 │   ├── network/            # P2P protocol
 │   ├── privacy/            # Tiers T0-T3

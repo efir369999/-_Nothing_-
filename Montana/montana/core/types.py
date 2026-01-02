@@ -71,12 +71,12 @@ class PrivacyTier(IntEnum):
 
     T0: Transparent (fee multiplier 1x)
     T1: Hidden receiver via stealth address (fee multiplier 2x)
-    T2: Hidden receiver + amount via Pedersen (fee multiplier 5x)
+    T2: Hidden receiver + amount via Lattice commitment (fee multiplier 5x)
     T3: Fully private via ring signature (fee multiplier 10x)
     """
     T0 = PRIVACY_T0  # Transparent
     T1 = PRIVACY_T1  # Stealth address
-    T2 = PRIVACY_T2  # Stealth + Pedersen
+    T2 = PRIVACY_T2  # Stealth + Lattice commitment
     T3 = PRIVACY_T3  # Full privacy (ring sig)
 
 

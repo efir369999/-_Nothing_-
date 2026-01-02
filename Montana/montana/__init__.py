@@ -1,17 +1,17 @@
 """
-Ɉ Montana v3.7 — Mechanism for asymptotic trust in the value of time.
+Ɉ Montana v3.9 — Mechanism for asymptotic trust in the value of time.
 
 lim(evidence → ∞) 1 Ɉ → 1 second
 
 Built on ATC Layer 3+.
 
-v3.7: ML-DSA signatures (Type B security).
+v3.9: Security Stack classification (§30), Lattice-VRF (Type B), ML-DSA signatures.
 
 Bootstrap server: 176.124.208.93:19656
 """
 
-__version__ = "3.7.0"
-__protocol_version__ = 10
+__version__ = "3.9.0"
+__protocol_version__ = 11
 
 from montana.constants import (
     PROJECT,
@@ -26,7 +26,7 @@ from montana.constants import (
 from montana.core.types import Hash, PublicKey, NodeType, ParticipationTier, PrivacyTier
 from montana.core.block import Block, BlockHeader
 from montana.core.heartbeat import FullHeartbeat, LightHeartbeat
-from montana.core.vdf import SHAKE256VDF as VDFComputer
+from montana.core.vdf import ClassGroupVDF as VDFComputer
 from montana.core.vdf_accumulator import VDFAccumulator, FinalityLevel
 
 # Crypto exports
