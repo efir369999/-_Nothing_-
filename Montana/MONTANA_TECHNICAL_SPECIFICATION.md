@@ -1,15 +1,17 @@
-# Ɉ Montana Technical Specification v3.4
+# Ɉ Montana Technical Specification v3.5
 
 **Protocol Version:** 9
-**Document Version:** 3.4
+**Document Version:** 3.5
 **Date:** January 2026
 **Ticker:** $MONT
+**Architecture:** Timechain
 **ATC Compatibility:** v10.0 (L-1 v2.1, L0 v1.0, L1 v1.1, L2 v1.0)
 
 > **Ɉ Montana** is a mechanism for asymptotic trust in the value of time.
 > **Ɉ** — Temporal Time Unit: lim(evidence → ∞) 1 Ɉ → 1 second
+> **Montana is a Timechain** — not a blockchain. Chains time, secured by physics.
 > Built on ATC Layer 3+. See [MONTANA_ATC_MAPPING.md](MONTANA_ATC_MAPPING.md) for layer mapping.
-> **v3.4:** UTC finality, ±5s tolerance, platform-independent light clients, ASIC-resistant.
+> **v3.5:** Timechain architecture, UTC finality, ±5s tolerance, platform-independent light clients.
 
 ---
 
@@ -68,7 +70,7 @@ This document provides the complete technical specification for implementing the
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      Ɉ MONTANA ARCHITECTURE                      │
-│                     (ATC Layer 3+ Implementation)                │
+│                     Timechain (ATC Layer 3+)                     │
 │                     Self-Sovereign • Physics-Based               │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │

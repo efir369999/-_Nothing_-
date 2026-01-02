@@ -1,8 +1,9 @@
 # Ɉ Montana
 
-**Version:** 3.4
+**Version:** 3.5
 **Date:** January 2026
 **Ticker:** $MONT
+**Architecture:** Timechain
 
 ---
 
@@ -23,7 +24,17 @@ lim(evidence → ∞) 1 Ɉ → 1 second
 
 Montana builds trust in time value through the **Asymptotic Trust Consensus** (ATC) architecture — physical constraints, computational hardness, protocol primitives, and consensus mechanisms.
 
-**Montana v3.4** is fully self-sovereign: no external blockchain dependencies, no external time sources. Finality is determined by UTC boundaries — time itself becomes the consensus mechanism.
+**Montana is a Timechain** — not a blockchain. Where blockchain chains blocks and secures them through economic incentives (work, stake), Timechain chains time and secures it through physics. The fundamental unit is not a block, but a second.
+
+```
+Blockchain:  chain of blocks, secured by work or stake
+Timechain:   chain of time, secured by physics
+
+Blockchain:  "Who computed first is right"
+Timechain:   "Time passed — this is fact"
+```
+
+**Montana v3.5** is fully self-sovereign: no external blockchain dependencies, no external time sources. Finality is determined by UTC boundaries — time itself becomes the consensus mechanism.
 
 The more evidence accumulates, the closer Ɉ approaches its definition. We never claim to arrive; we asymptotically approach.
 
@@ -539,7 +550,7 @@ Every claim is typed. This is epistemic honesty.
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Montana v3.4:** Fully self-sovereign. No external dependencies.
+**Montana v3.5 — Timechain:** Fully self-sovereign. No external dependencies.
 
 ---
 

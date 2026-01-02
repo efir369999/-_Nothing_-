@@ -1,10 +1,29 @@
 """
-Ɉ Montana VDF (Verifiable Delay Function) v3.1
+Ɉ Montana Sequential Hash Chain v3.2
 
 Layer 1: Temporal Proof per MONTANA_TECHNICAL_SPECIFICATION.md §5.
 
-SHAKE256-based VDF with O(log T) verification via STARK proofs.
-Target: 2^24 iterations (~2.5 seconds) for soft finality checkpoint.
+SHAKE256-based sequential hash chain with O(log T) verification via STARK proofs.
+Target: 2^24 iterations (~2.5 seconds) for UTC finality window participation.
+
+TERMINOLOGY NOTE:
+This is NOT a classical VDF in the Boneh et al. (2018) sense. Classical VDFs use
+algebraic structures (RSA groups, class groups) that provide mathematical
+sequentiality guarantees through group-theoretic properties.
+
+Montana uses a sequential hash chain:
+  H^T(x) = SHAKE256(SHAKE256(...SHAKE256(x)...))  # T iterations
+
+Security Type: C (empirical)
+  - No shortcut for iterated SHAKE256 is known
+  - Shortcuts are theoretically possible if internal structure is discovered
+  - 20+ years of cryptanalysis on SHA-3/SHAKE256 with no iteration shortcuts found
+
+Quantum Status: Resistant
+  - Grover provides only √T speedup (from 2^24 to 2^12 iterations)
+  - RSA/class group VDFs are broken by Shor's algorithm
+
+Montana accepts this tradeoff for post-quantum security and simplicity.
 """
 
 from __future__ import annotations

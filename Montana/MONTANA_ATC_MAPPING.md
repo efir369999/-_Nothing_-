@@ -82,17 +82,28 @@ Montana uses these L1 primitives:
 | **L-1.4** Timestamp | Linked timestamps with VDF chain | §7 |
 | **L-1.5** Ordering | DAG-PHANTOM | §10 |
 
-### Montana VDF → L-1.1
+### Montana Sequential Hash Chain → L-1.1
+
+**TERMINOLOGY NOTE:** Montana does NOT use a classical VDF in the Boneh et al. (2018) sense. Classical VDFs use algebraic structures (RSA groups, class groups) with mathematical sequentiality guarantees. Montana uses a sequential hash chain with empirical (Type C) sequentiality.
+
+| Property | Classical VDF (RSA/Class Groups) | Montana (SHAKE256 Chain) |
+|----------|----------------------------------|--------------------------|
+| Sequentiality basis | Mathematical (group structure) | Empirical (no shortcut known) |
+| Security type | Type B (reduction to group problem) | Type C (empirical, 10+ years) |
+| Shortcut | Provably requires group computation | Unknown but theoretically possible |
+| Quantum status | Vulnerable (Shor's algorithm) | Resistant (Grover √T only) |
 
 ```python
-# Montana VDF parameters
-VDF_HASH_FUNCTION = "SHAKE256"
-VDF_BASE_ITERATIONS = 16777216  # 2²⁴ (~2.5 seconds)
-VDF_STARK_CHECKPOINT_INTERVAL = 1000
+# Montana sequential hash chain parameters
+HASH_CHAIN_FUNCTION = "SHAKE256"
+HASH_CHAIN_BASE_ITERATIONS = 16777216  # 2²⁴ (~2.5 seconds)
+HASH_CHAIN_STARK_CHECKPOINT_INTERVAL = 1000
 
-# Maps to L-1.1.4: SHAKE256 Hash Chain VDF
-# Security: Type P (physical) + Type C (empirical)
-# Property: Sequential computation, no parallelization
+# Maps to L-1.1.4: SHAKE256 Hash Chain
+# Security: Type C (empirical) — NOT Type B (reduction-based)
+# Property: Sequential computation (empirical, no shortcut known)
+# Honest acknowledgment: Shortcuts theoretically possible if
+# SHAKE256 internal structure is discovered
 ```
 
 ### Montana VRF → L-1.2

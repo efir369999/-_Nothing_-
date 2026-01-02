@@ -2,8 +2,9 @@
 
 > *Mechanism for asymptotic trust in the value of time*
 
-**Version:** 3.4
+**Version:** 3.5
 **Ticker:** $MONT
+**Architecture:** Timechain
 
 ---
 
@@ -17,13 +18,20 @@
 lim(evidence → ∞) 1 Ɉ → 1 second
 ```
 
+**Montana is a Timechain** — not a blockchain.
+
+```
+Blockchain:  chain of blocks, secured by work or stake
+Timechain:   chain of time, secured by physics
+```
+
 Montana builds trust through **Asymptotic Trust Consensus** (ATC):
 - Physical constraints (thermodynamics, sequentiality)
 - Computational hardness (post-quantum cryptography)
 - Protocol primitives (VDF, VRF)
 - Consensus mechanisms (DAG, UTC finality)
 
-**v3.4:** UTC finality, ±5s tolerance, platform-independent light clients.
+**v3.5:** Timechain architecture, UTC finality, ±5s tolerance, platform-independent light clients.
 
 ---
 
@@ -98,6 +106,7 @@ Time passes equally for all. No platform provides advantage.
 | Project | Ɉ Montana |
 | Symbol | Ɉ |
 | Ticker | $MONT |
+| Architecture | Timechain |
 | Definition | lim(evidence → ∞) 1 Ɉ → 1 second |
 | Total Supply | 1,260,000,000 Ɉ |
 | Pre-allocation | 0 |
@@ -122,9 +131,9 @@ Time passes equally for all. No platform provides advantage.
 ## ATC Foundation
 
 ```
-Layer 3+: Ɉ Montana (TTU)
+Layer 3+: Ɉ Montana — Timechain (TTU)
        ↑
-Layer 2:  Consensus (DAG, VDF Finality)
+Layer 2:  Consensus (DAG, UTC Finality)
        ↑
 Layer 1:  Primitives (VDF, VRF)
        ↑
@@ -160,7 +169,7 @@ We approach certainty; we never claim to reach it.
 ```bash
 # Clone repository
 git clone https://github.com/afgrouptime/atc.git
-cd atc/Montana-v0.1
+cd atc/Montana
 
 # Install Python package
 pip install -e .
@@ -244,7 +253,7 @@ mypy montana/
 ## Project Structure
 
 ```
-Montana-v0.1/
+Montana/
 ├── montana/                 # Python implementation
 │   ├── core/               # VDF, blocks, types
 │   ├── crypto/             # SPHINCS+, VRF, STARK

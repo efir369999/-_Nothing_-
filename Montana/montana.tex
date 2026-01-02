@@ -14,7 +14,7 @@
 \begin{document}
 
 \begin{center}
-{\Large\bfseries Montana: Finality from UTC Boundaries}
+{\Large\bfseries Montana: A Timechain}
 
 \vspace{12pt}
 
@@ -26,7 +26,7 @@ x.com/tojesatoshi
 
 \vspace{12pt}
 
-\textbf{Abstract.}  A purely self-sovereign finality mechanism would allow distributed systems to achieve irreversible consensus without economic security or honest majority assumptions.  Verifiable Delay Functions provide part of the solution, but the main benefits are lost if finality still depends on accumulated computation depth, which favors specialized hardware.  We propose a solution to the finality problem using UTC time boundaries.  The system achieves deterministic finality at fixed intervals by treating UTC boundaries as consensus points.  VDF computation proves participation within a time window, not computation speed.  As long as nodes maintain reasonable clock accuracy, finality occurs every minute regardless of hardware capabilities.  The system requires minimal structure and no external dependencies beyond physics itself.
+\textbf{Abstract.}  A purely self-sovereign finality mechanism would allow distributed systems to achieve irreversible consensus without economic security or honest majority assumptions.  Verifiable Delay Functions provide part of the solution, but the main benefits are lost if finality still depends on accumulated computation depth, which favors specialized hardware.  We propose a solution to the finality problem using UTC time boundaries.  The result is a \textbf{Timechain}---not a blockchain.  Where blockchain chains blocks and secures them through economic incentives, Timechain chains time and secures it through physics.  The fundamental unit is not a block, but a second.  The system achieves deterministic finality at fixed intervals by treating UTC boundaries as consensus points.  VDF computation proves participation within a time window, not computation speed.  As long as nodes maintain reasonable clock accuracy, finality occurs every minute regardless of hardware capabilities.  The system requires minimal structure and no external dependencies beyond physics itself.
 
 \section{Introduction}
 
@@ -36,7 +36,20 @@ The problem of course is that all these mechanisms require trust in collective b
 
 What is needed is a finality mechanism based on physical constraints instead of trust, allowing any node to verify finality independently without relying on external parties.  Time boundaries that are physically impossible to advance would protect against manipulation, and the cost of attack would be time itself.
 
-In this paper, we propose a solution using UTC time boundaries as consensus points.  Each minute boundary serves as a finality checkpoint.  Nodes prove participation through VDF computation, but hardware speed provides no advantage---fast hardware simply waits for the boundary like everyone else.
+In this paper, we propose a solution using UTC time boundaries as consensus points.  Each minute boundary serves as a finality checkpoint.  Nodes prove participation through VDF computation, but hardware speed provides no advantage---fast hardware simply waits for the boundary like everyone else.  The result is a Timechain: a chain of time, secured by physics.
+
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Blockchain} & \textbf{Timechain} \\
+\hline
+Chain of blocks & Chain of time \\
+Secured by work or stake & Secured by physics \\
+``Who computed first is right'' & ``Time passed---this is fact'' \\
+Unit: block & Unit: second \\
+\hline
+\end{tabular}
+\end{center}
 
 \section{UTC Finality Model}
 
@@ -248,7 +261,9 @@ T3 & Full privacy & 10x \\
 
 \section{Conclusion}
 
-We have proposed a finality mechanism based on UTC time boundaries rather than accumulated computation.  The system achieves deterministic finality at fixed intervals, eliminating hardware advantages that plague other approaches.  VDF computation proves participation within a time window, not speed.  Fast hardware provides no benefit---it simply waits for the boundary.
+We have proposed a Timechain---a system where time itself is the chain, secured by physics rather than economics.  The fundamental unit is not a block, but a second.
+
+The system achieves deterministic finality at fixed intervals, eliminating hardware advantages that plague other approaches.  VDF computation proves participation within a time window, not speed.  Fast hardware provides no benefit---it simply waits for the boundary.
 
 The key insight is that no adversary can advance UTC.  Time passes equally for all participants regardless of computational resources.  This transforms finality from an economic or computational race into a physical certainty.
 

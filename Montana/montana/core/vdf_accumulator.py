@@ -1,5 +1,5 @@
 """
-Ɉ Montana VDF Accumulator v3.4
+Ɉ Montana Finality Accumulator v3.4
 
 Layer 2: UTC Finality per MONTANA_TECHNICAL_SPECIFICATION.md §6.
 
@@ -8,8 +8,15 @@ Implements three finality levels through UTC time boundaries:
 - Medium: 2 boundaries (2 minutes) - High certainty
 - Hard:   3 boundaries (3 minutes) - Maximum security
 
-VDF proves participation within a time window, not computation speed.
+Sequential hash chain proves participation within a time window, not computation speed.
 Hardware advantage eliminated — fast hardware waits for UTC boundary.
+
+TERMINOLOGY NOTE:
+Montana uses a "sequential hash chain" (SHAKE256^T), not a classical VDF
+in the Boneh et al. (2018) sense. The "VDF" terminology is retained in
+class/function names for API compatibility.
+
+Security: Type C (empirical) — no iteration shortcut known for SHAKE256.
 """
 
 from __future__ import annotations
