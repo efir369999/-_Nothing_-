@@ -139,6 +139,132 @@ We approach certainty; we never claim to reach it.
 
 ---
 
+## Installation
+
+### Prerequisites
+
+- Python 3.9+
+- Rust 1.75+ (for STARK proofs)
+
+### Quick Start
+
+```bash
+# Clone repository
+git clone https://github.com/afgrouptime/atc.git
+cd atc/Montana-v0.1
+
+# Install Python package
+pip install -e .
+
+# Build Rust STARK library (optional, for fast verification)
+cd montana-stark
+pip install maturin
+maturin develop --release
+cd ..
+
+# Verify installation
+python -c "from montana.core.vdf import VDF; print('OK')"
+python -c "from montana.crypto.stark import STARK_AVAILABLE; print(f'STARK: {STARK_AVAILABLE}')"
+```
+
+### Docker
+
+```bash
+# Build and run
+docker-compose up montana-node
+
+# Or build manually
+docker build -t montana .
+docker run -p 8545:8545 -p 8546:8546 -p 30303:30303 montana node --rpc --ws
+```
+
+---
+
+## Usage
+
+### Python API
+
+```python
+from montana.core.vdf import VDF
+from montana.core.atomic_time import AtomicTimeSource
+from montana.crypto.stark import generate_vdf_proof, verify_vdf_proof
+
+# VDF computation
+vdf = VDF(iterations=16_777_216)
+result = vdf.compute(input_bytes)
+
+# STARK proof (if available)
+if STARK_AVAILABLE:
+    proof = generate_vdf_proof(input_bytes, result.output, result.checkpoints)
+    is_valid = verify_vdf_proof(input_bytes, result.output, proof)
+```
+
+### CLI
+
+```bash
+# Start full node
+montana node --rpc --ws
+
+# Start light node
+montana node --light
+
+# Check status
+montana status
+```
+
+---
+
+## Development
+
+```bash
+# Install dev dependencies
+pip install -r requirements-dev.txt
+
+# Run tests
+pytest
+
+# Format code
+black montana/
+ruff check montana/
+
+# Type check
+mypy montana/
+```
+
+---
+
+## Project Structure
+
+```
+Montana-v0.1/
+├── montana/                 # Python implementation
+│   ├── core/               # VDF, blocks, types
+│   ├── crypto/             # SPHINCS+, VRF, STARK
+│   ├── consensus/          # DAG, eligibility
+│   ├── network/            # P2P protocol
+│   ├── privacy/            # Tiers T0-T3
+│   ├── node/               # Full/Light nodes
+│   ├── api/                # RPC, WebSocket
+│   └── cli/                # Command line
+├── montana-stark/          # Rust STARK library
+│   ├── src/                # Prover, verifier, AIR
+│   ├── tests/              # Integration tests
+│   └── benches/            # Benchmarks
+├── Dockerfile              # Production image
+├── docker-compose.yml      # Container orchestration
+├── pyproject.toml          # Python package config
+└── requirements.txt        # Dependencies
+```
+
+---
+
+## Links
+
+- **Repository:** https://github.com/afgrouptime/atc
+- **X:** https://x.com/tojesatoshi
+
+---
+
 <div align="center">
 
 **Ɉ Montana**
