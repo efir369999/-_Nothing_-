@@ -70,7 +70,7 @@ VDF_STARK_CHECKPOINT_INTERVAL: int = 1000   # STARK proof every 1000 iterations
 # LAYER 2: UTC FINALITY (v3.2)
 # ==============================================================================
 # Time consensus
-TIME_TOLERANCE_SEC: int = 1                  # ±1 second UTC tolerance between nodes
+TIME_TOLERANCE_SEC: int = 5                  # ±5 seconds UTC tolerance between nodes
 FINALITY_INTERVAL_SEC: int = 60              # 1 minute — finality boundary interval
 
 # Finality levels (UTC boundaries passed)

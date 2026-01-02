@@ -115,7 +115,7 @@ Montana achieves finality through **UTC time boundaries** — deterministic poin
 
 ## 3. UTC Finality Model
 
-Montana uses UTC time boundaries for deterministic finality. No external time sources required — nodes use system UTC with ±1 second tolerance.
+Montana uses UTC time boundaries for deterministic finality. No external time sources required — nodes use system UTC with ±5 second tolerance.
 
 ### 3.1 Finality Boundaries
 
@@ -138,11 +138,11 @@ Finality occurs every **1 minute** at UTC boundaries: 00:00, 00:01, 00:02, etc.
 
 ```
 Time source:        UTC on each node (system clock)
-Tolerance:          ±1 second
+Tolerance:          ±5 seconds
 External sources:   None required
 ```
 
-Nodes accept blocks and heartbeats within ±1 second of their local UTC. This tolerance accommodates minor clock drift without requiring external synchronization.
+Nodes accept blocks and heartbeats within ±5 seconds of their local UTC. This tolerance accommodates network propagation, minor drift, and NTP variance without requiring external synchronization.
 
 ### 3.3 VDF Role
 
@@ -163,6 +163,27 @@ Node C (too slow):        VDF ready at 00:01:02 → misses F1 → participates i
 | ASIC vs CPU | 40x advantage | No advantage |
 | Finality time | Variable (hardware-dependent) | Fixed (1 min UTC) |
 | Attack vector | Faster VDF = more depth | None (cannot advance UTC) |
+
+### 3.5 Clock Security
+
+Montana relies on system UTC without external protocol-level synchronization. The ±5 second tolerance accommodates:
+
+- Network propagation delay
+- Minor clock drift
+- NTP jitter
+
+Nodes outside this window are not rejected by protocol — they simply fail to participate in the current finality window.
+
+**Threat Model:**
+
+| Attack | Target | Feasibility |
+|--------|--------|-------------|
+| Attack network time | All nodes | Impossible (UTC is physical) |
+| Attack individual node | Single node | Requires OS compromise |
+
+Clock manipulation attacks require compromising the victim's operating system time source. This is outside Montana's threat model, which assumes nodes maintain basic system integrity.
+
+For high-value nodes, hardware security modules (HSM) with independent time sources provide additional protection.
 
 ---
 
@@ -188,7 +209,27 @@ Node C (too slow):        VDF ready at 00:01:02 → misses F1 → participates i
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 4.1 Finality Properties
+### 4.1 Transaction Speed
+
+```
+00:00:00.000 — Transaction created
+00:00:00.050 — In mempool
+00:00:00.500 — Propagated to network
+00:00:01.000 — Included in DAG (visible to all)
+              ↓
+      TRANSACTION VISIBLE AND ACTIVE
+              ↓
+00:01:00.000 — FINALIZED (irreversible)
+```
+
+| Stage | Time |
+|-------|------|
+| Transaction visibility | **< 1 second** |
+| Finalization | **1 minute** |
+
+Transactions are near-instant. Finalization is deterministic.
+
+### 4.2 Finality Properties
 
 | Property | UTC Finality |
 |----------|--------------|
@@ -197,7 +238,7 @@ Node C (too slow):        VDF ready at 00:01:02 → misses F1 → participates i
 | Dependencies | None |
 | Latency | Deterministic (1/2/3 minutes) |
 
-### 4.2 Finality Checkpoint Structure
+### 4.3 Finality Checkpoint Structure
 
 Each finality checkpoint (every 1 minute) contains:
 
@@ -442,7 +483,7 @@ TIER_2_WEIGHT = 0.20         # Light Node / TG Bot owners → 20%
 TIER_3_WEIGHT = 0.10         # TG Community users → 10%
 
 # Time Consensus
-TIME_TOLERANCE_SEC = 1       # ±1 second UTC tolerance
+TIME_TOLERANCE_SEC = 5       # ±5 seconds UTC tolerance
 FINALITY_INTERVAL_SEC = 60   # 1 minute
 
 # VDF (proof of participation)

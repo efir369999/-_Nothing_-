@@ -520,7 +520,7 @@ Montana's Layer 2 achieves finality through **UTC time boundaries** — determin
 
 ```python
 # UTC-based finality (v3.2)
-TIME_TOLERANCE_SEC: int = 1              # ±1 second UTC tolerance between nodes
+TIME_TOLERANCE_SEC: int = 5              # ±5 seconds UTC tolerance between nodes
 FINALITY_INTERVAL_SEC: int = 60          # 1 minute — finality boundary interval
 
 # Finality levels (UTC boundaries passed)
@@ -591,13 +591,13 @@ def get_finality_level(block_timestamp_ms: int, current_time_ms: int) -> str:
 ```python
 # Time source: system UTC on each node
 # No external NTP servers required
-# Tolerance: ±1 second between nodes
+# Tolerance: ±5 seconds between nodes
 
 def is_timestamp_valid(timestamp_ms: int, local_time_ms: int) -> bool:
     """
     Validate timestamp against local UTC.
 
-    Accepts timestamps within ±1 second of local time.
+    Accepts timestamps within ±5 seconds of local time.
     """
     tolerance_ms = TIME_TOLERANCE_SEC * 1000
     return abs(timestamp_ms - local_time_ms) <= tolerance_ms
@@ -655,7 +655,48 @@ class FinalityCheckpoint:
         return sha3_256(self.serialize())
 ```
 
-### 6.7 Fork Choice Rule
+### 6.7 Clock Security
+
+Montana relies on system UTC without external protocol-level synchronization. The ±5 second tolerance accommodates:
+
+- Network propagation delay
+- Minor clock drift
+- NTP jitter
+
+Nodes outside this window simply fail to participate in the current finality window.
+
+```python
+# Threat model
+CLOCK_ATTACK_NETWORK = "impossible"     # UTC is physical
+CLOCK_ATTACK_NODE = "requires OS compromise"  # Outside protocol scope
+
+# Tolerance breakdown
+TOLERANCE_BUDGET = {
+    "network_propagation": 2.0,  # seconds
+    "clock_drift": 1.0,          # seconds
+    "ntp_jitter": 1.0,           # seconds
+    "safety_margin": 1.0,        # seconds
+    # Total: 5 seconds
+}
+
+def is_node_synchronized(local_utc_ms: int, network_median_ms: int) -> bool:
+    """
+    Check if node is within acceptable time window.
+
+    Nodes outside ±5 seconds are not attacked — they are desynchronized.
+    """
+    return abs(local_utc_ms - network_median_ms) <= TIME_TOLERANCE_SEC * 1000
+```
+
+**Attack Analysis:**
+
+| Attack Vector | Target | Feasibility | Mitigation |
+|--------------|--------|-------------|------------|
+| Manipulate UTC globally | All nodes | Impossible | UTC is physical constant |
+| Compromise individual NTP | Single node | Requires OS access | Node operator responsibility |
+| Network delay manipulation | Single node | Covered by ±5s tolerance | Built into protocol |
+
+### 6.8 Fork Choice Rule
 
 ```python
 def select_best_chain(chains: List[Chain]) -> Chain:

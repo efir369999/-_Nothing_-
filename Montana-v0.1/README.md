@@ -2,7 +2,7 @@
 
 > *Mechanism for asymptotic trust in the value of time*
 
-**Version:** 3.1
+**Version:** 3.2
 **Ticker:** $MONT
 
 ---
@@ -21,9 +21,9 @@ Montana builds trust through **Asymptotic Trust Consensus** (ATC):
 - Physical constraints (thermodynamics, sequentiality)
 - Computational hardness (post-quantum cryptography)
 - Protocol primitives (VDF, VRF)
-- Consensus mechanisms (DAG, finality)
+- Consensus mechanisms (DAG, UTC finality)
 
-**v3.1:** Explicit tier system (1-2-3), node type definitions.
+**v3.2:** UTC finality model, ±5 second tolerance, self-sovereign.
 
 ---
 
@@ -52,16 +52,16 @@ Total: 1,260,000,000 Ɉ ≈ 21 million minutes
 ## Finality Model
 
 ```
-Hard Finality (40+ min)    → 1000+ VDF checkpoints
+Hard Finality (3 min)    → 3 UTC boundaries passed
      ↑
-Medium Finality (minutes)  → 100 VDF checkpoints + DAG
+Medium Finality (2 min)  → 2 UTC boundaries passed
      ↑
-Soft Finality (seconds)    → 1 VDF checkpoint
+Soft Finality (1 min)    → 1 UTC boundary passed
 ```
 
-**Attack cost:** Rewriting N seconds of history requires N seconds of real time.
+**Attack cost:** Cannot advance UTC. Time is physical.
 
-This is a physical law.
+Finality at UTC boundaries (00:00, 00:01, ...). No hardware advantage.
 
 ---
 
@@ -95,7 +95,8 @@ This is a physical law.
 | Node Types | 2 (Full, Light) |
 | Tiers | 3 (numbered 1-2-3) |
 | Cryptography | Post-quantum (NIST 2024) |
-| Finality | Self-sovereign (accumulated VDF) |
+| Finality | UTC boundaries (self-sovereign) |
+| Time Tolerance | ±5 seconds |
 
 ---
 

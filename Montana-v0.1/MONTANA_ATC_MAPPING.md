@@ -1,6 +1,6 @@
 # Ɉ Montana ↔ ATC Layer Mapping
 
-**Ɉ Montana Version:** 3.1
+**Ɉ Montana Version:** 3.2
 **Ticker:** $MONT
 **ATC Version:** 10.0 (L-1 v2.1, L0 v1.0, L1 v1.1, L2 v1.0)
 
@@ -12,7 +12,7 @@
 
 **Ɉ** is a Temporal Time Unit (TTU): lim(evidence → ∞) 1 Ɉ → 1 second
 
-**v3.0:** Self-sovereign finality through accumulated VDF. No external dependencies.
+**v3.2:** UTC finality model, ±5 second tolerance, self-sovereign.
 
 This document maps Ɉ Montana components to their foundational ATC layers, showing exactly which constraints and primitives the mechanism relies upon.
 
@@ -143,25 +143,26 @@ Montana implements these L2 consensus patterns:
 ### Montana Finality Model
 
 ```
-Montana Three-Layer Finality (Self-Sovereign):
+Montana UTC Finality (Self-Sovereign):
 
-1. Soft Finality (seconds)
-   └─ VDF checkpoint every 2.5 seconds
-   └─ Maps to L-2.6.3: VDF-based finality
+1. Soft Finality (1 minute)
+   └─ 1 UTC boundary passed
+   └─ Maps to L-2.6.3: Time-based finality
    └─ Type: P (physical)
 
-2. Medium Finality (minutes)
-   └─ DAG-PHANTOM ordering + 100 VDF checkpoints
-   └─ Maps to L-2.5.2: DAG model + L-2.6.3
-   └─ Type: P + C (physical + empirical)
-
-3. Hard Finality (40+ minutes)
-   └─ 1000+ accumulated VDF checkpoints
-   └─ Maps to L-2.6.3: VDF-based finality
+2. Medium Finality (2 minutes)
+   └─ 2 UTC boundaries passed
+   └─ Maps to L-2.6.3: Time-based finality
    └─ Type: P (physical)
 
-Attack cost: Rewriting N checkpoints requires N × 2.5 seconds
-This is a PHYSICAL BOUND — cannot be reduced by more hardware or money.
+3. Hard Finality (3 minutes)
+   └─ 3 UTC boundaries passed
+   └─ Maps to L-2.6.3: Time-based finality
+   └─ Type: P (physical)
+
+Attack cost: Cannot advance UTC. Time is physical.
+Hardware provides NO advantage — fast nodes wait for boundary.
+Time tolerance: ±5 seconds (covers propagation, drift, jitter).
 ```
 
 ### Montana Consensus Properties
@@ -264,15 +265,16 @@ To verify Montana compliance with ATC:
    ✓ Liveness: After GST
    ✓ Finality: Accumulated VDF (self-sovereign)
 
-→ Montana v3.0 COMPLIES with ATC v10
-→ Montana v3.0 is SELF-SOVEREIGN (no external dependencies)
+→ Montana v3.2 COMPLIES with ATC v10
+→ Montana v3.2 is SELF-SOVEREIGN (no external dependencies)
+→ Montana v3.2 uses UTC finality with ±5 second tolerance
 ```
 
 ---
 
 ## References
 
-- Montana Technical Specification v3.0
+- Montana Technical Specification v3.2
 - ATC Layer -1 v2.1
 - ATC Layer 0 v1.0
 - ATC Layer 1 v1.1
@@ -282,4 +284,4 @@ To verify Montana compliance with ATC:
 
 *This mapping enables verification that Montana correctly inherits ATC layer guarantees and does not assume stronger properties than lower layers provide.*
 
-*Montana v3.0: Self-sovereign finality through physics.*
+*Montana v3.2: Self-sovereign UTC finality through physics.*

@@ -40,7 +40,7 @@ In this paper, we propose a solution using UTC time boundaries as consensus poin
 
 \section{UTC Finality Model}
 
-Montana uses UTC time boundaries for deterministic finality.  No external time sources required by the protocol---nodes use system UTC with $\pm$1 second tolerance.
+Montana uses UTC time boundaries for deterministic finality.  No external time sources required by the protocol---nodes use system UTC with $\pm$5 second tolerance.
 
 Finality occurs every 1 minute at UTC boundaries: 00:00, 00:01, 00:02, etc.
 
@@ -50,14 +50,14 @@ Finality occurs every 1 minute at UTC boundaries: 00:00, 00:01, 00:02, etc.
 \textbf{Property} & \textbf{Value} \\
 \hline
 Time source & System UTC \\
-Tolerance & $\pm$1 second \\
+Tolerance & $\pm$5 seconds \\
 Finality interval & 1 minute \\
 Protocol sync & None required \\
 \hline
 \end{tabular}
 \end{center}
 
-Nodes accept blocks and heartbeats within $\pm$1 second of their local UTC.  This tolerance accommodates minor clock drift without requiring external synchronization.
+Nodes accept blocks and heartbeats within $\pm$5 seconds of their local UTC.  This tolerance accommodates network propagation, minor drift, and NTP variance without requiring external synchronization.
 
 \section{VDF as Proof of Participation}
 
@@ -115,6 +115,25 @@ Attack vector & Faster VDF = more depth & None \\
 \end{center}
 
 No hardware advantage can advance UTC.  Time passes equally for all.
+
+\section{Clock Security}
+
+Montana relies on system UTC without external protocol-level synchronization.  The $\pm$5 second tolerance accommodates network propagation delay, minor clock drift, and NTP jitter.
+
+Nodes outside this window simply fail to participate in the current finality window---they are not attacked, they are desynchronized.
+
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Attack} & \textbf{Target} & \textbf{Feasibility} \\
+\hline
+Network time & All nodes & Impossible (UTC is physical) \\
+Individual node & Single node & Requires OS compromise \\
+\hline
+\end{tabular}
+\end{center}
+
+Clock manipulation attacks require compromising the victim's operating system time source.  This is outside the protocol threat model.  Node operators are responsible for system integrity.
 
 \section{Temporal Time Unit}
 
@@ -182,7 +201,7 @@ We have proposed a finality mechanism based on UTC time boundaries rather than a
 
 The key insight is that no adversary can advance UTC.  Time passes equally for all participants regardless of computational resources.  This transforms finality from an economic or computational race into a physical certainty.
 
-Montana requires minimal assumptions: that nodes maintain reasonable clock accuracy (within $\pm$1 second), and that the hash function admits no iteration shortcut.  Both are empirically verified properties of existing systems.
+Montana requires minimal assumptions: that nodes maintain reasonable clock accuracy (within $\pm$5 seconds), and that the hash function admits no iteration shortcut.  Both are empirically verified properties of existing systems.
 
 \section*{References}
 
