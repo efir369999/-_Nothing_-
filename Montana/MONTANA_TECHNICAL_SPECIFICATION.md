@@ -256,7 +256,7 @@ class LightHeartbeat:
 ### 2.1 Definition
 
 ```python
-# Ɉ Montana — Mechanism for asymptotic trust in time value
+# Ɉ Montana: Temporal Time Unit
 PROJECT: str = "Ɉ Montana"
 SYMBOL: str = "Ɉ"
 TICKER: str = "$MONT"

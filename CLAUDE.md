@@ -14,7 +14,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Layer 3+: Ɉ Montana ($MONT)                            v3.0   │
+│  Layer 3+: Ɉ Montana: Temporal Time Unit ($MONT)        v3.9   │
 │  Mechanism for asymptotic trust in the value of time           │
 │  Ɉ — TTU: lim(evidence → ∞) 1 Ɉ → 1 second                     │
 └─────────────────────────────────────────────────────────────────┘
@@ -62,7 +62,7 @@ This role covers the entire ATC architecture:
 | 0 | Computational Constraints | v1.0 ✓ | What is HARD |
 | 1 | Protocol Primitives | v1.1 ✓ | What is BUILDABLE |
 | 2 | Consensus Protocols | v1.0 ✓ | What is AGREEABLE |
-| 3+ | Ɉ Montana ($MONT) — Temporal Time Unit | v3.9 ✓ | Mechanism for asymptotic trust in the value of time |
+| 3+ | Ɉ Montana: Temporal Time Unit ($MONT) | v3.9 ✓ | Mechanism for asymptotic trust in the value of time |
 
 ---
 
@@ -274,13 +274,13 @@ Inherits from Layer 1, adds:
 
 ---
 
-## Layer 3+: Ɉ Montana
+## Layer 3+: Ɉ Montana: Temporal Time Unit
 
 **Mechanism for asymptotic trust in the value of time**
 
-**Ɉ Montana** is a mechanism for asymptotic trust in the value of time through ATC.
+**Ɉ** (inverted t) is a Temporal Time Unit. **Montana** is the Timechain that produces it.
 
-**Ɉ** is a **Temporal Time Unit** (TTU) that asymptotically approaches:
+**Ɉ** asymptotically approaches:
 
 ```
 lim(evidence → ∞) 1 Ɉ → 1 second
@@ -882,7 +882,7 @@ X:        https://x.com/tojesatoshi
 
 > *Layer 2 represents the consensus mechanisms that can be built from protocol primitives.*
 
-> *Layer 3+ represents Ɉ Montana — a mechanism for asymptotic trust in time value through ATC.*
+> *Layer 3+ represents Ɉ Montana: Temporal Time Unit — mechanism for asymptotic trust in the value of time.*
 
 > *Ɉ Montana may assume weaker physics, harder computation, weaker primitives, or weaker consensus;*
 > *it cannot assume stronger physics, easier computation, stronger primitives, or stronger consensus*

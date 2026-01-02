@@ -123,7 +123,7 @@ Time passes equally for all. No platform provides advantage.
 ## ATC Foundation
 
 ```
-Layer 3+: Ɉ Montana — Timechain (TTU)
+Layer 3+: Ɉ Montana: Temporal Time Unit
        ↑
 Layer 2:  Consensus (DAG, UTC Finality)
        ↑

@@ -1,6 +1,7 @@
 """
-Ɉ Montana v3.9 — Mechanism for asymptotic trust in the value of time.
+Ɉ Montana: Temporal Time Unit v3.9
 
+Mechanism for asymptotic trust in the value of time.
 lim(evidence → ∞) 1 Ɉ → 1 second
 
 Built on ATC Layer 3+.
