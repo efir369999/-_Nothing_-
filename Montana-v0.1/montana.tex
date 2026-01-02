@@ -135,6 +135,31 @@ Individual node & Single node & Requires OS compromise \\
 
 Clock manipulation attacks require compromising the victim's operating system time source.  This is outside the protocol threat model.  Node operators are responsible for system integrity.
 
+\section{Network Partition}
+
+During network partition, both partitions continue creating checkpoints at the same UTC boundaries independently.
+
+When partitions reconnect, conflicting checkpoints are resolved by fork choice:
+
+\begin{enumerate}
+\item \textbf{More participants wins}: The checkpoint with more heartbeats is canonical.
+\item \textbf{Tie-breaker}: Lexicographically smaller checkpoint hash wins.
+\end{enumerate}
+
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Scenario} & \textbf{Outcome} & \textbf{Recovery} \\
+\hline
+60/40 split & Majority canonical & Minority DAG preserved \\
+50/50 split & Lower hash wins & Deterministic \\
+Brief partition & Few checkpoints affected & Fast convergence \\
+\hline
+\end{tabular}
+\end{center}
+
+Transactions in the minority partition are not lost---they remain in the DAG and can be included in subsequent checkpoints.  Only finality status rolls back; the transactions themselves are preserved.
+
 \section{Temporal Time Unit}
 
 Montana defines a Temporal Time Unit (TTU):

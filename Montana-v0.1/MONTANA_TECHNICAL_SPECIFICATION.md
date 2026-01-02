@@ -715,6 +715,111 @@ def select_best_chain(chains: List[Chain]) -> Chain:
     ))
 ```
 
+### 6.9 Network Partition Handling
+
+During network partition, both partitions continue creating checkpoints independently at the same UTC boundaries.
+
+```
+Partition A (60% nodes)     Partition B (40% nodes)
+        │                           │
+00:01   F1-A (60 heartbeats)       F1-B (40 heartbeats)
+00:02   F2-A                        F2-B
+00:03   F3-A                        F3-B
+        │                           │
+        └─────── reconnect ─────────┘
+                    │
+               Conflict resolution
+```
+
+**Checkpoint Conflict Resolution:**
+
+```python
+def resolve_checkpoint_conflict(
+    checkpoint_a: FinalityCheckpoint,
+    checkpoint_b: FinalityCheckpoint
+) -> FinalityCheckpoint:
+    """
+    Resolve conflicting checkpoints at the same UTC boundary.
+
+    Fork choice rule:
+    1. More participants (heartbeats) wins
+    2. Tie: lower checkpoint hash (deterministic)
+
+    Returns canonical checkpoint.
+    """
+    # Must be same UTC boundary
+    assert checkpoint_a.boundary_timestamp_ms == checkpoint_b.boundary_timestamp_ms
+
+    # Primary: more participants
+    if checkpoint_a.participants_count != checkpoint_b.participants_count:
+        return max(checkpoint_a, checkpoint_b,
+                   key=lambda c: c.participants_count)
+
+    # Tiebreaker: lexicographically smaller hash
+    return min(checkpoint_a, checkpoint_b,
+               key=lambda c: c.checkpoint_hash())
+
+
+def merge_partition_chains(
+    local_chain: List[FinalityCheckpoint],
+    remote_chain: List[FinalityCheckpoint]
+) -> List[FinalityCheckpoint]:
+    """
+    Merge two checkpoint chains after network partition.
+
+    Preserves canonical checkpoint at each boundary.
+    Transactions from non-canonical checkpoints are NOT lost -
+    they remain in DAG and can be included in next checkpoint.
+    """
+    merged = []
+
+    # Find common ancestor
+    common_ancestor = find_common_checkpoint(local_chain, remote_chain)
+
+    # Resolve each conflicting boundary
+    local_idx = local_chain.index(common_ancestor) + 1
+    remote_idx = remote_chain.index(common_ancestor) + 1
+
+    while local_idx < len(local_chain) or remote_idx < len(remote_chain):
+        local_cp = local_chain[local_idx] if local_idx < len(local_chain) else None
+        remote_cp = remote_chain[remote_idx] if remote_idx < len(remote_chain) else None
+
+        if local_cp and remote_cp:
+            if local_cp.boundary_timestamp_ms == remote_cp.boundary_timestamp_ms:
+                # Same boundary - resolve conflict
+                merged.append(resolve_checkpoint_conflict(local_cp, remote_cp))
+                local_idx += 1
+                remote_idx += 1
+            elif local_cp.boundary_timestamp_ms < remote_cp.boundary_timestamp_ms:
+                merged.append(local_cp)
+                local_idx += 1
+            else:
+                merged.append(remote_cp)
+                remote_idx += 1
+        elif local_cp:
+            merged.append(local_cp)
+            local_idx += 1
+        else:
+            merged.append(remote_cp)
+            remote_idx += 1
+
+    return merged
+```
+
+**Partition Behavior:**
+
+| Scenario | Outcome | Recovery |
+|----------|---------|----------|
+| 60/40 split | Majority partition's checkpoints canonical | Minority transactions preserved in DAG |
+| 50/50 split | Lower hash wins (deterministic) | Both partitions' DAG blocks preserved |
+| Brief partition | Few checkpoints affected | Fast convergence |
+| Long partition | Multiple checkpoints roll back | DAG merge preserves all transactions |
+
+**Guarantees:**
+- **Safety:** No conflicting finalized transactions (fork choice is deterministic)
+- **Liveness:** Network recovers after partition heals (DAG merge)
+- **No transaction loss:** DAG blocks from minority partition are preserved
+
 ---
 
 ## 7. Heartbeat Structure

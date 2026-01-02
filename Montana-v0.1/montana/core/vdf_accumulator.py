@@ -1,12 +1,15 @@
 """
-Ɉ Montana VDF Accumulator v3.1
+Ɉ Montana VDF Accumulator v3.2
 
-Layer 2: Accumulated Finality per MONTANA_TECHNICAL_SPECIFICATION.md §6.
+Layer 2: UTC Finality per MONTANA_TECHNICAL_SPECIFICATION.md §6.
 
-Implements three finality levels through VDF checkpoint accumulation:
-- Soft:   1 checkpoint   (~2.5 seconds)  - Fast confirmation
-- Medium: 100 checkpoints (~4 minutes)   - Standard confirmation
-- Hard:   1000 checkpoints (~40 minutes) - Maximum security
+Implements three finality levels through UTC time boundaries:
+- Soft:   1 boundary  (1 minute)  - Block included in checkpoint
+- Medium: 2 boundaries (2 minutes) - High certainty
+- Hard:   3 boundaries (3 minutes) - Maximum security
+
+VDF proves participation within a time window, not computation speed.
+Hardware advantage eliminated — fast hardware waits for UTC boundary.
 """
 
 from __future__ import annotations
@@ -22,6 +25,8 @@ from montana.constants import (
     FINALITY_MEDIUM_CHECKPOINTS,
     FINALITY_HARD_CHECKPOINTS,
     VDF_BASE_ITERATIONS,
+    TIME_TOLERANCE_SEC,
+    FINALITY_INTERVAL_SEC,
 )
 from montana.core.types import Hash
 from montana.core.vdf import VDFOutput, VDFProof, SHAKE256VDF, get_vdf
@@ -300,7 +305,7 @@ def get_accumulator() -> VDFAccumulator:
 
 def get_finality_time(level: FinalityLevel) -> float:
     """
-    Get expected time to reach finality level.
+    Get expected time to reach finality level (UTC model).
 
     Args:
         level: Target finality level
@@ -308,10 +313,145 @@ def get_finality_time(level: FinalityLevel) -> float:
     Returns:
         Expected time in seconds
     """
-    checkpoints = {
+    # UTC finality: 1 boundary = 1 minute
+    boundaries = {
         FinalityLevel.NONE: 0,
-        FinalityLevel.SOFT: FINALITY_SOFT_CHECKPOINTS,
-        FinalityLevel.MEDIUM: FINALITY_MEDIUM_CHECKPOINTS,
-        FinalityLevel.HARD: FINALITY_HARD_CHECKPOINTS,
+        FinalityLevel.SOFT: 1,      # 1 minute
+        FinalityLevel.MEDIUM: 2,    # 2 minutes
+        FinalityLevel.HARD: 3,      # 3 minutes
     }
-    return checkpoints.get(level, 0) * VDF_CHECKPOINT_TIME_SEC
+    return boundaries.get(level, 0) * FINALITY_INTERVAL_SEC
+
+
+# ==============================================================================
+# UTC FINALITY CHECKPOINT (v3.2)
+# ==============================================================================
+
+@dataclass
+class FinalityCheckpoint:
+    """
+    Finality checkpoint at UTC boundary per §6.6.
+
+    Created every FINALITY_INTERVAL_SEC (1 minute) at UTC boundaries.
+    Contains all blocks and heartbeats from the time window.
+    """
+    boundary_timestamp_ms: int      # UTC boundary (e.g., 00:10:00.000)
+    blocks_merkle_root: bytes       # 32 bytes - Merkle root of blocks in window
+    vdf_proofs_root: bytes          # 32 bytes - Merkle root of VDF proofs
+    participants_count: int         # Number of participating nodes (heartbeats)
+    previous_checkpoint_hash: bytes # 32 bytes - Hash of previous checkpoint
+
+    def checkpoint_hash(self) -> bytes:
+        """Compute SHA3-256 hash of checkpoint."""
+        from montana.crypto.hash import sha3_256
+        data = (
+            self.boundary_timestamp_ms.to_bytes(8, 'big') +
+            self.blocks_merkle_root +
+            self.vdf_proofs_root +
+            self.participants_count.to_bytes(4, 'big') +
+            self.previous_checkpoint_hash
+        )
+        return sha3_256(data)
+
+
+def resolve_checkpoint_conflict(
+    checkpoint_a: FinalityCheckpoint,
+    checkpoint_b: FinalityCheckpoint
+) -> FinalityCheckpoint:
+    """
+    Resolve conflicting checkpoints at the same UTC boundary.
+
+    Fork choice rule per §6.9:
+    1. More participants (heartbeats) wins
+    2. Tie: lower checkpoint hash (deterministic)
+
+    Args:
+        checkpoint_a: First checkpoint
+        checkpoint_b: Second checkpoint
+
+    Returns:
+        Canonical checkpoint
+    """
+    # Must be same UTC boundary
+    if checkpoint_a.boundary_timestamp_ms != checkpoint_b.boundary_timestamp_ms:
+        raise ValueError("Checkpoints must be at same UTC boundary")
+
+    # Primary: more participants
+    if checkpoint_a.participants_count != checkpoint_b.participants_count:
+        return max(checkpoint_a, checkpoint_b,
+                   key=lambda c: c.participants_count)
+
+    # Tiebreaker: lexicographically smaller hash
+    return min(checkpoint_a, checkpoint_b,
+               key=lambda c: c.checkpoint_hash())
+
+
+def get_utc_finality_level(block_timestamp_ms: int, current_time_ms: int) -> FinalityLevel:
+    """
+    Determine finality level based on UTC boundaries passed.
+
+    Args:
+        block_timestamp_ms: When block was created
+        current_time_ms: Current UTC time
+
+    Returns:
+        Current finality level
+    """
+    # Calculate which boundary the block belongs to
+    boundary_ms = FINALITY_INTERVAL_SEC * 1000
+    block_boundary = (block_timestamp_ms // boundary_ms) * boundary_ms
+    current_boundary = (current_time_ms // boundary_ms) * boundary_ms
+
+    # Count boundaries passed
+    boundaries_passed = (current_boundary - block_boundary) // boundary_ms
+
+    if boundaries_passed >= 3:
+        return FinalityLevel.HARD
+    elif boundaries_passed >= 2:
+        return FinalityLevel.MEDIUM
+    elif boundaries_passed >= 1:
+        return FinalityLevel.SOFT
+    return FinalityLevel.NONE
+
+
+def is_within_time_tolerance(timestamp_ms: int, reference_ms: int) -> bool:
+    """
+    Check if timestamp is within ±TIME_TOLERANCE_SEC of reference.
+
+    Args:
+        timestamp_ms: Timestamp to check
+        reference_ms: Reference time (usually local UTC)
+
+    Returns:
+        True if within tolerance
+    """
+    tolerance_ms = TIME_TOLERANCE_SEC * 1000
+    return abs(timestamp_ms - reference_ms) <= tolerance_ms
+
+
+def get_next_boundary_ms(current_time_ms: int) -> int:
+    """
+    Get the next UTC finality boundary timestamp.
+
+    Args:
+        current_time_ms: Current UTC time in milliseconds
+
+    Returns:
+        Next boundary timestamp in milliseconds
+    """
+    boundary_ms = FINALITY_INTERVAL_SEC * 1000
+    return ((current_time_ms // boundary_ms) + 1) * boundary_ms
+
+
+def get_current_boundary_ms(current_time_ms: int) -> int:
+    """
+    Get the current UTC finality boundary timestamp.
+
+    Args:
+        current_time_ms: Current UTC time in milliseconds
+
+    Returns:
+        Current boundary timestamp in milliseconds
+    """
+    boundary_ms = FINALITY_INTERVAL_SEC * 1000
+    return (current_time_ms // boundary_ms) * boundary_ms

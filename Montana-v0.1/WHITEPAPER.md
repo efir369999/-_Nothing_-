@@ -251,6 +251,48 @@ Finality Checkpoint:
 └─ Previous checkpoint hash
 ```
 
+### 4.4 Network Partition
+
+During network partition, both sides continue creating finality checkpoints independently.
+
+```
+Partition A (60% nodes)     Partition B (40% nodes)
+        │                           │
+00:01   F1-A (60 heartbeats)       F1-B (40 heartbeats)
+00:02   F2-A                        F2-B
+00:03   F3-A                        F3-B
+        │                           │
+        └─────── reconnect ─────────┘
+                    │
+               Fork choice
+```
+
+**Fork Choice Rule:** Heaviest checkpoint wins.
+
+```python
+def resolve_checkpoint_conflict(cp_a, cp_b):
+    # Same UTC boundary
+    assert cp_a.utc_timestamp == cp_b.utc_timestamp
+
+    # Weight = number of valid heartbeats
+    if len(cp_a.heartbeats) != len(cp_b.heartbeats):
+        return max(cp_a, cp_b, key=lambda c: len(c.heartbeats))
+
+    # Tiebreaker: lexicographically smaller hash
+    return min(cp_a, cp_b, key=lambda c: c.hash)
+```
+
+**Consequences:**
+- Transactions in smaller partition are NOT lost (DAG merge preserves blocks)
+- Finality in smaller partition rolls back to reconnection point
+- Heartbeats count after merge
+
+| Scenario | Outcome |
+|----------|---------|
+| 60/40 split | Majority checkpoint canonical |
+| 50/50 split | Smaller hash wins (deterministic) |
+| Brief partition | Minimal impact (few checkpoints affected) |
+
 ---
 
 ## 5. Supply
