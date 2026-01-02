@@ -98,12 +98,23 @@ where ε is negligible in security parameter
 | Construction | Basis | Type | Quantum Status |
 |--------------|-------|------|----------------|
 | Repeated Squaring | RSA group | B (factoring) | BROKEN (Shor) |
-| Repeated Squaring | Class group | B (class group) | Unknown |
+| Repeated Squaring | Class group | B (class group order) | Vulnerable (Shor) |
 | Iterated Hashing | Hash function | C (hash security) | SECURE (Grover: √T) |
-| Wesolowski | Groups of unknown order | B | Depends on group |
+| **Wesolowski (Class Group)** | **Class group order problem** | **B** | **Vulnerable (Shor)** |
 | Pietrzak | Groups of unknown order | B | Depends on group |
 
-**Recommendation:** For post-quantum security, use hash-based VDF (iterated SHAKE256).
+**Recommendations:**
+
+1. **For Type B security with UTC finality model:** Class Group VDF (Wesolowski 2019).
+   - Mathematical reduction to class group order problem (40+ years of hardness).
+   - O(log T) verification via Wesolowski proof.
+   - No trusted setup required.
+   - Quantum vulnerability neutralized by UTC finality model (see L-1.1.6).
+
+2. **For post-quantum security with competitive VDF:** Hash-based VDF (iterated SHAKE256).
+   - Type C security (empirical).
+   - Grover provides √T speedup.
+   - Suitable when VDF speed competition matters.
 
 ### L-1.1.4 Hash-Based VDF Specification
 
@@ -127,13 +138,118 @@ VDF(x, T):
 - STARK proof: O(log T) verification (Type B: STARK soundness)
 - Trade-off: Proof generation adds overhead
 
-### L-1.1.5 Layer Dependencies
+### L-1.1.5 Class Group VDF Specification (Wesolowski 2019)
+
+**Construction:**
+```
+Class Group Cl(Δ) of imaginary quadratic field Q(√Δ)
+
+VDF(g, T):
+  y = g
+  for i in 1..T:
+    y = y * y  (group operation: squaring)
+  return y
+
+Result: y = g^(2^T) in Cl(Δ)
+```
+
+**Wesolowski Proof:**
+```
+Prove(g, y, T):
+  l = HashToPrime(g, y, T)      // Fiat-Shamir challenge
+  π = g^(floor(2^T / l))        // Computed during VDF evaluation
+  return π
+
+Verify(g, y, π, T):
+  l = HashToPrime(g, y, T)
+  r = 2^T mod l
+  return g^l * π^r == y         // O(log T) group operations
+```
+
+**Properties:**
+- Sequential: Group squaring requires previous result
+- Type: B (reduction to class group order problem)
+- Verification: O(log T) using Wesolowski proof
+- Trusted setup: None required (class groups are parameter-free)
+
+**Parameters:**
+| Parameter | Value | Purpose |
+|-----------|-------|---------|
+| Discriminant bits | 2048 | Security parameter |
+| Challenge bits | 128 | Wesolowski proof security |
+| Iterations T | 2^24 | Target delay (~30 seconds) |
+
+**Security Reduction (Type B):**
+```
+Theorem: If adversary A can compute VDF shortcut,
+         then adversary B can compute class group order.
+
+Reduction:
+  "VDF(g, T) computed in time < T"
+  → "Order of g in Cl(Δ) is known"
+  → "Class group order |Cl(Δ)| can be computed"
+
+Class group order problem:
+  Given discriminant Δ, compute |Cl(Δ)|
+
+Status: Hard for 40+ years (Buchmann, Williams 1988)
+  - Related to integer factorization
+  - Best algorithms: subexponential L[1/2]
+```
+
+### L-1.1.6 UTC Quantum Neutralization
+
+**Problem:** Class Group VDF is vulnerable to Shor's algorithm.
+
+**Solution:** UTC finality model makes VDF speed irrelevant.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                UTC BOUNDARY = PHYSICAL EQUALIZER                 │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Classical node:     VDF in 30 sec → wait 30 sec → 1 heartbeat  │
+│  ASIC attacker:      VDF in 5 sec  → wait 55 sec → 1 heartbeat  │
+│  Quantum attacker:   VDF in 0.001 sec → wait 59.999 sec → 1 heartbeat
+│                                                                  │
+│  Result: All receive exactly ONE heartbeat per finality window  │
+│                                                                  │
+│  Quantum speedup on VDF = longer waiting time                   │
+│  UTC boundary is the rate limiter, VDF speed is irrelevant      │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Security Analysis:**
+
+| Attacker | VDF Computation | Heartbeats/Minute | Advantage |
+|----------|-----------------|-------------------|-----------|
+| Classical CPU | 30 seconds | 1 | Baseline |
+| ASIC | 5 seconds | 1 | None (waits for UTC) |
+| Quantum computer | 0.001 seconds | 1 | None (waits for UTC) |
+
+**When UTC Neutralization Applies:**
+- Protocol uses fixed-interval finality (e.g., 1 minute boundaries)
+- VDF proves participation eligibility within window
+- Faster VDF does not increase participation rate
+- Physical time (UTC) is the ultimate rate limiter
+
+**When UTC Neutralization Does NOT Apply:**
+- VDF speed competition (e.g., racing for rewards)
+- Variable-length VDF challenges
+- Protocols where faster = more rewards
+
+**Type:** P (physical time bound from L-1.2, L-1.5) + B (class group hardness)
+
+### L-1.1.7 Layer Dependencies
 
 | VDF Property | Depends On | Failure Mode |
 |--------------|------------|--------------|
 | Sequentiality | L-1.4, L-0.2.3 | Physics violation |
 | Hash security | L-0.3.3 (CRHF) | Hash break → forgery |
 | Proof soundness | L-0.3.2 (OWF) | Soundness break → fake proofs |
+| Class group hardness | L-0.3.5 (DLog family) | Order computation → VDF shortcut |
+| UTC neutralization | L-1.2, L-1.5 | Clock sync failure |
 
 ---
 
@@ -571,6 +687,7 @@ Effect: Maintain security level
 - Boneh, D., Bonneau, J., Bünz, B., & Fisch, B. (2018). "Verifiable Delay Functions." CRYPTO 2018.
 - Wesolowski, B. (2019). "Efficient Verifiable Delay Functions." EUROCRYPT 2019.
 - Pietrzak, K. (2019). "Simple Verifiable Delay Functions." ITCS 2019.
+- Buchmann, J., & Williams, H. C. (1988). "A Key Exchange System Based on Imaginary Quadratic Fields." CRYPTO 1988.
 
 **VRF:**
 - Micali, S., Rabin, M., & Vadhan, S. (1999). "Verifiable Random Functions." FOCS 1999.
