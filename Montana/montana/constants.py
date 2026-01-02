@@ -1,9 +1,9 @@
 """
-Ɉ Montana Protocol Constants v3.2
+Ɉ Montana Protocol Constants v3.4
 
 All protocol constants per MONTANA_TECHNICAL_SPECIFICATION.md §19, §28.
 
-v3.2: UTC finality model, no external time sources, ASIC-resistant by design.
+v3.4: UTC finality, ±5s tolerance, platform-independent light clients.
 """
 
 from typing import Dict, List, Tuple
@@ -83,7 +83,7 @@ VDF_MIN_ITERATIONS: int = 1_048_576         # 2^20
 VDF_STARK_CHECKPOINT_INTERVAL: int = 1000   # STARK proof every 1000 iterations
 
 # ==============================================================================
-# LAYER 2: UTC FINALITY (v3.2)
+# LAYER 2: UTC FINALITY (v3.4)
 # ==============================================================================
 # Time consensus
 TIME_TOLERANCE_SEC: int = 5                  # ±5 seconds UTC tolerance between nodes

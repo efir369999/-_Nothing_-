@@ -59,23 +59,27 @@ Protocol sync & None required \\
 
 Nodes accept blocks and heartbeats within $\pm$5 seconds of their local UTC.  This tolerance accommodates network propagation, minor drift, and NTP variance without requiring external synchronization.
 
-\section{VDF as Proof of Participation}
+\section{Sequential Hash Chain}
 
-VDF proves participation in a time window---not computation speed:
+Montana uses a sequential hash chain as proof of participation in a time window---not computation speed:
 
 \begin{verbatim}
-Node A (fast hardware):  VDF ready at 00:00:25 -> waits -> F1
-Node B (slow hardware):  VDF ready at 00:00:55 -> F1
-Node C (too slow):       VDF ready at 00:01:02 -> misses F1 -> F2
+Node A (fast hardware):  ready at 00:00:25 -> waits -> F1
+Node B (slow hardware):  ready at 00:00:55 -> F1
+Node C (too slow):       ready at 00:01:02 -> misses F1 -> F2
 \end{verbatim}
 
 Hardware advantage eliminated.  Fast hardware waits for UTC boundary like everyone else.
 
-The VDF construction uses iterated hashing:
+The construction uses iterated hashing:
 
-$$\text{VDF}(\text{input}, T) = \text{SHAKE256}^T(\text{input})$$
+$$H^T(\text{input}) = \text{SHAKE256}(\text{SHAKE256}(...\text{SHAKE256}(\text{input})...))$$
 
 where $T = 2^{24}$ iterations.  Verification uses STARK proofs for $O(\log T)$ validation without recomputing $T$ iterations.
+
+\textbf{Terminology note.}  This is not a classical VDF in the Boneh et al. sense.  Classical VDFs use algebraic structures (RSA groups, class groups) with mathematical sequentiality guarantees.  Montana's construction is a sequential hash chain with empirical (Type C) security: no shortcut for iterated SHAKE256 is known, but one is theoretically possible if internal structure is discovered.
+
+Montana accepts this tradeoff for post-quantum security.  SHAKE256 has no known quantum speedup beyond Grover's $\sqrt{T}$, while RSA-based VDFs are broken by Shor's algorithm.
 
 \section{Finality Levels}
 

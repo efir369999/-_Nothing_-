@@ -2,7 +2,7 @@
 
 > *Mechanism for asymptotic trust in the value of time*
 
-**Version:** 3.2
+**Version:** 3.4
 **Ticker:** $MONT
 
 ---
@@ -23,7 +23,7 @@ Montana builds trust through **Asymptotic Trust Consensus** (ATC):
 - Protocol primitives (VDF, VRF)
 - Consensus mechanisms (DAG, UTC finality)
 
-**v3.2:** UTC finality model, ±5 second tolerance, self-sovereign.
+**v3.4:** UTC finality, ±5s tolerance, platform-independent light clients.
 
 ---
 

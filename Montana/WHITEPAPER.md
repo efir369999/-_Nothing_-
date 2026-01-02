@@ -1,6 +1,6 @@
 # Ɉ Montana
 
-**Version:** 3.2
+**Version:** 3.4
 **Date:** January 2026
 **Ticker:** $MONT
 
@@ -23,7 +23,7 @@ lim(evidence → ∞) 1 Ɉ → 1 second
 
 Montana builds trust in time value through the **Asymptotic Trust Consensus** (ATC) architecture — physical constraints, computational hardness, protocol primitives, and consensus mechanisms.
 
-**Montana v3.2** is fully self-sovereign: no external blockchain dependencies, no external time sources. Finality is determined by UTC boundaries — time itself becomes the consensus mechanism.
+**Montana v3.4** is fully self-sovereign: no external blockchain dependencies, no external time sources. Finality is determined by UTC boundaries — time itself becomes the consensus mechanism.
 
 The more evidence accumulates, the closer Ɉ approaches its definition. We never claim to arrive; we asymptotically approach.
 
@@ -431,17 +431,41 @@ Square root provides diminishing returns and Sybil resistance.
 | Key Exchange | ML-KEM-768 | NIST FIPS 203 |
 | Hashing | SHA3-256, SHAKE256 | NIST FIPS 202 |
 
-### 7.2 VDF Parameters
+### 7.2 Sequential Hash Chain
+
+Montana uses a **sequential hash chain** for temporal proof:
 
 ```
-VDF(input, T) = SHAKE256^T(input)
+H^T(input) = SHAKE256(SHAKE256(...SHAKE256(input)...))
+                                      ^ T iterations
 
 T = 2²⁴ iterations
 Purpose: Proof of participation (not speed competition)
 Verification: STARK proofs (O(log T))
 ```
 
-VDF must complete before UTC boundary. Hardware that completes faster simply waits.
+**Terminology Note:** This is not a classical VDF in the Boneh et al. (2018) sense. Classical VDFs use algebraic structures (RSA groups, class groups) that provide mathematical sequentiality guarantees through group-theoretic properties.
+
+Montana's construction is a sequential hash chain:
+
+| Property | Classical VDF (RSA/Class Groups) | Montana (SHAKE256 Chain) |
+|----------|----------------------------------|--------------------------|
+| Sequentiality basis | Mathematical (group structure) | Empirical (no shortcut known) |
+| Security type | Type B (reduction to group problem) | Type C (empirical, 10+ years) |
+| Shortcut | Provably requires group computation | Unknown but theoretically possible |
+| Quantum status | Vulnerable (Shor's algorithm) | Resistant (Grover only) |
+
+**Why sequential hash chain?**
+
+1. **Post-quantum:** SHAKE256 has no known quantum speedup beyond Grover (√T).
+2. **Simplicity:** No trusted setup, no complex group operations.
+3. **Empirical security:** No shortcut for iterated hashing found in 20+ years.
+
+**Honest acknowledgment:** If internal structure of SHAKE256 is discovered that allows computing H^T(x) faster than T sequential evaluations, the sequential property would be compromised. This is Type C (empirical) security, not Type A (proven) or Type B (reduction-based).
+
+Montana accepts this tradeoff for post-quantum security and simplicity. The construction remains secure as long as SHAKE256 admits no iteration shortcut — an empirically verified property.
+
+Hash chain must complete before UTC boundary. Hardware that completes faster simply waits.
 
 ### 7.3 DAG Structure
 
@@ -515,7 +539,7 @@ Every claim is typed. This is epistemic honesty.
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Montana v3.2:** Fully self-sovereign. No external dependencies.
+**Montana v3.4:** Fully self-sovereign. No external dependencies.
 
 ---
 

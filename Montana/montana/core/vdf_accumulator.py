@@ -1,5 +1,5 @@
 """
-Ɉ Montana VDF Accumulator v3.2
+Ɉ Montana VDF Accumulator v3.4
 
 Layer 2: UTC Finality per MONTANA_TECHNICAL_SPECIFICATION.md §6.
 
@@ -324,7 +324,7 @@ def get_finality_time(level: FinalityLevel) -> float:
 
 
 # ==============================================================================
-# UTC FINALITY CHECKPOINT (v3.2)
+# UTC FINALITY CHECKPOINT (v3.4)
 # ==============================================================================
 
 @dataclass

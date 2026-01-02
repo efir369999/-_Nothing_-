@@ -1,7 +1,7 @@
-# Ɉ Montana Technical Specification v3.2
+# Ɉ Montana Technical Specification v3.4
 
 **Protocol Version:** 9
-**Document Version:** 3.2
+**Document Version:** 3.4
 **Date:** January 2026
 **Ticker:** $MONT
 **ATC Compatibility:** v10.0 (L-1 v2.1, L0 v1.0, L1 v1.1, L2 v1.0)
@@ -9,7 +9,7 @@
 > **Ɉ Montana** is a mechanism for asymptotic trust in the value of time.
 > **Ɉ** — Temporal Time Unit: lim(evidence → ∞) 1 Ɉ → 1 second
 > Built on ATC Layer 3+. See [MONTANA_ATC_MAPPING.md](MONTANA_ATC_MAPPING.md) for layer mapping.
-> **v3.2:** UTC finality model, no external time sources, ASIC-resistant by design.
+> **v3.4:** UTC finality, ±5s tolerance, platform-independent light clients, ASIC-resistant.
 
 ---
 
@@ -400,12 +400,34 @@ If VDF sequentiality is broken:
 
 ---
 
-## 5. Montana Layer 1: Temporal Proof (VDF)
+## 5. Montana Layer 1: Temporal Proof (Sequential Hash Chain)
 
 *Maps to ATC L-1.1 (Verifiable Delay Functions)*
 
-Montana's Layer 1 uses VDF to prove elapsed time. The VDF derives its security from:
-- **Physical bound (ATC L-1.4):** Sequential computation cannot be parallelized
+Montana's Layer 1 uses a **sequential hash chain** to prove elapsed time.
+
+### Terminology Clarification
+
+**Montana does NOT use a classical VDF** in the Boneh et al. (2018) sense. Classical VDFs use algebraic structures (RSA groups, class groups) that provide mathematical sequentiality guarantees through group-theoretic properties.
+
+| Property | Classical VDF (RSA/Class Groups) | Montana (SHAKE256 Chain) |
+|----------|----------------------------------|--------------------------|
+| Sequentiality basis | Mathematical (group structure) | Empirical (no shortcut known) |
+| Security type | Type B (reduction to group problem) | Type C (empirical, 10+ years) |
+| Shortcut | Provably requires group computation | Unknown but theoretically possible |
+| Verification | O(1) using group properties | O(log T) via STARK proofs |
+| Quantum status | Vulnerable (Shor's algorithm) | Resistant (Grover √T only) |
+
+**Why sequential hash chain?**
+
+1. **Post-quantum security:** SHAKE256 has no known quantum speedup beyond Grover (√T).
+2. **Simplicity:** No trusted setup, no complex group operations.
+3. **Empirical security:** No shortcut for iterated hashing found in 20+ years of cryptanalysis.
+
+**Honest acknowledgment:** If internal structure of SHAKE256 is discovered that allows computing H^T(x) faster than T sequential evaluations, the sequential property would be compromised. This is Type C (empirical) security, not Type A (proven) or Type B (reduction-based).
+
+Montana accepts this tradeoff. The construction derives its security from:
+- **Empirical bound:** No known iteration shortcut for SHAKE256
 - **Hash security (ATC L-0.3.3):** SHAKE256 collision resistance
 - **Verification (ATC L-1.D):** STARK proofs for O(log T) verification
 
@@ -473,7 +495,7 @@ VDF verification uses FRI-based STARK proofs for O(log T) verification complexit
 
 **Implementation Status:** SPECIFICATION ONLY — implementation pending.
 
-**VDF Construction Note:** Montana uses iterated hashing (H^T), not group-based VDFs (Wesolowski, Pietrzak). This is simpler but has the same sequentiality property. The tradeoff: requires STARK for efficient verification (group-based VDFs have built-in O(1) verification).
+**Construction Note:** Montana uses a sequential hash chain (H^T), not classical group-based VDFs (Wesolowski, Pietrzak). The sequentiality property is empirical (Type C security), not mathematically proven as in group-based constructions. The tradeoff: post-quantum security in exchange for O(log T) verification via STARK instead of O(1).
 
 ```python
 # STARK proof parameters (targets — require benchmarking)
@@ -533,7 +555,7 @@ Montana's Layer 2 achieves finality through **UTC time boundaries** — determin
 ### 6.1 Finality Model
 
 ```python
-# UTC-based finality (v3.2)
+# UTC-based finality (v3.4)
 TIME_TOLERANCE_SEC: int = 5              # ±5 seconds UTC tolerance between nodes
 FINALITY_INTERVAL_SEC: int = 60          # 1 minute — finality boundary interval
 

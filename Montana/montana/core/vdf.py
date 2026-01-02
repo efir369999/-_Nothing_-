@@ -1,29 +1,10 @@
 """
-Ɉ Montana Sequential Hash Chain v3.2
+Ɉ Montana VDF (Verifiable Delay Function) v3.1
 
 Layer 1: Temporal Proof per MONTANA_TECHNICAL_SPECIFICATION.md §5.
 
-SHAKE256-based sequential hash chain with O(log T) verification via STARK proofs.
-Target: 2^24 iterations (~2.5 seconds) for UTC finality window participation.
-
-TERMINOLOGY NOTE:
-This is NOT a classical VDF in the Boneh et al. (2018) sense. Classical VDFs use
-algebraic structures (RSA groups, class groups) that provide mathematical
-sequentiality guarantees through group-theoretic properties.
-
-Montana uses a sequential hash chain:
-  H^T(x) = SHAKE256(SHAKE256(...SHAKE256(x)...))  # T iterations
-
-Security Type: C (empirical)
-  - No shortcut for iterated SHAKE256 is known
-  - Shortcuts are theoretically possible if internal structure is discovered
-  - 20+ years of cryptanalysis on SHA-3/SHAKE256 with no iteration shortcuts found
-
-Quantum Status: Resistant
-  - Grover provides only √T speedup (from 2^24 to 2^12 iterations)
-  - RSA/class group VDFs are broken by Shor's algorithm
-
-Montana accepts this tradeoff for post-quantum security and simplicity.
+SHAKE256-based VDF with O(log T) verification via STARK proofs.
+Target: 2^24 iterations (~2.5 seconds) for soft finality checkpoint.
 """
 
 from __future__ import annotations
@@ -51,13 +32,9 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class VDFOutput:
     """
-    Output of sequential hash chain computation per §5.3.
+    Output of VDF computation per §5.3.
 
     Contains the result and checkpoints for STARK proof generation.
-
-    Note: Despite the "VDF" name retained for API compatibility, this is a
-    sequential hash chain with empirical (Type C) sequentiality, not a
-    classical VDF with mathematical sequentiality guarantees.
     """
     input_hash: Hash                          # Original input (32 bytes)
     output_hash: Hash                         # Final output after T iterations
@@ -69,12 +46,9 @@ class VDFOutput:
 @dataclass
 class VDFProof:
     """
-    STARK proof for hash chain verification per §5.4.
+    STARK proof for VDF verification per §5.4.
 
     Allows O(log T) verification instead of O(T) recomputation.
-
-    Note: "VDF" name retained for API compatibility. This proves a sequential
-    hash chain computation, not a classical group-based VDF.
     """
     input_hash: Hash
     output_hash: Hash
@@ -108,7 +82,7 @@ class VDFProof:
 
 @dataclass
 class VDFCheckpointResult:
-    """Result of a single hash chain checkpoint computation."""
+    """Result of a single VDF checkpoint computation."""
     iterations: int
     output: Hash
     proof: bytes
@@ -116,27 +90,15 @@ class VDFCheckpointResult:
 
 class SHAKE256VDF:
     """
-    SHAKE256-based Sequential Hash Chain per §5.2.
-
-    TERMINOLOGY NOTE:
-    This class is named "VDF" for API compatibility, but implements a
-    sequential hash chain, NOT a classical VDF (Boneh et al. 2018).
-
-    Classical VDFs use algebraic structures (RSA groups, class groups) with
-    mathematical sequentiality guarantees. Montana uses iterated hashing
-    with empirical (Type C) sequentiality - no shortcut is known, but one
-    is theoretically possible if SHAKE256's internal structure is discovered.
+    SHAKE256-based Verifiable Delay Function per §5.2.
 
     Computes: output = SHAKE256(SHAKE256(...SHAKE256(input)...))
                                          ^ T iterations
 
     Properties:
-    - Post-quantum: SHAKE256 has no known quantum speedup beyond Grover (√T)
-    - Strictly sequential: Each iteration depends on previous output
-    - Empirical security: No iteration shortcut found in 20+ years
-    - Efficiently verifiable: STARK proofs or checkpoint sampling
-
-    Security Type: C (empirical, not mathematically proven)
+    - Quantum-resistant (SHAKE256 has no known quantum speedup beyond Grover)
+    - Strictly sequential (each iteration depends on previous output)
+    - Efficiently verifiable via STARK proofs or checkpoint sampling
     """
 
     STATE_SIZE = SHAKE256_OUTPUT_SIZE  # 32 bytes
@@ -150,7 +112,7 @@ class SHAKE256VDF:
 
     @property
     def current_output(self) -> Hash:
-        """Get current hash chain output."""
+        """Get current VDF output."""
         return self._current_output or Hash.zero()
 
     @property
@@ -159,7 +121,7 @@ class SHAKE256VDF:
         return self._total_iterations
 
     def get_proof(self) -> bytes:
-        """Get the last proof."""
+        """Get the last VDF proof."""
         return self._last_proof
 
     def compute_checkpoint(
@@ -168,7 +130,7 @@ class SHAKE256VDF:
         iterations: int = VDF_BASE_ITERATIONS,
     ) -> VDFCheckpointResult:
         """
-        Compute a single hash chain checkpoint.
+        Compute a single VDF checkpoint.
 
         Args:
             input_data: Input seed
@@ -204,10 +166,7 @@ class SHAKE256VDF:
         collect_checkpoints: bool = True,
     ) -> VDFOutput:
         """
-        Compute SHAKE256 sequential hash chain.
-
-        This is an iterated hash: H^T(x) = H(H(...H(x)...))
-        Sequentiality is empirical (Type C) - no shortcut known.
+        Compute SHAKE256 VDF.
 
         Args:
             input_data: Input seed (hashed to 32 bytes if not already)
@@ -240,7 +199,7 @@ class SHAKE256VDF:
             if collect_checkpoints and i > 0 and i % self.CHECKPOINT_INTERVAL == 0:
                 checkpoints.append(Hash(state))
 
-            # Core sequential computation
+            # Core VDF computation
             state = self._shake256_single(state)
 
             # Progress callback
@@ -254,7 +213,7 @@ class SHAKE256VDF:
         elapsed_ms = int((time.perf_counter() - start_time) * 1000)
 
         logger.debug(
-            f"Hash chain computed: {iterations:,} iterations in {elapsed_ms}ms "
+            f"VDF computed: {iterations:,} iterations in {elapsed_ms}ms "
             f"({iterations / (elapsed_ms / 1000):.0f} iter/s)"
         )
 
@@ -268,7 +227,7 @@ class SHAKE256VDF:
 
     def verify_full(self, vdf_output: VDFOutput) -> bool:
         """
-        Verify hash chain by full recomputation (O(T)).
+        Verify VDF by full recomputation (O(T)).
 
         This is the fallback when STARK proofs are not available.
         """
@@ -283,12 +242,12 @@ class SHAKE256VDF:
         sample_segments: int = 5,
     ) -> bool:
         """
-        Verify hash chain using checkpoint sampling (faster than full recomputation).
+        Verify VDF using checkpoint sampling (faster than full recomputation).
 
         Randomly samples segments between checkpoints and verifies them.
 
         Args:
-            vdf_output: Hash chain output with checkpoints
+            vdf_output: VDF output with checkpoints
             sample_segments: Number of segments to verify
 
         Returns:
@@ -300,11 +259,11 @@ class SHAKE256VDF:
 
         # Verify first and last checkpoints match
         if checkpoints[0] != vdf_output.input_hash:
-            logger.warning("Checkpoint 0 doesn't match input")
+            logger.warning("VDF checkpoint 0 doesn't match input")
             return False
 
         if checkpoints[-1] != vdf_output.output_hash:
-            logger.warning("Final checkpoint doesn't match output")
+            logger.warning("VDF final checkpoint doesn't match output")
             return False
 
         # Calculate iterations per segment
@@ -328,14 +287,14 @@ class SHAKE256VDF:
                 state = self._shake256_single(state)
 
             if state != expected_end:
-                logger.warning(f"Segment {seg_idx} verification failed")
+                logger.warning(f"VDF segment {seg_idx} verification failed")
                 return False
 
         return True
 
     def create_proof(self, vdf_output: VDFOutput) -> VDFProof:
         """
-        Create verifiable proof from hash chain output.
+        Create verifiable proof from VDF output.
 
         Uses checkpoint-based proof (STARK integration pending).
         """
@@ -356,10 +315,10 @@ class SHAKE256VDF:
 
     def verify_proof(self, proof: VDFProof) -> bool:
         """
-        Verify hash chain proof.
+        Verify VDF proof.
 
         Args:
-            proof: Proof to verify
+            proof: VDF proof to verify
 
         Returns:
             True if proof is valid
@@ -423,7 +382,7 @@ class SHAKE256VDF:
 
         recommended = max(VDF_MIN_ITERATIONS, int(ips * target_seconds))
 
-        logger.info(f"Hash chain calibration: {ips:.0f} iter/sec")
+        logger.info(f"VDF calibration: {ips:.0f} iter/sec")
         logger.info(f"  Recommended: {recommended:,} iterations for {target_seconds}s")
 
         return recommended
@@ -436,12 +395,12 @@ class SHAKE256VDF:
         return self._cached_ips or 0.0
 
 
-# Global instance
+# Global VDF instance
 _vdf: Optional[SHAKE256VDF] = None
 
 
 def get_vdf() -> SHAKE256VDF:
-    """Get or create global hash chain instance."""
+    """Get or create global VDF instance."""
     global _vdf
     if _vdf is None:
         _vdf = SHAKE256VDF()
@@ -452,15 +411,15 @@ def compute_vdf(
     input_data: bytes,
     iterations: int = VDF_BASE_ITERATIONS,
 ) -> VDFOutput:
-    """Compute hash chain using global instance."""
+    """Compute VDF using global instance."""
     return get_vdf().compute(input_data, iterations)
 
 
 def verify_vdf(vdf_output: VDFOutput) -> bool:
-    """Verify hash chain output using checkpoints."""
+    """Verify VDF output using checkpoints."""
     return get_vdf().verify_checkpoints(vdf_output)
 
 
 def verify_vdf_proof(proof: VDFProof) -> bool:
-    """Verify hash chain proof."""
+    """Verify VDF proof."""
     return get_vdf().verify_proof(proof)

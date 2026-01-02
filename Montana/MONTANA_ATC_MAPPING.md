@@ -1,6 +1,6 @@
 # Ɉ Montana ↔ ATC Layer Mapping
 
-**Ɉ Montana Version:** 3.2
+**Ɉ Montana Version:** 3.4
 **Ticker:** $MONT
 **ATC Version:** 10.0 (L-1 v2.1, L0 v1.0, L1 v1.1, L2 v1.0)
 
@@ -12,7 +12,7 @@
 
 **Ɉ** is a Temporal Time Unit (TTU): lim(evidence → ∞) 1 Ɉ → 1 second
 
-**v3.2:** UTC finality model, ±5 second tolerance, self-sovereign.
+**v3.4:** UTC finality, ±5s tolerance, platform-independent light clients.
 
 This document maps Ɉ Montana components to their foundational ATC layers, showing exactly which constraints and primitives the mechanism relies upon.
 
@@ -265,16 +265,17 @@ To verify Montana compliance with ATC:
    ✓ Liveness: After GST
    ✓ Finality: Accumulated VDF (self-sovereign)
 
-→ Montana v3.2 COMPLIES with ATC v10
-→ Montana v3.2 is SELF-SOVEREIGN (no external dependencies)
-→ Montana v3.2 uses UTC finality with ±5 second tolerance
+→ Montana v3.4 COMPLIES with ATC v10
+→ Montana v3.4 is SELF-SOVEREIGN (no external dependencies)
+→ Montana v3.4 uses UTC finality with ±5 second tolerance
+→ Montana v3.4 platform-independent light clients
 ```
 
 ---
 
 ## References
 
-- Montana Technical Specification v3.2
+- Montana Technical Specification v3.4
 - ATC Layer -1 v2.1
 - ATC Layer 0 v1.0
 - ATC Layer 1 v1.1
@@ -284,4 +285,4 @@ To verify Montana compliance with ATC:
 
 *This mapping enables verification that Montana correctly inherits ATC layer guarantees and does not assume stronger properties than lower layers provide.*
 
-*Montana v3.2: Self-sovereign UTC finality through physics.*
+*Montana v3.4: Self-sovereign UTC finality through physics.*
