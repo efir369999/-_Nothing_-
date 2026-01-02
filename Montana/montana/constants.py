@@ -1,9 +1,9 @@
 """
-Ɉ Montana Protocol Constants v3.5
+Ɉ Montana Protocol Constants v3.7
 
 All protocol constants per MONTANA_TECHNICAL_SPECIFICATION.md §19, §28.
 
-v3.5: Timechain architecture, UTC finality, ±5s tolerance, platform-independent light clients.
+v3.7: ML-DSA signatures (Type B), Timechain architecture, UTC finality, ±5s tolerance.
 """
 
 from typing import Dict, List, Tuple
@@ -269,13 +269,16 @@ HASH_SIZE: int = 32
 SHA3_256_OUTPUT_SIZE: int = 32
 SHAKE256_OUTPUT_SIZE: int = 32
 
-ALGORITHM_SPHINCS_PLUS: int = 0x01
-ALGORITHM_ML_KEM: int = 0x02
-ALGORITHM_ECVRF: int = 0x03
+ALGORITHM_ML_DSA: int = 0x01              # ML-DSA-65 (Dilithium) — NIST FIPS 204
+ALGORITHM_ML_KEM: int = 0x02              # ML-KEM-768 — NIST FIPS 203
+ALGORITHM_ECVRF: int = 0x03               # ECVRF (quantum-vulnerable, upgrade path defined)
 
-SPHINCS_PUBLIC_KEY_SIZE: int = 32
-SPHINCS_SECRET_KEY_SIZE: int = 64
-SPHINCS_SIGNATURE_SIZE: int = 17088
+# ML-DSA-65 (Dilithium) parameters — NIST FIPS 204
+# Type B security: reduction to Module-LWE problem
+ML_DSA_PUBLIC_KEY_SIZE: int = 1952        # bytes
+ML_DSA_SECRET_KEY_SIZE: int = 4032        # bytes
+ML_DSA_SIGNATURE_SIZE: int = 3309         # bytes
+ML_DSA_SECURITY_LEVEL: int = 128          # bits (NIST Level 2)
 
 # ==============================================================================
 # SYNC PROTOCOL

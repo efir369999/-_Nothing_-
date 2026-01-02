@@ -1,14 +1,16 @@
 """
-Ɉ Montana Protocol SPHINCS+ Signatures v3.1
+Ɉ Montana Protocol ML-DSA Signatures v3.7
 
-SPHINCS+-SHAKE-128f per NIST FIPS 205.
+ML-DSA-65 (Dilithium) per NIST FIPS 204.
+
+Type B security: reduction to Module-LWE problem.
 
 This module provides post-quantum secure digital signatures using
-SPHINCS+ with SHAKE256 as the underlying hash function.
+ML-DSA-65 (formerly known as Dilithium).
 
-Signature size: 17,088 bytes
-Public key size: 32 bytes
-Secret key size: 64 bytes
+Signature size: 3,309 bytes
+Public key size: 1,952 bytes
+Secret key size: 4,032 bytes
 """
 
 from __future__ import annotations
@@ -18,15 +20,15 @@ import logging
 
 from montana.core.types import PublicKey, SecretKey, Signature, KeyPair
 from montana.constants import (
-    ALGORITHM_SPHINCS_PLUS,
-    SPHINCS_PUBLIC_KEY_SIZE,
-    SPHINCS_SECRET_KEY_SIZE,
-    SPHINCS_SIGNATURE_SIZE,
+    ALGORITHM_ML_DSA,
+    ML_DSA_PUBLIC_KEY_SIZE,
+    ML_DSA_SECRET_KEY_SIZE,
+    ML_DSA_SIGNATURE_SIZE,
 )
 
 logger = logging.getLogger(__name__)
 
-# Try to import liboqs for production SPHINCS+ implementation
+# Try to import liboqs for production ML-DSA implementation
 _LIBOQS_AVAILABLE = False
 _oqs = None
 
@@ -34,7 +36,7 @@ try:
     import oqs
     _oqs = oqs
     _LIBOQS_AVAILABLE = True
-    logger.info("liboqs available - using production SPHINCS+ implementation")
+    logger.info("liboqs available - using production ML-DSA implementation")
 except ImportError:
     logger.warning(
         "liboqs not available - using fallback implementation. "
@@ -42,15 +44,17 @@ except ImportError:
     )
 
 
-class SPHINCSPlus:
+class MLDSA:
     """
-    SPHINCS+-SHAKE-128f wrapper.
+    ML-DSA-65 (Dilithium) wrapper.
 
     Uses liboqs when available, falls back to a deterministic
     pseudo-implementation for testing when liboqs is not installed.
+
+    Type B security: reduction to Module-LWE problem.
     """
 
-    ALGORITHM_NAME = "SPHINCS+-SHAKE-128f-simple"
+    ALGORITHM_NAME = "Dilithium3"  # liboqs name for ML-DSA-65
 
     def __init__(self):
         self._signer: Optional[object] = None
@@ -64,7 +68,7 @@ class SPHINCSPlus:
 
     def generate_keypair(self) -> Tuple[bytes, bytes]:
         """
-        Generate a new SPHINCS+ keypair.
+        Generate a new ML-DSA keypair.
 
         Returns:
             Tuple of (public_key, secret_key) as bytes
@@ -88,24 +92,24 @@ class SPHINCSPlus:
 
         # Expand seed to get key material
         shake = hashlib.shake_256()
-        shake.update(b"MONTANA_SPHINCS_FALLBACK_KEYGEN_V31:" + seed)
-        key_material = shake.digest(SPHINCS_PUBLIC_KEY_SIZE + SPHINCS_SECRET_KEY_SIZE)
+        shake.update(b"MONTANA_MLDSA_FALLBACK_KEYGEN_V37:" + seed)
+        key_material = shake.digest(ML_DSA_PUBLIC_KEY_SIZE + ML_DSA_SECRET_KEY_SIZE)
 
-        public_key = key_material[:SPHINCS_PUBLIC_KEY_SIZE]
-        secret_key = key_material[SPHINCS_PUBLIC_KEY_SIZE:]
+        public_key = key_material[:ML_DSA_PUBLIC_KEY_SIZE]
+        secret_key = key_material[ML_DSA_PUBLIC_KEY_SIZE:]
 
         return public_key, secret_key
 
     def sign(self, message: bytes, secret_key: bytes) -> bytes:
         """
-        Sign a message with SPHINCS+.
+        Sign a message with ML-DSA.
 
         Args:
             message: Message to sign
-            secret_key: 64-byte secret key
+            secret_key: Secret key
 
         Returns:
-            17,088-byte signature
+            3,309-byte signature
         """
         if _LIBOQS_AVAILABLE and self._signer:
             # liboqs requires setting the secret key before signing
@@ -124,27 +128,27 @@ class SPHINCSPlus:
 
         # Create deterministic signature from message and secret key
         shake = hashlib.shake_256()
-        shake.update(b"MONTANA_SPHINCS_FALLBACK_SIGN_V31:")
+        shake.update(b"MONTANA_MLDSA_FALLBACK_SIGN_V37:")
         shake.update(secret_key)
         shake.update(message)
 
-        return shake.digest(SPHINCS_SIGNATURE_SIZE)
+        return shake.digest(ML_DSA_SIGNATURE_SIZE)
 
     def verify(self, message: bytes, signature: bytes, public_key: bytes) -> bool:
         """
-        Verify a SPHINCS+ signature.
+        Verify an ML-DSA signature.
 
         Args:
             message: Original message
             signature: Signature to verify
-            public_key: 32-byte public key
+            public_key: Public key
 
         Returns:
             True if signature is valid
         """
-        if len(signature) != SPHINCS_SIGNATURE_SIZE:
+        if len(signature) != ML_DSA_SIGNATURE_SIZE:
             return False
-        if len(public_key) != SPHINCS_PUBLIC_KEY_SIZE:
+        if len(public_key) != ML_DSA_PUBLIC_KEY_SIZE:
             return False
 
         if _LIBOQS_AVAILABLE:
@@ -165,59 +169,61 @@ class SPHINCSPlus:
         """
         # For testing, we accept any properly-sized signature
         # This is obviously insecure but allows testing the protocol flow
-        return len(signature) == SPHINCS_SIGNATURE_SIZE
+        return len(signature) == ML_DSA_SIGNATURE_SIZE
 
 
 # Global instance
-_sphincs = SPHINCSPlus()
+_mldsa = MLDSA()
 
 
-def sphincs_keygen() -> KeyPair:
+def mldsa_keygen() -> KeyPair:
     """
-    Generate SPHINCS+-SHAKE-128f keypair per NIST FIPS 205.
+    Generate ML-DSA-65 keypair per NIST FIPS 204.
+
+    Type B security: reduction to Module-LWE problem.
 
     Returns:
         KeyPair containing PublicKey and SecretKey
     """
-    public_bytes, secret_bytes = _sphincs.generate_keypair()
+    public_bytes, secret_bytes = _mldsa.generate_keypair()
 
     public_key = PublicKey(
-        algorithm=ALGORITHM_SPHINCS_PLUS,
+        algorithm=ALGORITHM_ML_DSA,
         data=public_bytes
     )
     secret_key = SecretKey(
-        algorithm=ALGORITHM_SPHINCS_PLUS,
+        algorithm=ALGORITHM_ML_DSA,
         data=secret_bytes
     )
 
     return KeyPair(public=public_key, secret=secret_key)
 
 
-def sphincs_sign(secret_key: SecretKey, message: bytes) -> Signature:
+def mldsa_sign(secret_key: SecretKey, message: bytes) -> Signature:
     """
-    Sign a message using SPHINCS+.
+    Sign a message using ML-DSA.
 
     Args:
         secret_key: Secret key for signing
         message: Message to sign
 
     Returns:
-        Signature object (17,089 bytes total with algorithm byte)
+        Signature object (3,310 bytes total with algorithm byte)
     """
-    if secret_key.algorithm != ALGORITHM_SPHINCS_PLUS:
+    if secret_key.algorithm != ALGORITHM_ML_DSA:
         raise ValueError(f"Invalid algorithm: {secret_key.algorithm}")
 
-    sig_bytes = _sphincs.sign(message, secret_key.data)
+    sig_bytes = _mldsa.sign(message, secret_key.data)
 
     return Signature(
-        algorithm=ALGORITHM_SPHINCS_PLUS,
+        algorithm=ALGORITHM_ML_DSA,
         data=sig_bytes
     )
 
 
-def sphincs_verify(public_key: PublicKey, message: bytes, signature: Signature) -> bool:
+def mldsa_verify(public_key: PublicKey, message: bytes, signature: Signature) -> bool:
     """
-    Verify a SPHINCS+ signature.
+    Verify an ML-DSA signature.
 
     Args:
         public_key: Public key for verification
@@ -227,12 +233,12 @@ def sphincs_verify(public_key: PublicKey, message: bytes, signature: Signature) 
     Returns:
         True if signature is valid
     """
-    if public_key.algorithm != ALGORITHM_SPHINCS_PLUS:
+    if public_key.algorithm != ALGORITHM_ML_DSA:
         return False
-    if signature.algorithm != ALGORITHM_SPHINCS_PLUS:
+    if signature.algorithm != ALGORITHM_ML_DSA:
         return False
 
-    return _sphincs.verify(message, signature.data, public_key.data)
+    return _mldsa.verify(message, signature.data, public_key.data)
 
 
 def is_liboqs_available() -> bool:
@@ -240,15 +246,17 @@ def is_liboqs_available() -> bool:
     return _LIBOQS_AVAILABLE
 
 
-def get_sphincs_info() -> dict:
-    """Get information about the SPHINCS+ implementation."""
+def get_mldsa_info() -> dict:
+    """Get information about the ML-DSA implementation."""
     info = {
-        "algorithm": "SPHINCS+-SHAKE-128f-simple",
-        "public_key_size": SPHINCS_PUBLIC_KEY_SIZE,
-        "secret_key_size": SPHINCS_SECRET_KEY_SIZE,
-        "signature_size": SPHINCS_SIGNATURE_SIZE,
+        "algorithm": "ML-DSA-65",
+        "standard": "NIST FIPS 204",
+        "security_type": "Type B (reduction to Module-LWE)",
+        "public_key_size": ML_DSA_PUBLIC_KEY_SIZE,
+        "secret_key_size": ML_DSA_SECRET_KEY_SIZE,
+        "signature_size": ML_DSA_SIGNATURE_SIZE,
         "security_level": 128,  # bits
-        "nist_level": 1,
+        "nist_level": 2,
         "liboqs_available": _LIBOQS_AVAILABLE,
         "production_ready": _LIBOQS_AVAILABLE,
     }

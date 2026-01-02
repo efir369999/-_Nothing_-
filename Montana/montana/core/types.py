@@ -1,7 +1,9 @@
 """
-Ɉ Montana Protocol Types v3.1
+Ɉ Montana Protocol Types v3.7
 
 Core cryptographic types and protocol enums per MONTANA_TECHNICAL_SPECIFICATION.md.
+
+v3.7: ML-DSA signatures (Type B security).
 """
 
 from __future__ import annotations
@@ -12,10 +14,10 @@ import hashlib
 
 from montana.constants import (
     HASH_SIZE,
-    SPHINCS_PUBLIC_KEY_SIZE,
-    SPHINCS_SECRET_KEY_SIZE,
-    SPHINCS_SIGNATURE_SIZE,
-    ALGORITHM_SPHINCS_PLUS,
+    ML_DSA_PUBLIC_KEY_SIZE,
+    ML_DSA_SECRET_KEY_SIZE,
+    ML_DSA_SIGNATURE_SIZE,
+    ALGORITHM_ML_DSA,
     BIG_ENDIAN,
     NODE_TYPE_FULL,
     NODE_TYPE_LIGHT,
@@ -172,16 +174,16 @@ class PublicKey:
     """
     Public key with algorithm identifier.
 
-    SIZE: 33 bytes (algorithm: 1 byte, data: 32 bytes)
+    SIZE: 1953 bytes (algorithm: 1 byte, data: 1952 bytes for ML-DSA-65)
     SERIALIZATION: algorithm || data
     """
-    algorithm: int = ALGORITHM_SPHINCS_PLUS
-    data: bytes = field(default_factory=lambda: bytes(SPHINCS_PUBLIC_KEY_SIZE))
+    algorithm: int = ALGORITHM_ML_DSA
+    data: bytes = field(default_factory=lambda: bytes(ML_DSA_PUBLIC_KEY_SIZE))
 
     def __post_init__(self):
-        if len(self.data) != SPHINCS_PUBLIC_KEY_SIZE:
+        if len(self.data) != ML_DSA_PUBLIC_KEY_SIZE:
             raise ValueError(
-                f"PublicKey data must be {SPHINCS_PUBLIC_KEY_SIZE} bytes, got {len(self.data)}"
+                f"PublicKey data must be {ML_DSA_PUBLIC_KEY_SIZE} bytes, got {len(self.data)}"
             )
 
     def __bytes__(self) -> bytes:
@@ -214,8 +216,8 @@ class PublicKey:
     def deserialize(cls, data: bytes, offset: int = 0) -> tuple[PublicKey, int]:
         """Deserialize from bytes, return (PublicKey, bytes_consumed)."""
         algorithm = data[offset]
-        key_data = data[offset + 1:offset + 1 + SPHINCS_PUBLIC_KEY_SIZE]
-        return cls(algorithm=algorithm, data=key_data), 1 + SPHINCS_PUBLIC_KEY_SIZE
+        key_data = data[offset + 1:offset + 1 + ML_DSA_PUBLIC_KEY_SIZE]
+        return cls(algorithm=algorithm, data=key_data), 1 + ML_DSA_PUBLIC_KEY_SIZE
 
     def to_address(self) -> Hash:
         """Derive address (hash of public key)."""
@@ -230,16 +232,16 @@ class SecretKey:
     """
     Secret key with algorithm identifier.
 
-    SIZE: 65 bytes (algorithm: 1 byte, data: 64 bytes)
+    SIZE: 4033 bytes (algorithm: 1 byte, data: 4032 bytes for ML-DSA-65)
     NOTE: Never transmitted over network.
     """
-    algorithm: int = ALGORITHM_SPHINCS_PLUS
-    data: bytes = field(default_factory=lambda: bytes(SPHINCS_SECRET_KEY_SIZE))
+    algorithm: int = ALGORITHM_ML_DSA
+    data: bytes = field(default_factory=lambda: bytes(ML_DSA_SECRET_KEY_SIZE))
 
     def __post_init__(self):
-        if len(self.data) != SPHINCS_SECRET_KEY_SIZE:
+        if len(self.data) != ML_DSA_SECRET_KEY_SIZE:
             raise ValueError(
-                f"SecretKey data must be {SPHINCS_SECRET_KEY_SIZE} bytes, got {len(self.data)}"
+                f"SecretKey data must be {ML_DSA_SECRET_KEY_SIZE} bytes, got {len(self.data)}"
             )
 
     def __bytes__(self) -> bytes:
@@ -265,8 +267,8 @@ class SecretKey:
     def deserialize(cls, data: bytes, offset: int = 0) -> tuple[SecretKey, int]:
         """Deserialize from bytes, return (SecretKey, bytes_consumed)."""
         algorithm = data[offset]
-        key_data = data[offset + 1:offset + 1 + SPHINCS_SECRET_KEY_SIZE]
-        return cls(algorithm=algorithm, data=key_data), 1 + SPHINCS_SECRET_KEY_SIZE
+        key_data = data[offset + 1:offset + 1 + ML_DSA_SECRET_KEY_SIZE]
+        return cls(algorithm=algorithm, data=key_data), 1 + ML_DSA_SECRET_KEY_SIZE
 
 
 # ==============================================================================
@@ -277,16 +279,16 @@ class Signature:
     """
     Cryptographic signature with algorithm identifier.
 
-    SIZE: 17089 bytes (algorithm: 1 byte, data: 17088 bytes for SPHINCS+-SHAKE-128f)
+    SIZE: 3310 bytes (algorithm: 1 byte, data: 3309 bytes for ML-DSA-65)
     SERIALIZATION: algorithm || data
     """
-    algorithm: int = ALGORITHM_SPHINCS_PLUS
-    data: bytes = field(default_factory=lambda: bytes(SPHINCS_SIGNATURE_SIZE))
+    algorithm: int = ALGORITHM_ML_DSA
+    data: bytes = field(default_factory=lambda: bytes(ML_DSA_SIGNATURE_SIZE))
 
     def __post_init__(self):
-        if len(self.data) != SPHINCS_SIGNATURE_SIZE:
+        if len(self.data) != ML_DSA_SIGNATURE_SIZE:
             raise ValueError(
-                f"Signature data must be {SPHINCS_SIGNATURE_SIZE} bytes, got {len(self.data)}"
+                f"Signature data must be {ML_DSA_SIGNATURE_SIZE} bytes, got {len(self.data)}"
             )
 
     def __bytes__(self) -> bytes:
@@ -309,7 +311,7 @@ class Signature:
     @classmethod
     def empty(cls) -> Signature:
         """Create an empty signature (for signing preparation)."""
-        return cls(algorithm=ALGORITHM_SPHINCS_PLUS, data=bytes(SPHINCS_SIGNATURE_SIZE))
+        return cls(algorithm=ALGORITHM_ML_DSA, data=bytes(ML_DSA_SIGNATURE_SIZE))
 
     def serialize(self) -> bytes:
         """Serialize to bytes: algorithm || data."""
@@ -319,8 +321,8 @@ class Signature:
     def deserialize(cls, data: bytes, offset: int = 0) -> tuple[Signature, int]:
         """Deserialize from bytes, return (Signature, bytes_consumed)."""
         algorithm = data[offset]
-        sig_data = data[offset + 1:offset + 1 + SPHINCS_SIGNATURE_SIZE]
-        return cls(algorithm=algorithm, data=sig_data), 1 + SPHINCS_SIGNATURE_SIZE
+        sig_data = data[offset + 1:offset + 1 + ML_DSA_SIGNATURE_SIZE]
+        return cls(algorithm=algorithm, data=sig_data), 1 + ML_DSA_SIGNATURE_SIZE
 
 
 # ==============================================================================

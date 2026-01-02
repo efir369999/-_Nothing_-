@@ -1,7 +1,9 @@
 """
-Ɉ Montana CLI v3.1
+Ɉ Montana CLI v3.7
 
 Command-line interface for running Montana nodes.
+
+v3.7: ML-DSA signatures (Type B security).
 
 Usage:
     python -m montana.cli.main --node-type full --bootstrap 176.124.208.93:19656
@@ -32,7 +34,7 @@ def setup_logging(verbose: bool = False):
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
-        description="Ɉ Montana Node v3.1",
+        description="Ɉ Montana Node v3.7",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -154,12 +156,13 @@ For more information, visit: https://montana.network
 
 def generate_keys(keyfile: str = None):
     """Generate new keypair."""
-    from montana.crypto.sphincs import generate_sphincs_keypair
+    from montana.crypto.mldsa import mldsa_keygen
     import json
 
-    print("Generating SPHINCS+ keypair...")
+    print("Generating ML-DSA keypair...")
 
-    pk, sk = generate_sphincs_keypair()
+    keypair = mldsa_keygen()
+    pk, sk = keypair.public, keypair.secret
 
     key_data = {
         "public_key": pk.serialize().hex(),
@@ -330,8 +333,8 @@ def main():
         pk, sk = load_keys(args.keyfile)
     else:
         print("Generating ephemeral keypair...")
-        from montana.crypto.sphincs import sphincs_keygen
-        keypair = sphincs_keygen()
+        from montana.crypto.mldsa import mldsa_keygen
+        keypair = mldsa_keygen()
         pk, sk = keypair.public, keypair.secret
         if not args.keyfile:
             print("Warning: Using ephemeral keys. Use --keyfile to persist.")

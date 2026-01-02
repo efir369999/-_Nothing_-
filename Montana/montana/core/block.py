@@ -1,5 +1,5 @@
 """
-Ɉ Montana Block Structures v3.1
+Ɉ Montana Block Structures v3.7
 
 Layer 2: Block and DAG per MONTANA_TECHNICAL_SPECIFICATION.md §9.
 
@@ -8,6 +8,8 @@ Implements DAG-based block structure with:
 - Multiple parent references (DAG, not chain)
 - VDF checkpoint for temporal ordering
 - Merkle roots for heartbeats and transactions
+
+v3.7: ML-DSA signatures (Type B security).
 """
 
 from __future__ import annotations
@@ -225,7 +227,7 @@ class Block:
 
         # Signature
         sig, _ = Signature.deserialize(data, r.offset)
-        r.offset += 1 + 17088  # Algorithm byte + signature
+        r.offset += 1 + 3309  # Algorithm byte + ML-DSA signature
 
         block = cls(
             header=header,
@@ -390,11 +392,11 @@ def sign_block(block: Block, secret_key) -> Block:
     Returns:
         New block with signature set
     """
-    from montana.crypto.sphincs import sphincs_sign
+    from montana.crypto.mldsa import mldsa_sign
     from dataclasses import replace
 
     header_bytes = block.header.serialize()
-    signature = sphincs_sign(secret_key, header_bytes)
+    signature = mldsa_sign(secret_key, header_bytes)
 
     return replace(block, signature=signature)
 
@@ -410,7 +412,7 @@ def verify_block_signature(block: Block, public_key: PublicKey) -> bool:
     Returns:
         True if signature is valid
     """
-    from montana.crypto.sphincs import sphincs_verify
+    from montana.crypto.mldsa import mldsa_verify
 
     header_bytes = block.header.serialize()
-    return sphincs_verify(public_key, header_bytes, block.signature)
+    return mldsa_verify(public_key, header_bytes, block.signature)

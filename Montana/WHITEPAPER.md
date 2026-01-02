@@ -1,6 +1,6 @@
 # Ɉ Montana: Temporal Time Unit
 
-**Version:** 3.6
+**Version:** 3.7
 **Date:** January 2026
 **Ticker:** $MONT
 **Architecture:** Timechain
@@ -35,7 +35,7 @@ Timechain:   chain of time, bounded by physics
              "Time passed — this is fact"
 ```
 
-**Montana v3.6** is fully self-sovereign. Finality is determined by UTC boundaries — time itself becomes the consensus mechanism.
+**Montana v3.7** is fully self-sovereign. Finality is determined by UTC boundaries — time itself becomes the consensus mechanism.
 
 The more evidence accumulates, the closer Ɉ approaches its definition. We never claim to arrive; we asymptotically approach.
 
@@ -282,7 +282,7 @@ Finality Checkpoint:
 ├─ UTC timestamp (boundary time)
 ├─ Merkle root of all blocks in window
 ├─ VDF proofs from participating nodes
-├─ Aggregate signatures (SPHINCS+)
+├─ Aggregate signatures (ML-DSA)
 └─ Previous checkpoint hash
 ```
 
@@ -464,13 +464,13 @@ Competition is fair — the arbiter is physics.
 # Every heartbeat contains:
 @dataclass
 class LightHeartbeat:
-    pubkey: PublicKey           # SPHINCS+ public key (user owns private key)
+    pubkey: PublicKey           # ML-DSA public key (user owns private key)
     timestamp_ms: int           # Within ±5 seconds of UTC
-    signature: Signature        # SPHINCS+ signature (17,088 bytes)
+    signature: Signature        # ML-DSA signature (3,309 bytes)
 
 # Verification:
 def verify_heartbeat(hb: LightHeartbeat) -> bool:
-    return sphincs_verify(hb.pubkey, hb.timestamp_ms, hb.signature)
+    return mldsa_verify(hb.pubkey, hb.timestamp_ms, hb.signature)
 ```
 
 **Sybil resistance through tier weights:**
@@ -486,7 +486,7 @@ def verify_heartbeat(hb: LightHeartbeat) -> bool:
 ```
 User owns private key → user signs heartbeat
 Bot operator receives signed messages only
-Heartbeat authenticity = valid SPHINCS+ signature
+Heartbeat authenticity = valid ML-DSA signature
 ```
 
 **Security model:**
@@ -494,7 +494,7 @@ Heartbeat authenticity = valid SPHINCS+ signature
 | Layer | Guarantee |
 |-------|-----------|
 | Tier weights (70/20/10) | Light Client influence capped at 30% |
-| SPHINCS+ signatures | Cryptographic authenticity |
+| ML-DSA signatures | Cryptographic authenticity |
 | One heartbeat per key per minute | Rate limiting |
 | Private key ownership | Owner exclusivity |
 
@@ -508,8 +508,8 @@ A **heartbeat** proves temporal presence within a finality window:
 Full Heartbeat (Tier 1):       Light Heartbeat (Tier 2/3):
 ├─ VDF proof                   ├─ Timestamp (verified)
 ├─ Finality window reference   ├─ Source (LIGHT_NODE/TG_BOT/TG_USER)
-└─ SPHINCS+ signature          ├─ Community ID
-                               └─ SPHINCS+ signature
+└─ ML-DSA signature            ├─ Community ID
+                               └─ ML-DSA signature
 ```
 
 Heartbeats must arrive before UTC boundary to be included in finality checkpoint.
@@ -530,7 +530,7 @@ Square root provides diminishing returns and Sybil resistance.
 
 | Function | Primitive | Standard | Security Type |
 |----------|-----------|----------|---------------|
-| Signatures | SPHINCS+-SHAKE-128f | NIST FIPS 205 | Post-quantum |
+| Signatures | ML-DSA-65 (Dilithium) | NIST FIPS 204 | Post-quantum, Type B |
 | Key Exchange | ML-KEM-768 | NIST FIPS 203 | Post-quantum |
 | Hashing | SHA3-256 | NIST FIPS 202 | Post-quantum |
 | VDF | Class Group | Wesolowski 2019 | Type B |
@@ -669,7 +669,7 @@ Every claim is typed. This is epistemic honesty.
 └─────────────────────────────────────────────────────────────────┘
                               ↑
 ┌─────────────────────────────────────────────────────────────────┐
-│  Layer 0: Computation (SHA-3, ML-KEM, SPHINCS+)                 │
+│  Layer 0: Computation (SHA-3, ML-KEM, ML-DSA)                   │
 └─────────────────────────────────────────────────────────────────┘
                               ↑
 ┌─────────────────────────────────────────────────────────────────┐

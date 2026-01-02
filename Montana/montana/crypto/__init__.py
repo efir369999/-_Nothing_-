@@ -3,7 +3,7 @@ Montana Cryptographic Primitives
 
 Post-quantum secure cryptography per ATC Layer 0.
 - SHA3-256, SHAKE256 (NIST FIPS 202)
-- SPHINCS+-SHAKE-128f (NIST FIPS 205)
+- ML-DSA-65 (NIST FIPS 204) — Type B security
 - ML-KEM-768 (NIST FIPS 203) [future]
 """
 
@@ -18,12 +18,12 @@ from montana.crypto.hash import (
     SHAKE256Builder,
 )
 
-from montana.crypto.sphincs import (
-    sphincs_keygen,
-    sphincs_sign,
-    sphincs_verify,
+from montana.crypto.mldsa import (
+    mldsa_keygen,
+    mldsa_sign,
+    mldsa_verify,
     is_liboqs_available,
-    SPHINCSPlus,
+    MLDSA,
 )
 
 __all__ = [
@@ -36,10 +36,10 @@ __all__ = [
     "double_sha3_256",
     "HashBuilder",
     "SHAKE256Builder",
-    # SPHINCS+
-    "sphincs_keygen",
-    "sphincs_sign",
-    "sphincs_verify",
+    # ML-DSA (Type B security)
+    "mldsa_keygen",
+    "mldsa_sign",
+    "mldsa_verify",
     "is_liboqs_available",
-    "SPHINCSPlus",
+    "MLDSA",
 ]

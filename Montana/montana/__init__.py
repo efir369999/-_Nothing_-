@@ -1,15 +1,17 @@
 """
-Ɉ Montana v3.6 — Mechanism for asymptotic trust in the value of time.
+Ɉ Montana v3.7 — Mechanism for asymptotic trust in the value of time.
 
 lim(evidence → ∞) 1 Ɉ → 1 second
 
 Built on ATC Layer 3+.
 
+v3.7: ML-DSA signatures (Type B security).
+
 Bootstrap server: 176.124.208.93:19656
 """
 
-__version__ = "3.6.0"
-__protocol_version__ = 9
+__version__ = "3.7.0"
+__protocol_version__ = 10
 
 from montana.constants import (
     PROJECT,
@@ -29,7 +31,7 @@ from montana.core.vdf_accumulator import VDFAccumulator, FinalityLevel
 
 # Crypto exports
 from montana.crypto.hash import sha3_256, shake256
-from montana.crypto.sphincs import sphincs_keygen as generate_sphincs_keypair
+from montana.crypto.mldsa import mldsa_keygen as generate_mldsa_keypair
 
 # Node exports
 from montana.node.full_node import FullNode, FullNodeConfig
@@ -63,7 +65,7 @@ __all__ = [
     # Crypto
     "sha3_256",
     "shake256",
-    "generate_sphincs_keypair",
+    "generate_mldsa_keypair",
     # Nodes
     "FullNode",
     "FullNodeConfig",

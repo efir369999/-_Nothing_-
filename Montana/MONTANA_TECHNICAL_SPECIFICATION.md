@@ -1,7 +1,7 @@
-# Ɉ Montana: Temporal Time Unit — Technical Specification v3.6
+# Ɉ Montana: Temporal Time Unit — Technical Specification v3.7
 
-**Protocol Version:** 9
-**Document Version:** 3.6
+**Protocol Version:** 10
+**Document Version:** 3.7
 **Date:** January 2026
 **Ticker:** $MONT
 **Architecture:** Timechain
@@ -13,7 +13,7 @@
 > ```
 > **Timechain:** chain of time, bounded by physics.
 > Built on ATC Layer 3+. See [MONTANA_ATC_MAPPING.md](MONTANA_ATC_MAPPING.md) for layer mapping.
-> **v3.6:** Timechain architecture, UTC finality, ±5s tolerance, platform-independent light clients.
+> **v3.7:** ML-DSA signatures (Type B), Timechain architecture, UTC finality, ±5s tolerance.
 
 ---
 
@@ -114,7 +114,7 @@ ATC Foundation:
 ┌─────────────────────────────────────────────────────────────────┐
 │  ATC L2:  Consensus (Safety, Liveness, Finality, BFT)          │
 │  ATC L1:  Primitives (VDF, VRF, Commitment, Timestamp)         │
-│  ATC L0:  Computation (SHA-3, ML-KEM, SPHINCS+, MLWE)          │
+│  ATC L0:  Computation (SHA-3, ML-KEM, ML-DSA, MLWE)            │
 │  ATC L-1: Physics (Sequentiality, Landauer, Light speed)       │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -211,7 +211,7 @@ class FullHeartbeat:
     pubkey: PublicKey
     vdf_proof: VDFProof              # Sequential computation proof
     finality_ref: FinalityReference
-    signature: Signature             # SPHINCS+ (17,088 bytes)
+    signature: Signature             # ML-DSA (3,309 bytes)
 
 @dataclass
 class LightHeartbeat:
@@ -220,7 +220,7 @@ class LightHeartbeat:
     timestamp_ms: int                # Verified against VDF timeline
     source: HeartbeatSource          # LIGHT_NODE, LIGHT_CLIENT
     platform_id: Optional[str]       # Platform-specific ID (any supported platform)
-    signature: Signature             # SPHINCS+ (17,088 bytes)
+    signature: Signature             # ML-DSA (3,309 bytes)
 ```
 
 #### 1.3.4 Tier Requirements
@@ -361,7 +361,7 @@ Montana inherits guarantees from all ATC layers:
 | ATC Layer | Montana Uses | Constraint |
 |-----------|--------------|------------|
 | L-1 (Physics) | Sequentiality, Landauer | Physical bound |
-| L0 (Computation) | SHA-3, SPHINCS+, ML-KEM | Post-quantum secure |
+| L0 (Computation) | SHA-3, ML-DSA, ML-KEM | Post-quantum secure |
 | L1 (Primitives) | VDF, VRF, Commitment | Proven security |
 | L2 (Consensus) | DAG, BFT, VDF Finality | Formal guarantees |
 
@@ -1170,7 +1170,7 @@ class Heartbeat:
     version: int                    # u8 - Protocol version
 
     # Signature
-    signature: Signature            # 17,088 bytes (SPHINCS+)
+    signature: Signature            # 3,309 bytes (ML-DSA)
 
     def heartbeat_id(self) -> Hash:
         return sha3_256(self.serialize_for_signing())
@@ -1934,24 +1934,25 @@ def shake_256(data: bytes, length: int = 32) -> bytes:
     return hashlib.shake_256(data).digest(length)
 ```
 
-### 16.2 Signatures (SPHINCS+)
+### 16.2 Signatures (ML-DSA)
 
 ```python
-SIGNATURE_SCHEME: str = "SPHINCS+-SHAKE-128f"
-SPHINCS_PUBLIC_KEY_SIZE: int = 32
-SPHINCS_SECRET_KEY_SIZE: int = 64
-SPHINCS_SIGNATURE_SIZE: int = 17088
+# Type B security: reduction to Module-LWE problem
+SIGNATURE_SCHEME: str = "ML-DSA-65"
+ML_DSA_PUBLIC_KEY_SIZE: int = 1952           # bytes
+ML_DSA_SECRET_KEY_SIZE: int = 4032           # bytes
+ML_DSA_SIGNATURE_SIZE: int = 3309            # bytes
 
-def sphincs_keygen() -> Tuple[bytes, bytes]:
-    """Generate SPHINCS+ keypair."""
-    return liboqs.sign.generate_keypair("SPHINCS+-SHAKE-128f-simple")
+def mldsa_keygen() -> Tuple[bytes, bytes]:
+    """Generate ML-DSA keypair."""
+    return liboqs.sign.generate_keypair("Dilithium3")
 
-def sphincs_sign(message: bytes, secret_key: bytes) -> bytes:
-    """Sign message with SPHINCS+."""
+def mldsa_sign(message: bytes, secret_key: bytes) -> bytes:
+    """Sign message with ML-DSA."""
     return liboqs.sign.sign(message, secret_key)
 
-def sphincs_verify(message: bytes, signature: bytes, public_key: bytes) -> bool:
-    """Verify SPHINCS+ signature."""
+def mldsa_verify(message: bytes, signature: bytes, public_key: bytes) -> bool:
+    """Verify ML-DSA signature."""
     return liboqs.sign.verify(message, signature, public_key)
 ```
 
@@ -3287,7 +3288,7 @@ VDF_TX_CHECKPOINT_SEC = 1
 # ==============================================================================
 # CRYPTOGRAPHY
 # ==============================================================================
-SPHINCS_SIGNATURE_SIZE = 17088
+ML_DSA_SIGNATURE_SIZE = 3309
 SHA3_256_OUTPUT_SIZE = 32
 
 # ==============================================================================
@@ -4304,10 +4305,10 @@ MIN_PASSWORD_LENGTH = 8
 # CRYPTOGRAPHY
 # ==============================================================================
 HASH_FUNCTION = "SHA3-256"
-SIGNATURE_SCHEME = "SPHINCS+-SHAKE-128f"
-SPHINCS_PUBLIC_KEY_SIZE = 32
-SPHINCS_SECRET_KEY_SIZE = 64
-SPHINCS_SIGNATURE_SIZE = 17088
+SIGNATURE_SCHEME = "ML-DSA-65"
+ML_DSA_PUBLIC_KEY_SIZE = 1952
+ML_DSA_SECRET_KEY_SIZE = 4032
+ML_DSA_SIGNATURE_SIZE = 3309
 KEY_ENCAPSULATION = "ML-KEM-768"
 
 # ==============================================================================

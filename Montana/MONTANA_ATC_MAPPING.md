@@ -1,6 +1,6 @@
 # Ɉ Montana: Temporal Time Unit ↔ ATC Layer Mapping
 
-**Ɉ Montana Version:** 3.6
+**Ɉ Montana Version:** 3.7
 **Ticker:** $MONT
 **Architecture:** Timechain
 **ATC Version:** 10.0 (L-1 v2.1, L0 v1.0, L1 v1.1, L2 v1.0)
@@ -17,7 +17,7 @@ lim(evidence → ∞) 1 Ɉ → 1 second
 
 **Timechain:** chain of time, bounded by physics.
 
-**v3.6:** Timechain architecture, UTC finality, ±5s tolerance, platform-independent light clients.
+**v3.7:** ML-DSA signatures (Type B), Timechain architecture, UTC finality, ±5s tolerance.
 
 This document maps Ɉ Montana components to their foundational ATC layers, showing exactly which constraints and primitives the mechanism relies upon.
 
@@ -57,7 +57,7 @@ Montana relies on these L0 computational primitives:
 |--------------|---------------|------|
 | **L-0.3.3** SHA-3 | sha3_256 for hashing | Type C |
 | **L-0.4.2** ML-KEM-768 | Key encapsulation | Type B |
-| **L-0.4.4** SPHINCS+-SHAKE-128f | Transaction/heartbeat signatures | Type C |
+| **L-0.4.3** ML-DSA-65 (Dilithium) | Transaction/heartbeat signatures | Type B |
 | **L-0.3.2** HMAC (PRF) | Key derivation | Type B |
 | **L-0.2.1** Birthday Bound | Ring signature security | Type A |
 | **Class Groups** | VDF sequential computation | Type B |
@@ -66,7 +66,7 @@ Montana relies on these L0 computational primitives:
 
 ```python
 # Montana choices
-SIGNATURE_SCHEME = "SPHINCS+-SHAKE-128f"  # L-0.4.4
+SIGNATURE_SCHEME = "ML-DSA-65"            # L-0.4.3 (Type B: Module-LWE reduction)
 KEY_ENCAPSULATION = "ML-KEM-768"          # L-0.4.2
 HASH_FUNCTION = "SHA3-256"                # L-0.3.3
 VDF_TYPE = "class_group"                  # Wesolowski 2019
@@ -125,7 +125,7 @@ VDF_CHALLENGE_BITS = 128                  # Wesolowski challenge size
 
 **Quantum Status:** ECVRF is BROKEN by Shor's algorithm (ATC L-1.2.3). Montana accepts this for block eligibility because:
 1. Eligibility proofs have short-term validity (current epoch only)
-2. SPHINCS+ signatures provide long-term security for transactions
+2. ML-DSA signatures provide Type B security for transactions
 3. Upgrade path documented in Montana spec §16.4
 
 ```python
@@ -233,7 +233,7 @@ Montana uses these L-2.7 composition patterns:
 | VDF computation | Type P + B | Physical + mathematical |
 | Accumulated finality | Type P | Physical (sequential time) |
 | ECVRF eligibility | Type C | Pre-quantum empirical |
-| SPHINCS+ signatures | Type C (L0) | 10+ years empirical |
+| ML-DSA signatures | Type B (L0) | Module-LWE reduction |
 | DAG ordering | Type C | PHANTOM empirical |
 | Safety proofs | Type A | Mathematical |
 
@@ -278,7 +278,7 @@ To verify Montana compliance with ATC:
 
 2. Computational constraints (L0):
    ✓ SHA-3 for hashing
-   ✓ SPHINCS+ for signatures
+   ✓ ML-DSA for signatures (Type B)
    ✓ ML-KEM for encryption
    ✓ Class Group VDF (Type B security)
 
@@ -292,18 +292,18 @@ To verify Montana compliance with ATC:
    ✓ Liveness: After GST
    ✓ Finality: Accumulated VDF (self-sovereign)
 
-→ Montana v3.6 COMPLIES with ATC v10
-→ Montana v3.6 is a TIMECHAIN
-→ Montana v3.6 is SELF-SOVEREIGN
-→ Montana v3.6 uses UTC finality with ±5 second tolerance
-→ Montana v3.6 platform-independent light clients
+→ Montana v3.7 COMPLIES with ATC v10
+→ Montana v3.7 is a TIMECHAIN
+→ Montana v3.7 is SELF-SOVEREIGN
+→ Montana v3.7 uses ML-DSA signatures (Type B security)
+→ Montana v3.7 uses UTC finality with ±5 second tolerance
 ```
 
 ---
 
 ## References
 
-- Montana Technical Specification v3.6
+- Montana Technical Specification v3.7
 - ATC Layer -1 v2.1
 - ATC Layer 0 v1.0
 - ATC Layer 1 v1.1
@@ -313,4 +313,4 @@ To verify Montana compliance with ATC:
 
 *This mapping enables verification that Montana correctly inherits ATC layer guarantees and does not assume stronger properties than lower layers provide.*
 
-*Montana v3.6: Timechain — self-sovereign UTC finality through physics.*
+*Montana v3.7: Timechain — self-sovereign UTC finality through physics. ML-DSA signatures (Type B).*

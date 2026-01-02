@@ -2,7 +2,7 @@
 # Install with: pip install -r requirements.txt
 
 # Core cryptography
-pqcrypto>=0.1.0          # Post-quantum cryptography (SPHINCS+, ML-KEM)
+liboqs-python>=0.9.0     # Post-quantum cryptography (ML-DSA, ML-KEM)
 cryptography>=41.0.0     # General cryptographic primitives
 
 # Networking

@@ -113,7 +113,7 @@ Each finality checkpoint contains:
 \item UTC timestamp (boundary time)
 \item Merkle root of all blocks in window
 \item VDF proofs from participating nodes
-\item Aggregate signatures (SPHINCS+)
+\item Aggregate signatures (ML-DSA)
 \item Previous checkpoint hash
 \end{itemize}
 
@@ -233,7 +233,7 @@ Post-quantum from genesis:
 \hline
 \textbf{Function} & \textbf{Primitive} & \textbf{Standard} \\
 \hline
-Signatures & SPHINCS+-SHAKE-128f & NIST FIPS 205 \\
+Signatures & ML-DSA-65 (Dilithium) & NIST FIPS 204 \\
 Key Exchange & ML-KEM-768 & NIST FIPS 203 \\
 Hashing & SHA3-256, SHAKE256 & NIST FIPS 202 \\
 \hline

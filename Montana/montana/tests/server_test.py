@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
-Ɉ Montana Server Test v3.1
+Ɉ Montana Server Test v3.7
 
 Tests all components on the bootstrap server.
+
+v3.7: ML-DSA signatures (Type B security).
 """
 
 import sys
@@ -11,7 +13,7 @@ sys.path.insert(0, "/root/projects")
 print("""
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   🏔️  Ɉ Montana v3.1 — Server Test                        ║
+║   🏔️  Ɉ Montana v3.7 — Server Test                        ║
 ║                                                           ║
 ║   Bootstrap: 176.124.208.93:19656                         ║
 ║                                                           ║
@@ -46,9 +48,9 @@ except Exception as e:
 # 4. Crypto
 try:
     from montana.crypto.hash import sha3_256, shake256
-    from montana.crypto.sphincs import sphincs_keygen
+    from montana.crypto.mldsa import mldsa_keygen
     h = sha3_256(b"test")
-    tests.append(("Crypto", True, f"SHA3-256 ok, hash={h.hex()[:16]}..."))
+    tests.append(("Crypto", True, f"SHA3-256 ok, ML-DSA ready, hash={h.hex()[:16]}..."))
 except Exception as e:
     tests.append(("Crypto", False, str(e)))
 

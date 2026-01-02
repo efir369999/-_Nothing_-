@@ -1,9 +1,11 @@
 """
-Ɉ Montana Telegram Bot v3.1
+Ɉ Montana Telegram Bot v3.7
 
 Telegram participation per MONTANA_TECHNICAL_SPECIFICATION.md §15.
 
 Tier 3 participation through Telegram Mini App.
+
+v3.7: ML-DSA signatures (Type B security).
 """
 
 from __future__ import annotations
@@ -338,11 +340,12 @@ class MontanaBot:
         """Submit heartbeat for user."""
         # Create light heartbeat
         from montana.core.types import PublicKey
-        from montana.crypto.sphincs import generate_sphincs_keypair
+        from montana.crypto.mldsa import mldsa_keygen
 
         # In production, user would have persistent keys
         # For now, generate ephemeral
-        pk, sk = generate_sphincs_keypair()
+        keypair = mldsa_keygen()
+        pk = keypair.public
 
         heartbeat = create_light_heartbeat(
             node_id=Hash(str(user.user_id).encode().ljust(32, b'\x00')[:32]),
