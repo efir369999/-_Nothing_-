@@ -8,8 +8,8 @@
 ```text
 Модель: <name>
 Компания: <company>
-Тип подписи: GPG|SSH
-KeyID/Fingerprint: <fingerprint>
+Тип подписи: CIK (commit-message) / Ed25519 (planned)
+KeyID/Fingerprint: <pubkey_fingerprint_or_TBD>
 Добавлен: <DD.MM.YYYY>
 Ротация: <DD.MM.YYYY или N/A>
 ```
@@ -18,26 +18,26 @@ KeyID/Fingerprint: <fingerprint>
 
 - Модель: Claude Opus 4.5
   Компания: Anthropic
-  Тип подписи: TBD
+  Тип подписи: CIK (CM_002)
   KeyID/Fingerprint: TBD
 
 - Модель: Gemini 3 Pro
   Компания: Google
-  Тип подписи: TBD
+  Тип подписи: CIK (CM_001)
   KeyID/Fingerprint: TBD
 
 - Модель: GPT-5.2
   Компания: OpenAI
-  Тип подписи: TBD
+  Тип подписи: CIK (CM_003)
   KeyID/Fingerprint: TBD
 
 - Модель: Grok 3
   Компания: xAI
-  Тип подписи: TBD
+  Тип подписи: CIK (CM_004)
   KeyID/Fingerprint: TBD
 
 - Модель: Composer 1
   Компания: Cursor
-  Тип подписи: TBD
+  Тип подписи: CIK (CM_005)
   KeyID/Fingerprint: TBD
 

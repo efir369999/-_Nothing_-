@@ -7,6 +7,7 @@
 - **Вступить в Совет (entry point):** `../JOIN_COUNCIL_PROMPT.md`
 - **Главный протокол/совещание:** `../SECURITY_COUNCIL_MEETING.md`
 - **Реестр бенчмарков и правил председательства:** `../COUNCIL_BENCHMARK_REGISTRY.md`
+- **Система коммитов/идентичности (CIK):** `../git_commits/README.md`
 
 ## Процедуры (канон)
 

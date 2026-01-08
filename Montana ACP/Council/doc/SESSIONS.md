@@ -27,9 +27,9 @@
 
 - Любая правка файла Совета/сессии должна быть:
   - `git add <file>`
-  - `git commit -S -m "[Роль] [Модель]: что сделано"` (подписанный коммит)
+  - `git commit -m "CM_00X: ..."` (commit message содержит CIK блок, см. `Council/git_commits/README.md`)
 - **Commit hash** = “подпись” участника под внесённой правкой.
-- Подпись должна соответствовать реестру ключей (см. `IDENTITY.md`).
+- CIK проверяется скриптом: `Council/git_commits/verify_commit_signature.sh <commit>`.
 
 ## Закрытие сессии
 

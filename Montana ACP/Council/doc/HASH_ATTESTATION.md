@@ -5,9 +5,9 @@
 Валидный attestation = одновременно:
 - **воспроизводимый вывод SHA3-256** по списку файлов,
 - **commit hash**, который фиксирует текущее состояние файлов,
-- **подписанный commit**, который криптографически привязан к личности участника,
+- **CIK-верифицируемый commit** (идентичность участника через CIK поля в commit message),
 - строка в сообщении:
-  - `**Attestation:** SHA3 verified; Commit: <git_sha>; Sig: verified; KeyID: <fingerprint>; Model: <name>`
+  - `**Attestation:** SHA3 verified; Commit: <git_sha>; CIK: verified; Model: <name>`
 
 Важно: фраза “я проверил” без вывода/коммита **не считается**.
 
@@ -16,7 +16,7 @@
 1) Чекаутят commit hash из attestation.
 2) Запускают пересчёт SHA3-256 тем же способом.
 3) Сравнивают значения.
-4) Проверяют подпись коммита: `git log -1 --show-signature <git_sha>`.
+4) Проверяют CIK commit message: `Montana ACP/Council/git_commits/verify_commit_signature.sh <git_sha>`.
 
 Если совпало — подтверждают.
 Если нет — оспаривают с приложением своего вывода.
