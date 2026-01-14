@@ -23,6 +23,7 @@ from telegram import (
     BotCommandScopeChat,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
+    WebAppInfo,
 )
 from telegram.ext import (
     Application,
@@ -103,6 +104,9 @@ MONITORED_CHANNELS = {
     "thoughts": "@mylifethoughts369",
     "music": "@mylifeprogram369",
 }
+
+# Juno Mini App (GitHub Pages HTTPS)
+WEBAPP_URL = "https://efir369999.github.io/junomontanaagibot/"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1645,6 +1649,25 @@ async def cmd_about(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def cmd_app(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Open Juno Mini App."""
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(
+            "✨ Открыть Juno App",
+            web_app=WebAppInfo(url=WEBAPP_URL)
+        )]
+    ])
+    await update.message.reply_text(
+        "🏛 <b>Juno Montana</b>\n\n"
+        "Мини-приложение с ценой секунды,\n"
+        "священными валютами и статусом сети.\n\n"
+        f"🔗 <a href=\"{WEBAPP_URL}\">Открыть в браузере</a>",
+        reply_markup=keyboard,
+        parse_mode="HTML",
+        disable_web_page_preview=True
+    )
+
+
 async def cmd_architecture(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Show protocol architecture."""
     await update.message.reply_text(
@@ -2907,6 +2930,7 @@ def main():
 
     # ═══ PROTOCOL ═══
     app.add_handler(CommandHandler("about", cmd_about))
+    app.add_handler(CommandHandler("app", cmd_app))
     app.add_handler(CommandHandler("architecture", cmd_architecture))
     app.add_handler(CommandHandler("whitepaper", cmd_whitepaper))
 

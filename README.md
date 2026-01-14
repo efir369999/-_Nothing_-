@@ -42,7 +42,7 @@ lim(evidence → ∞) 1 Ɉ → 1 second
 ├────────────────────────────────────────────────────────────────┤
 │                         LAYER 0                                │
 │                     COMPUTATION                                │
-│              VDF | Presence Proofs | Slices                    │
+│              Presence Proofs | Slices | Timestamps             │
 ├────────────────────────────────────────────────────────────────┤
 │                        LAYER -1                                │
 │                     PHYSICS                                    │
