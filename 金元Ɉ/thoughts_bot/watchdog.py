@@ -42,6 +42,7 @@ CHECK_INTERVAL = 5   # seconds
 SYNC_INTERVAL = 12   # seconds (breathing)
 REPO_PATH = "/root/ACP_1"
 BOT_DIR = "/root/ACP_1/金元Ɉ/thoughts_bot"
+FLAG_FILE = "/tmp/juno_bot_active"  # Lock file
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # HELPERS
@@ -90,13 +91,41 @@ def is_bot_running_local() -> bool:
     result = subprocess.run("pgrep -f '[u]nified_bot.py'", shell=True, capture_output=True)
     return result.returncode == 0
 
+def set_flag_on(ip: str):
+    """Set active flag on remote node."""
+    cmd = f"ssh root@{ip} 'echo active > {FLAG_FILE}' 2>/dev/null"
+    subprocess.run(cmd, shell=True, capture_output=True)
+
+def clear_flag_on(ip: str):
+    """Clear active flag on remote node."""
+    cmd = f"ssh root@{ip} 'rm -f {FLAG_FILE}' 2>/dev/null"
+    subprocess.run(cmd, shell=True, capture_output=True)
+
+def has_flag_on(ip: str) -> bool:
+    """Check if flag exists on remote node."""
+    try:
+        cmd = f"ssh -o ConnectTimeout=2 root@{ip} 'test -f {FLAG_FILE}' 2>/dev/null"
+        result = subprocess.run(cmd, shell=True, capture_output=True, timeout=5)
+        return result.returncode == 0
+    except:
+        return False
+
 def start_bot_on(ip: str):
-    """Start bot on remote node."""
+    """Start bot on remote node with flag."""
+    # Clear flags on ALL other nodes first
+    for name, other_ip in BOT_CHAIN:
+        if other_ip != ip:
+            clear_flag_on(other_ip)
+            stop_bot_on(other_ip)
+
+    # Set flag and start
+    set_flag_on(ip)
     cmd = f"ssh root@{ip} 'pkill -9 -f unified_bot.py 2>/dev/null; sleep 2; cd {BOT_DIR} && nohup python3 -u unified_bot.py > /var/log/juno_bot.log 2>&1 &'"
     subprocess.run(cmd, shell=True, capture_output=True)
 
 def stop_bot_on(ip: str):
-    """Stop bot on remote node."""
+    """Stop bot on remote node and clear flag."""
+    clear_flag_on(ip)
     cmd = f"ssh root@{ip} 'pkill -9 -f unified_bot.py' 2>/dev/null"
     subprocess.run(cmd, shell=True, capture_output=True)
 
