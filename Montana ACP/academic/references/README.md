@@ -7,15 +7,11 @@
 - NIST FIPS 204: ML-DSA (Dilithium)
 - NIST FIPS 205: SLH-DSA (SPHINCS+)
 
-### VDF
-- Wesolowski (2019): Efficient verifiable delay functions
-- Boneh et al. (2018): Verifiable Delay Functions
-
 ## Consensus
 
 ### Time-based
-- Proof of Elapsed Time (Intel SGX)
-- Delay-based Proof of Work
+- Presence proofs via timestamp coordination
+- Cognitive consensus
 
 ### Byzantine
 - PBFT: Practical Byzantine Fault Tolerance

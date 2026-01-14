@@ -7,8 +7,7 @@ Academic papers and whitepapers.
 ```
 papers/
 ├── whitepaper/          # Montana ACP Whitepaper
-├── presence-proofs/     # Presence verification research
-└── vdf/                 # Verifiable Delay Functions
+└── presence-proofs/     # Presence verification research
 ```
 
 ## Format

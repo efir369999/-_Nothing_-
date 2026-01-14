@@ -5,7 +5,7 @@
 ### Atemporal Coordinate Presence (ACP)
 - Consensus mechanism based on time presence rather than computation
 - Slice-based architecture (not blocks)
-- VDF (Verifiable Delay Function) for time verification
+- Timestamp coordination for presence proofs
 
 ### Cryptography
 - **Post-quantum**: ML-KEM-768, ML-DSA-65 (NIST FIPS 203/204)

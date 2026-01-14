@@ -1,6 +1,8 @@
 # Secrets
 .env
 *.env
+TELEGRAM_API.md
+*.session
 
 # Data (private)
 data/
