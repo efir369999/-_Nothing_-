@@ -26,7 +26,7 @@ NODES = {
 
 # Bot token for health check
 BOT_TOKEN = os.getenv("THOUGHTS_BOT_TOKEN", "")
-CHECK_INTERVAL = 30  # seconds
+CHECK_INTERVAL = 5  # seconds
 TIMEOUT = 10  # seconds
 
 def get_my_node():
