@@ -106,3 +106,4 @@ pantheon/*/*.state
 # Rust build artifacts
 target/
 Cargo.lock
+Ничто_Nothing_无/Монтана_Montana_蒙大拿/target/
