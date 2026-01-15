@@ -13,7 +13,7 @@ Montana uses the sale of Beeple's NFT "Everydays: The First 5000 Days" (March 11
 ```
 $69,300,000 ÷ 5000 days ÷ 86400 sec = $0.1605/sec
 
-1 Ɉ ≈ $0.16 (fixed forever)
+1 Ɉ ≈ $0.16 (until next Pizza Day)
 ```
 
 ---
@@ -57,20 +57,45 @@ This is the first time the market OBJECTIVELY valued an artist's time.
 pub const GENESIS_PRICE_USD_PER_SECOND: f64 = 0.16;
 ```
 
-### 2.2 Fixed Rates
+### 2.2 Current Rates
 
-| Currency | Rate | Fix Date |
-|----------|------|----------|
-| USD | $0.16 | Forever |
-| RUB | 12.09₽ | Forever |
-| AMD | 83.46 dram | Forever |
-| BTC | 0.00000278 | Forever |
+| Currency | Rate | Fixed Until |
+|----------|------|-------------|
+| USD | $0.16 | Pizza Day |
+| RUB | 12.09₽ | Pizza Day |
+| AMD | 83.46 dram | Pizza Day |
+| BTC | 0.00000278 | Pizza Day |
 
 ---
 
-## 3. Why This Works
+## 3. Pizza Day
 
-### 3.1 Anchor Properties
+### 3.1 Revaluation Mechanism
+
+```
+May 22 — Pizza Day (Bitcoin Pizza Day)
+Laszlo Hanyecz: 10,000 BTC for 2 pizzas (2010)
+
+On this day:
+1. Auction for new price of second is held
+2. Price can only GO UP (never down)
+3. New price is fixed until next Pizza Day
+```
+
+### 3.2 Why Pizza Day?
+
+| Property | Explanation |
+|----------|-------------|
+| **Historical significance** | First real purchase with BTC |
+| **Fixed date** | May 22 every year |
+| **Symbolism** | Time → Money → Goods |
+| **Decentralization** | Auction, not founder decision |
+
+---
+
+## 4. Why This Works
+
+### 4.1 Anchor Properties
 
 | Property | Explanation |
 |----------|-------------|
@@ -79,7 +104,7 @@ pub const GENESIS_PRICE_USD_PER_SECOND: f64 = 0.16;
 | **Immutability** | Event is in the past |
 | **Objectivity** | Market determined the price |
 
-### 3.2 Manipulation Protection
+### 4.2 Manipulation Protection
 
 ```
 Cannot change:
@@ -94,9 +119,9 @@ Therefore:
 
 ---
 
-## 4. Asymptotic Convergence
+## 5. Asymptotic Convergence
 
-### 4.1 Montana Key Formula
+### 5.1 Montana Key Formula
 
 ```
 lim(evidence → ∞) 1 Ɉ → 1 second
@@ -104,7 +129,7 @@ lim(evidence → ∞) 1 Ɉ → 1 second
 
 As presence evidence grows, the value of 1 Ɉ approaches the value of 1 second of real time.
 
-### 4.2 Beeple as Starting Point
+### 5.2 Beeple as Starting Point
 
 ```
 Genesis: 1 Ɉ = $0.16 (by Beeple)
@@ -115,16 +140,17 @@ Beeple anchor = starting point of the curve
 
 ---
 
-## 5. Scientific Novelty
+## 6. Scientific Novelty
 
 1. **Objective genesis** — price determined by independent event, not founders
 2. **Market valuation of time** — first case where time was valued as an asset
-3. **Fixed rates** — protection from fiat peg volatility
-4. **Historical verifiability** — anyone can verify the event
+3. **Pizza Day auction** — decentralized revaluation mechanism
+4. **Only growth** — price can only rise, protection from devaluation
+5. **Historical verifiability** — anyone can verify the events
 
 ---
 
-## 6. References
+## 7. References
 
 | Document | Link |
 |----------|------|
