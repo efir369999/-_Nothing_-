@@ -1,60 +1,109 @@
 # 3-Mirror System
 
-**Walt Disney Strategy**
+**Implementation:** `thoughts_bot/watchdog.py`
 **Version:** 1.0
-**Date:** January 2026
 
 ---
 
-## Principle
+## Core
 
-Three mirrors = Truth. One angle is subjective. Three independent views converge to objective.
+Fault-tolerant network of 5 nodes with automatic failover.
 
----
-
-## Three Roles
-
-### Critic
 ```
-Goal: Find problems
-Question: "What's broken?"
-Trust: Zero
-```
-
-### Dreamer
-```
-Goal: Find solution
-Question: "What if?"
-Constraints: None
-```
-
-### Realist
-```
-Goal: Build it
-Question: "How to do this?"
-Focus: Practicality
+1 PRIMARY + 1 BRAIN + 3 MIRRORS = 5 nodes
 ```
 
 ---
 
-## Cycle
+## Topology from Code
 
-```
-CRITIC → DREAMER → REALIST → CRITIC
-     ↑___________________________|
-```
+```python
+# watchdog.py:26-39
+BRAIN_CHAIN = [
+    ("moscow",      "176.124.208.93"),
+    ("almaty",      "91.200.148.93"),
+    ("spb",         "188.225.58.98"),
+    ("novosibirsk", "147.45.147.247"),
+]
 
-Cycle repeats until Critic says "Findings: None".
+BOT_CHAIN = [
+    ("amsterdam",   "72.56.102.240"),
+    ("almaty",      "91.200.148.93"),
+    ("spb",         "188.225.58.98"),
+    ("novosibirsk", "147.45.147.247"),
+]
+```
 
 ---
 
-## Montana Application
+## Roles
 
-**Juno uses this strategy:**
+| Role | Node | IP | Function |
+|------|------|----|----------|
+| PRIMARY | Amsterdam | 72.56.102.240 | Active bot |
+| BRAIN | Moscow | 176.124.208.93 | Controller |
+| MIRROR 1 | Almaty | 91.200.148.93 | Standby |
+| MIRROR 2 | SPB | 188.225.58.98 | Standby |
+| MIRROR 3 | Novosibirsk | 147.45.147.247 | Standby |
 
-Critic: Bot polls (pending=0) but doesn't respond to /start.
-Dreamer: What if handler fails silently?
-Realist: Checking cmd_start → It diverged.
+---
+
+## Constants
+
+```python
+# watchdog.py:41-42
+CHECK_INTERVAL = 5   # seconds
+SYNC_INTERVAL = 12   # seconds (breathing)
+```
+
+---
+
+## Failover Protocol
+
+```python
+# watchdog.py:162-172
+def am_i_the_brain(my_name: str) -> bool:
+    """
+    Am I the current brain?
+    I'm the brain if all brains BEFORE me in chain are dead.
+    """
+    for name, ip in BRAIN_CHAIN:
+        if name == my_name:
+            return True  # Reached myself - I'm the brain
+        if is_node_alive(ip):
+            return False  # Someone before me is alive
+    return False
+```
+
+**Reaction time:** < 10 seconds
+
+---
+
+## Breathing Sync
+
+```python
+# watchdog.py:140-156
+def sync_pull():
+    """Inhale: git pull."""
+    cmd = f"cd {REPO_PATH} && git pull origin main --rebase"
+    ...
+
+def sync_push():
+    """Exhale: git push."""
+    cmd = f"cd {REPO_PATH} && git push origin main"
+    ...
+```
+
+Inhale (pull) → Exhale (push) every 12 seconds.
+
+---
+
+## Fault Tolerance Formula
+
+```
+4 out of 5 nodes can fail = network alive
+Recovery time < 10 seconds
+```
 
 ---
 
