@@ -280,6 +280,140 @@ LANGUAGE_NAMES = {
     "arc": "✡ ܐܪܡܝܐ",
 }
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# UI STRINGS (3 languages: RU, EN, ZH)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+UI_STRINGS = {
+    # Main menu
+    "stats": {"ru": "📊 Статистика", "en": "📊 Statistics", "zh": "📊 统计"},
+    "today": {"ru": "📅 Сегодня", "en": "📅 Today", "zh": "📅 今天"},
+    "last": {"ru": "📝 Последние", "en": "📝 Recent", "zh": "📝 最近"},
+    "random": {"ru": "🎲 Случайная", "en": "🎲 Random", "zh": "🎲 随机"},
+    "search": {"ru": "🔍 Поиск", "en": "🔍 Search", "zh": "🔍 搜索"},
+    "export": {"ru": "📤 Экспорт", "en": "📤 Export", "zh": "📤 导出"},
+    "posts": {"ru": "📚 Посты", "en": "📚 Posts", "zh": "📚 帖子"},
+    "new_post": {"ru": "📂 Новый пост", "en": "📂 New post", "zh": "📂 新帖子"},
+    "menu": {"ru": "◀️ Меню", "en": "◀️ Menu", "zh": "◀️ 菜单"},
+    "back": {"ru": "◀️ Назад", "en": "◀️ Back", "zh": "◀️ 返回"},
+    "yes": {"ru": "✅ Да", "en": "✅ Yes", "zh": "✅ 是"},
+    "no": {"ru": "❌ Нет", "en": "❌ No", "zh": "❌ 否"},
+    "cancel": {"ru": "❌ Отменить", "en": "❌ Cancel", "zh": "❌ 取消"},
+    "save": {"ru": "💾 Сохранить", "en": "💾 Save", "zh": "💾 保存"},
+    "preview": {"ru": "👁 Превью", "en": "👁 Preview", "zh": "👁 预览"},
+    "status": {"ru": "📊 Статус", "en": "📊 Status", "zh": "📊 状态"},
+
+    # Journey
+    "journey_start": {"ru": "🚀 Начать путь", "en": "🚀 Start journey", "zh": "🚀 开始旅程"},
+    "journey_next": {"ru": "➡️ Дальше", "en": "➡️ Next", "zh": "➡️ 下一步"},
+    "journey_complete": {"ru": "🏁 Путь завершён", "en": "🏁 Journey complete", "zh": "🏁 旅程完成"},
+    "journey_question": {"ru": "❓ Спросить", "en": "❓ Ask", "zh": "❓ 提问"},
+
+    # Innovations
+    "innovations": {"ru": "💡 Инновации", "en": "💡 Innovations", "zh": "💡 创新"},
+    "innovation_acp": {"ru": "ACP Консенсус", "en": "ACP Consensus", "zh": "ACP共识"},
+    "innovation_time": {"ru": "金元Ɉ Время", "en": "金元Ɉ Time", "zh": "金元Ɉ 时间"},
+    "innovation_3mirror": {"ru": "3-Mirror Сеть", "en": "3-Mirror Network", "zh": "三镜网络"},
+    "innovation_cooldown": {"ru": "Adaptive Cooldown", "en": "Adaptive Cooldown", "zh": "自适应冷却"},
+
+    # Messages
+    "welcome": {
+        "ru": "🌙 <b>Юнона Монтана</b>\n\nБогиня, чеканящая время.\nВремя нельзя подделать.\n14 дней требуют 14 дней.",
+        "en": "🌙 <b>Juno Montana</b>\n\nThe goddess who mints time.\nTime cannot be forged.\n14 days require 14 days.",
+        "zh": "🌙 <b>朱诺·蒙大拿</b>\n\n铸造时间的女神。\n时间无法伪造。\n14天需要14天。"
+    },
+    "choose_language": {
+        "ru": "🌐 <b>Выбери язык:</b>",
+        "en": "🌐 <b>Choose language:</b>",
+        "zh": "🌐 <b>选择语言:</b>"
+    },
+    "language_set": {
+        "ru": "✅ Язык установлен: Русский",
+        "en": "✅ Language set: English",
+        "zh": "✅ 语言设置: 中文"
+    },
+    "no_thoughts": {
+        "ru": "📭 Пока нет мыслей",
+        "en": "📭 No thoughts yet",
+        "zh": "📭 暂无想法"
+    },
+    "thought_saved": {
+        "ru": "✅ Мысль сохранена",
+        "en": "✅ Thought saved",
+        "zh": "✅ 想法已保存"
+    },
+    "enter_search": {
+        "ru": "🔍 Введите поисковый запрос:",
+        "en": "🔍 Enter search query:",
+        "zh": "🔍 输入搜索查询:"
+    },
+    "search_results": {
+        "ru": "🔍 Результаты поиска",
+        "en": "🔍 Search results",
+        "zh": "🔍 搜索结果"
+    },
+    "no_results": {
+        "ru": "❌ Ничего не найдено",
+        "en": "❌ Nothing found",
+        "zh": "❌ 未找到"
+    },
+    "confirm_action": {
+        "ru": "Подтвердить действие?",
+        "en": "Confirm action?",
+        "zh": "确认操作?"
+    },
+    "action_cancelled": {
+        "ru": "❌ Отменено",
+        "en": "❌ Cancelled",
+        "zh": "❌ 已取消"
+    },
+    "loading": {
+        "ru": "⏳ Загрузка...",
+        "en": "⏳ Loading...",
+        "zh": "⏳ 加载中..."
+    },
+    "error": {
+        "ru": "❌ Ошибка",
+        "en": "❌ Error",
+        "zh": "❌ 错误"
+    },
+    "settings_title": {
+        "ru": "⚙️ <b>Настройки</b>",
+        "en": "⚙️ <b>Settings</b>",
+        "zh": "⚙️ <b>设置</b>"
+    },
+    "current_language": {
+        "ru": "Текущий язык:",
+        "en": "Current language:",
+        "zh": "当前语言:"
+    },
+    "help_text": {
+        "ru": "📋 <b>Команды:</b>\n/start — Начать\n/menu — Меню\n/settings — Настройки\n/language — Язык\n/innovations — Инновации Montana",
+        "en": "📋 <b>Commands:</b>\n/start — Start\n/menu — Menu\n/settings — Settings\n/language — Language\n/innovations — Montana Innovations",
+        "zh": "📋 <b>命令:</b>\n/start — 开始\n/menu — 菜单\n/settings — 设置\n/language — 语言\n/innovations — 蒙大拿创新"
+    },
+    # Tokenomics
+    "minted": {"ru": "⛏ Начеканено", "en": "⛏ Minted", "zh": "⛏ 已铸造"},
+    "remaining": {"ru": "📦 Осталось", "en": "📦 Remaining", "zh": "📦 剩余"},
+    "emission": {"ru": "💰 Эмиссия/τ₂", "en": "💰 Emission/τ₂", "zh": "💰 发行/τ₂"},
+}
+
+
+def t(uid_or_lang, key: str) -> str:
+    """Get translated string. uid_or_lang can be user_id (int) or lang code (str)."""
+    if isinstance(uid_or_lang, int):
+        lang = get_user_language(uid_or_lang)
+    else:
+        lang = uid_or_lang
+
+    if lang == "auto" or lang not in ("ru", "en", "zh"):
+        lang = "ru"  # Default to Russian
+
+    if key not in UI_STRINGS:
+        return key
+
+    return UI_STRINGS[key].get(lang, UI_STRINGS[key].get("en", key))
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # JUNO MONTANA — Богиня, чеканящая время
@@ -992,22 +1126,25 @@ BOT_COMMANDS = get_bot_commands("en")
 # KEYBOARDS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def main_menu_kb():
+def main_menu_kb(uid: int = None):
+    lang = get_user_language(uid) if uid else "ru"
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📊 Статистика", callback_data="stats"),
-         InlineKeyboardButton("📅 Сегодня", callback_data="today")],
-        [InlineKeyboardButton("📝 Последние", callback_data="last"),
-         InlineKeyboardButton("🎲 Случайная", callback_data="random")],
-        [InlineKeyboardButton("🔍 Поиск", callback_data="search_start"),
-         InlineKeyboardButton("📤 Экспорт", callback_data="export")],
-        [InlineKeyboardButton("📚 Посты", callback_data="posts_list"),
-         InlineKeyboardButton("📂 Новый пост", callback_data="new_post")],
+        [InlineKeyboardButton(t(lang, "stats"), callback_data="stats"),
+         InlineKeyboardButton(t(lang, "today"), callback_data="today")],
+        [InlineKeyboardButton(t(lang, "last"), callback_data="last"),
+         InlineKeyboardButton(t(lang, "random"), callback_data="random")],
+        [InlineKeyboardButton(t(lang, "search"), callback_data="search_start"),
+         InlineKeyboardButton(t(lang, "export"), callback_data="export")],
+        [InlineKeyboardButton(t(lang, "posts"), callback_data="posts_list"),
+         InlineKeyboardButton(t(lang, "new_post"), callback_data="new_post")],
+        [InlineKeyboardButton(t(lang, "innovations"), callback_data="innovations")],
     ])
 
 
-def back_kb():
+def back_kb(uid: int = None):
+    lang = get_user_language(uid) if uid else "ru"
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("◀️ Меню", callback_data="menu")]
+        [InlineKeyboardButton(t(lang, "menu"), callback_data="menu")]
     ])
 
 
@@ -2886,11 +3023,77 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             f"Мыслей: {len(thoughts)}\n"
             f"UTC: {utc_str()}"
             f"{status}",
-            reply_markup=main_menu_kb()
+            reply_markup=main_menu_kb(uid)
         )
 
     elif data == "noop":
         pass
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # INNOVATIONS
+    # ─────────────────────────────────────────────────────────────────────────
+
+    elif data == "innovations":
+        lang = get_user_language(uid)
+        if lang == "auto" or lang not in ("ru", "en", "zh"):
+            lang = "ru"
+
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(t(lang, "innovation_acp"), callback_data="innov_001")],
+            [InlineKeyboardButton(t(lang, "innovation_time"), callback_data="innov_002")],
+            [InlineKeyboardButton(t(lang, "innovation_3mirror"), callback_data="innov_003")],
+            [InlineKeyboardButton(t(lang, "innovation_cooldown"), callback_data="innov_004")],
+            [InlineKeyboardButton(t(lang, "menu"), callback_data="menu")],
+        ])
+
+        titles = {
+            "ru": "💡 <b>Montana Инновации</b>\n\nДокументация из реального кода:",
+            "en": "💡 <b>Montana Innovations</b>\n\nDocumentation from real code:",
+            "zh": "💡 <b>Montana创新</b>\n\n来自实际代码的文档:",
+        }
+
+        await q.message.edit_text(
+            titles.get(lang, titles["en"]),
+            parse_mode="HTML",
+            reply_markup=keyboard
+        )
+
+    elif data.startswith("innov_"):
+        innov_id = data.split("_")[1]
+        lang = get_user_language(uid)
+        if lang == "auto" or lang not in ("ru", "en", "zh"):
+            lang = "ru"
+
+        innov_files = {
+            "001": "001_ACP.md",
+            "002": "002_TEMPORAL_UNIT.md",
+            "003": "003_3MIRROR.md",
+            "004": "004_ADAPTIVE_COOLDOWN.md",
+        }
+
+        if innov_id in innov_files:
+            innov_path = BASE_DIR / "data" / "innovations" / lang / innov_files[innov_id]
+            if innov_path.exists():
+                content = innov_path.read_text(encoding="utf-8")
+                # Truncate for Telegram
+                if len(content) > 3500:
+                    content = content[:3500] + "\n\n[...]"
+
+                keyboard = InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t(lang, "back"), callback_data="innovations")],
+                    [InlineKeyboardButton(t(lang, "menu"), callback_data="menu")],
+                ])
+
+                await q.message.edit_text(
+                    f"<pre>{content[:4000]}</pre>",
+                    parse_mode="HTML",
+                    reply_markup=keyboard
+                )
+            else:
+                await q.message.edit_text(
+                    t(lang, "error") + ": File not found",
+                    reply_markup=back_kb(uid)
+                )
 
     # ─────────────────────────────────────────────────────────────────────────
     # STATS
@@ -2899,7 +3102,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     elif data == "stats":
         thoughts = load_thoughts()
         if not thoughts:
-            await q.message.edit_text("Пусто.", reply_markup=back_kb())
+            await q.message.edit_text("Пусто.", reply_markup=back_kb(uid))
             return
 
         total = len(thoughts)
@@ -2926,7 +3129,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             f"Постов: {posts}\n\n"
             f"Первая: {thoughts[0]['date']}\n"
             f"Последняя: {thoughts[-1]['date']}",
-            reply_markup=back_kb()
+            reply_markup=back_kb(uid)
         )
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -2939,7 +3142,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         today_t = [t for t in thoughts if t["date"].startswith(today)]
 
         if not today_t:
-            await q.message.edit_text("Сегодня пусто.", reply_markup=back_kb())
+            await q.message.edit_text("Сегодня пусто.", reply_markup=back_kb(uid))
             return
 
         text = f"📅 Сегодня: {len(today_t)}\n\n"
@@ -2950,7 +3153,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             author = t.get("author", "")
             text += f"<blockquote>{src} {time} | {author}</blockquote>\n{preview}...\n\n"
 
-        await q.message.edit_text(text[:4000], reply_markup=back_kb(), parse_mode="HTML")
+        await q.message.edit_text(text[:4000], reply_markup=back_kb(uid), parse_mode="HTML")
 
     # ─────────────────────────────────────────────────────────────────────────
     # LAST
@@ -2959,7 +3162,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     elif data == "last" or data.startswith("last_"):
         thoughts = load_thoughts()
         if not thoughts:
-            await q.message.edit_text("Пусто.", reply_markup=back_kb())
+            await q.message.edit_text("Пусто.", reply_markup=back_kb(uid))
             return
 
         page = 0
@@ -2989,7 +3192,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     elif data == "random":
         thoughts = load_thoughts()
         if not thoughts:
-            await q.message.edit_text("Пусто.", reply_markup=back_kb())
+            await q.message.edit_text("Пусто.", reply_markup=back_kb(uid))
             return
 
         t = random.choice(thoughts)
@@ -3017,7 +3220,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         save_sessions()
         await q.message.edit_text(
             "🔍 Поиск\n\nВведи слово или фразу:",
-            reply_markup=back_kb()
+            reply_markup=back_kb(uid)
         )
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -3027,7 +3230,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     elif data == "export":
         thoughts = load_thoughts()
         if not thoughts:
-            await q.message.edit_text("Пусто.", reply_markup=back_kb())
+            await q.message.edit_text("Пусто.", reply_markup=back_kb(uid))
             return
 
         # JSON export
@@ -3051,7 +3254,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
         await q.message.edit_text(
             f"📤 Экспортировано\n\n{len(thoughts)} мыслей",
-            reply_markup=back_kb()
+            reply_markup=back_kb(uid)
         )
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -3061,7 +3264,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     elif data == "posts_list":
         posts = sorted(PARSED_DIR.glob("*.md"))
         if not posts:
-            await q.message.edit_text("Постов нет.", reply_markup=back_kb())
+            await q.message.edit_text("Постов нет.", reply_markup=back_kb(uid))
             return
 
         buttons = []
@@ -3081,7 +3284,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             content = p.read_text(encoding="utf-8")
             if len(content) > 3900:
                 content = content[:3900] + "\n\n..."
-            await q.message.edit_text(content[:4000], reply_markup=back_kb())
+            await q.message.edit_text(content[:4000], reply_markup=back_kb(uid))
             break
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -3106,7 +3309,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
         await q.message.edit_text(
             "📂 Новый пост\n\nВведи номер поста:",
-            reply_markup=back_kb()
+            reply_markup=back_kb(uid)
         )
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -3116,7 +3319,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     elif data == "post_status":
         post = get_post(uid)
         if not post:
-            await q.message.edit_text("Нет активного поста.", reply_markup=main_menu_kb())
+            await q.message.edit_text("Нет активного поста.", reply_markup=main_menu_kb(uid))
             return
 
         entries_preview = "\n".join([
@@ -3148,7 +3351,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     elif data == "post_save":
         post = get_post(uid)
         if not post or not post.entries:
-            await q.message.edit_text("Нечего сохранять.", reply_markup=main_menu_kb())
+            await q.message.edit_text("Нечего сохранять.", reply_markup=main_menu_kb(uid))
             return
 
         await q.message.edit_text(
@@ -3170,13 +3373,13 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 f"✅ Сохранено\n\n"
                 f"📄 {filepath.name}\n"
                 f"📊 {n} записей",
-                reply_markup=main_menu_kb()
+                reply_markup=main_menu_kb(uid)
             )
 
     elif data == "post_cancel":
         post = get_post(uid)
         if not post:
-            await q.message.edit_text("Нет поста.", reply_markup=main_menu_kb())
+            await q.message.edit_text("Нет поста.", reply_markup=main_menu_kb(uid))
             return
 
         await q.message.edit_text(
@@ -3188,7 +3391,7 @@ async def callback_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     elif data == "confirm_cancel_post":
         set_post(uid, None)
-        await q.message.edit_text("❌ Пост отменён.", reply_markup=main_menu_kb())
+        await q.message.edit_text("❌ Пост отменён.", reply_markup=main_menu_kb(uid))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -3208,7 +3411,7 @@ async def do_search(update: Update, ctx: ContextTypes.DEFAULT_TYPE, query: str):
             found.append({"id": f"📄{p.stem}", "text": f"Пост: {p.name}", "date": "", "source": "post"})
 
     if not found:
-        await update.message.reply_text(f"«{query}» — ничего.", reply_markup=main_menu_kb())
+        await update.message.reply_text(f"«{query}» — ничего.", reply_markup=main_menu_kb(uid))
         return
 
     text = f"🔍 «{query}»\nНайдено: {len(found)}\n\n"
@@ -3216,7 +3419,7 @@ async def do_search(update: Update, ctx: ContextTypes.DEFAULT_TYPE, query: str):
         preview = t["text"][:60].replace("\n", " ")
         text += f"#{t['id']} {preview}...\n\n"
 
-    await update.message.reply_text(text[:4000], reply_markup=main_menu_kb())
+    await update.message.reply_text(text[:4000], reply_markup=main_menu_kb(uid))
 
 
 async def create_post_step1(update: Update, ctx: ContextTypes.DEFAULT_TYPE, text: str):
@@ -3226,7 +3429,7 @@ async def create_post_step1(update: Update, ctx: ContextTypes.DEFAULT_TYPE, text
     try:
         num = int(text.strip())
     except:
-        await update.message.reply_text("Номер должен быть числом.", reply_markup=main_menu_kb())
+        await update.message.reply_text("Номер должен быть числом.", reply_markup=main_menu_kb(uid))
         return
 
     s = get_session(uid)
@@ -3236,7 +3439,7 @@ async def create_post_step1(update: Update, ctx: ContextTypes.DEFAULT_TYPE, text
 
     await update.message.reply_text(
         f"Номер: {num}\n\nТеперь введи название:",
-        reply_markup=back_kb()
+        reply_markup=back_kb(uid)
     )
 
 

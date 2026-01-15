@@ -10,8 +10,9 @@
 
 ## Topics / Темы / 主题
 
-| # | RU | EN | 中文 |
-|---|----|----|------|
-| 001 | Атемпоральное Координатное Присутствие | Atemporal Coordinate Presence | 非时间坐标存在 |
-| 002 | Темпоральная единица 金元Ɉ | Temporal Unit 金元Ɉ | 时间单位 金元Ɉ |
-| 003 | Система 3-х Зеркал | 3-Mirror System | 三镜系统 |
+| # | RU | EN | 中文 | Code |
+|---|----|----|------|------|
+| 001 | ACP Консенсус | ACP Consensus | ACP共识 | `consensus.rs` |
+| 002 | 金元Ɉ Время | 金元Ɉ Time | 金元Ɉ 时间 | `types.rs` |
+| 003 | 3-Mirror Сеть | 3-Mirror Network | 三镜网络 | `watchdog.py` |
+| 004 | Adaptive Cooldown | Adaptive Cooldown | 自适应冷却 | `cooldown.rs` |

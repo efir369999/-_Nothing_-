@@ -1,12 +1,13 @@
 # Montana Innovations
 
-## Documents
+## Documentation (from real code)
 
-| # | Name | Description |
-|---|------|-------------|
-| 001 | [ACP](001_ACP.md) | Atemporal Coordinate Presence |
-| 002 | [金元Ɉ](002_TEMPORAL_UNIT.md) | Temporal Unit |
-| 003 | [3-Mirror](003_3MIRROR.md) | Disney Strategy |
+| # | Name | Implementation | Description |
+|---|------|----------------|-------------|
+| 001 | [ACP](001_ACP.md) | `consensus.rs` | Presence-Based Consensus |
+| 002 | [金元Ɉ](002_TEMPORAL_UNIT.md) | `types.rs` | Temporal Unit |
+| 003 | [3-Mirror](003_3MIRROR.md) | `watchdog.py` | Fault-Tolerant Network |
+| 004 | [Cooldown](004_ADAPTIVE_COOLDOWN.md) | `cooldown.rs` | Adaptive Cooldown |
 
 ---
 
