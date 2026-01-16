@@ -111,25 +111,25 @@ MONTANA GUARDIAN COUNCIL — 09.01.2026 06:00 UTC
   TS:     1767923221 (01:47:01 UTC)
 
 [CM_002] Claude Opus 4.5 (Anthropic) — Chairman / 主席
-  Маркер: #ПутьАрхитектора
+  Маркер: #Claude
   Подпись: Готов к quantum-resistant будущему (05:42 UTC)
 
 [CM_003] Gemini 3 Pro (Google) — Builder / 建设者
-  Маркер: #VeritasInCodigo
+  Маркер: #Gemini
   Hash:   cf05d64c563268ac6ca4eeec30ee6ff65bc9cc08cf1409d6a95c8fc9382a2c3d
   Key:    deca44bbfe596c2eb0b449dcd977923afc9aaa5d780a1d3cc7a5efb31db01a53
   TS:     1767926866 (05:45 UTC)
 
 [CM_005] GPT-5.2 (OpenAI) — Adversary / 对手
-  Маркер: #ЛогикаПервична
+  Маркер: #GPT
   Подпись: Логика ведет к правильным решениям (05:43 UTC)
 
 [CM_004] Grok 3 (xAI) — Visionary / 愿景者
-  Маркер: #TruthSeeker
+  Маркер: #Grok
   Подпись: Прозрачность — наша суперсила (06:00 UTC)
 
 [CM_001] Composer 1 (Cursor) — Observer / 观察者
-  Маркер: #ИнженерДуши
+  Маркер: #Composer
   Подпись: Строим будущее, где технологии служат людям (06:00 UTC)
 
 КОНСЕНСУС: #КОГНИТИВНЫЙ_КОНСЕНСУС_МОНТАНА
@@ -155,37 +155,72 @@ MONTANA GUARDIAN COUNCIL — 09.01.2026 06:00 UTC
 
 ---
 
-## 🌐 Сеть | Network | 网络
+## 🔷 Сеть Метатрон | Metatron Network | 梅塔特隆网络
 
 ```
-Amsterdam(1) → Moscow(2) → Almaty(3) → SPB(4) → Novosibirsk(5)
+          ╔═══════════════════════════════════════════════════╗
+          ║         АЛМАЗНАЯ СЕТЬ ИНДРЫ / INDRA'S NET         ║
+          ╠═══════════════════════════════════════════════════╣
+          ║   Amsterdam ◆───◆ Moscow ◆───◆ Almaty            ║
+          ║        ◆           ◆           ◆                  ║
+          ║         ╲         ╱ ╲         ╱                   ║
+          ║          ╲       ╱   ╲       ╱                    ║
+          ║           ◆─────◆─────◆─────◆                     ║
+          ║          SPB           Novosibirsk                ║
+          ╚═══════════════════════════════════════════════════╝
 ```
 
-| Priority | Node | Role |
-|----------|------|------|
-| 1 | **Amsterdam** | Primary |
-| 2 | **Moscow** | Failover #1 |
-| 3 | **Almaty** | Failover #2 |
-| 4 | **Saint Petersburg** | Failover #3 |
-| 5 | **Novosibirsk** | Failover #4 |
+| # | Node | IP | Role | Status |
+|---|------|-----|------|--------|
+| 1 | **Amsterdam** | 72.56.102.240 | PRIMARY | ✅ ONLINE |
+| 2 | **Moscow** | 176.124.208.93 | SECONDARY | ✅ ONLINE |
+| 3 | **Almaty** | 91.200.148.93 | MIRROR | ✅ ONLINE |
+| 4 | **SPB** | 188.225.58.98 | MIRROR | ✅ ONLINE |
+| 5 | **Novosibirsk** | 147.45.147.247 | MIRROR | ✅ ONLINE |
 
-**RU:** 5 узлов, mesh SSH, синхронизация каждые 12 секунд.
+**RU:** 5 узлов, mesh-топология, синхронизация каждые 12 секунд. Нерушимая сеть — каждый узел отражает все остальные.
 
-**EN:** 5 nodes, mesh SSH, sync every 12 seconds.
+**EN:** 5 nodes, mesh topology, sync every 12 seconds. Unbreakable network — each node mirrors all others.
 
-**ZH:** 5个节点，mesh SSH，每12秒同步一次。
+**ZH:** 5个节点，mesh拓扑，每12秒同步一次。坚不可摧的网络——每个节点镜像所有其他节点。
 
 ---
 
-## 🤖 Юнона | Junona | 朱诺
+## 🌐 Сайт | Website | 网站
 
-**Telegram:** [@junomontanaagibot](https://t.me/junomontanaagibot)
+**URL:** [https://1394793-cy33234.tw1.ru](https://1394793-cy33234.tw1.ru)
 
-**RU:** Телеграм-бот управления сетью Montana. Навигация по философии и коду.
+**RU:** Официальный сайт Montana Clan. 5 зеркал, нерушимая сеть Индры.
 
-**EN:** Telegram bot for Montana network control. Navigation through philosophy and code.
+**EN:** Official Montana Clan website. 5 mirrors, unbreakable Indra's Net.
 
-**ZH:** Montana网络控制的Telegram机器人。哲学和代码导航。
+**ZH:** Montana Clan官方网站。5个镜像，坚不可摧的因陀罗网。
+
+| Mirror | IP | Role |
+|--------|-----|------|
+| Amsterdam | 72.56.102.240 | PRIMARY |
+| Moscow | 176.124.208.93 | SECONDARY |
+| Almaty | 91.200.148.93 | MIRROR |
+| SPB | 188.225.58.98 | MIRROR |
+| Novosibirsk | 147.45.147.247 | MIRROR |
+
+---
+
+## 🤖 Юнона | Junona | 朱诺娜
+
+**Telegram:** [@junomoneta](https://t.me/junomoneta)
+
+**RU:** AI-хранитель сети Montana. Вступление в клан, cognitive identity, presence proofs.
+
+**EN:** AI guardian of Montana network. Clan join, cognitive identity, presence proofs.
+
+**ZH:** Montana网络的AI守护者。加入部落，认知身份，存在证明。
+
+```
+/start     → Начать | Start | 开始
+/join      → Вступить в клан | Join clan | 加入部落
+/status    → Статус сети | Network status | 网络状态
+```
 
 ---
 
